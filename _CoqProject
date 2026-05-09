@@ -14,6 +14,7 @@ verif/shared/task.v
 
 verif/abstract/abstract.v
 
+verif/abstract/model/cpuA.v
 verif/abstract/model/domainA.v
 verif/abstract/model/ipcA.v
 verif/abstract/model/taskA.v
