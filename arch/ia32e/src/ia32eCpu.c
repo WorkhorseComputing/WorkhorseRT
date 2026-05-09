@@ -894,9 +894,7 @@ int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
     vector = param->ia32eParam.vector;
     prio = IA32E_VECTOR_TO_PRIO(vector);
 
-    /* min prio & max prio is reserved (tpr=0 unmasks all vectors, tpr=15 reserved for kernel) */
-
-    if (prio == IA32E_MIN_VECTOR_PRIO || prio == IA32E_MAX_VECTOR_PRIO)
+    if (prio <= 1 || prio == IA32E_MAX_VECTOR_PRIO)
         return -EINVAL;
 
     info->ia32eInfo.vector = vector;

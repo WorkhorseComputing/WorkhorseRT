@@ -8,10 +8,7 @@ The APIC MMIO region is reserved exclusively for the kernel. plugins must not pr
 
 On ia32e, any domain that communicates directly with hardware capable of generating interrupts becomes part of the Trusted Computing Base (TCB). Such domains must follow strict constraints on the interrupt vectors which are used to preserve temporal and spatial isolation.
 
-The following vectors are reserved by the kernel and must never be targeted by device interrupts:
-- ```IA32E_SPURIOUS_INT_VECTOR 255```
-- ```IA32E_K_EVENT_VECTOR 254```
-- ```IA32E_K_FAKE_ISR_VECTOR 253```
+The vectors 0-31, and 240-255 are reserved by the kernel and must never be targeted by device interrupts. Vector 2 is a special case and only allowed if routed as an NMI.
 
 All other vectors may be used for device interrupts, however, not all vectors will support LSR monitoring.
 
