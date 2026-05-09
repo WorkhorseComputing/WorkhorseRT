@@ -7,6 +7,17 @@ Plugins may use all APIs specified in kPlugin.h, aswell as architecture specific
 --- 
 
 ```c
+K_REGISTER_PLUGIN(_name, _fn, order)
+```
+
+Registers a plugin. 
+
+Plugins run sequentially in the order derived by the order parameter.
+Plugins which have the same order value are ordered arbitrarily, but will still run before plugins of a higher order.
+
+---
+
+```c
 kPluginPrintf(fmt, ...)
 ```
 

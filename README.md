@@ -12,6 +12,7 @@ It is designed specifically for hard real‑time and safety-critical environment
 - [Getting started](doc/gettingStarted.md)
 - [High level design](doc/highLevelDesign.md)
 - [Porting](doc/porting/porting.md)
+- [Plugins](doc/plugin/plugins.md)
 
 ## Contact
 
