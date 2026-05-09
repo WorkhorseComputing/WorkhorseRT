@@ -1,0 +1,120 @@
+mainmenu "WorkhorseRT Configuration"
+
+choice 
+
+    prompt "Architecture"
+    default ARCH_IA32E
+
+    config ARCH_IA32E
+        bool "ia32e"
+
+endchoice # Architecture
+
+if ARCH_IA32E
+    source "arch/ia32e/Kconfig"
+endif # ARCH_IA32E
+
+config KMAX_CPUS
+    int "Maximum number of CPUs"
+    default 4
+    range 1 512
+    ---help---
+        Sets the maximum number of CPUs supported by WorkhorseRT
+
+config KBUF_SIZE
+    int "Kernel buffer size"
+    default 256
+    range 256 4096
+    ---help---
+        Size of stack buffers used in the kernel
+
+choice
+
+    prompt "Scheduling algorithm"
+    default KSCHED_ALGORITHM_BCS
+
+    config KSCHED_ALGORITHM_BCS
+        bool "Burst-cooldown server"
+
+    config KSCHED_ALGORITHM_DS
+        bool "Deferrable server"
+
+endchoice # Scheduling algorithm
+
+choice 
+
+    prompt "Scheduling policy"
+    default KSCHED_POLICY_RR
+
+    config KSCHED_POLICY_RR
+        bool "Round robin"
+
+    config KSCHED_POLICY_CYCLIC
+        bool "Cyclic"
+
+    config KSCHED_POLICY_EDF
+        bool "Earliest deadline first"
+
+endchoice # Scheduling policy
+
+if KSCHED_POLICY_RR
+
+    config KSCHED_POLICY_RR_NUM_PRIO
+        int "Number of priorities"
+        default 32
+        range 1 256
+        ---help---
+            Number of valid priority levels with round robin scheduling
+
+endif # KSCHED_POLICY_RR 
+
+if KSCHED_POLICY_CYCLIC
+
+    config KSCHED_POLICY_CYCLIC_NUM_FRAMES
+        int "Number of frames"
+        default 256
+        range 1 8192
+        ---help---
+            Number of valid scheduling frames with cyclic scheduling
+
+endif # KSCHED_POLICY_CYCLIC
+
+config KMAX_TASKS
+    int "Maximum number of tasks"
+    default 256
+    range 1 8192
+    ---help---
+        Sets the maximum number of tasks
+
+config KMAX_DOMAINS
+    int "Maximum number of domains"
+    default 256
+    range 1 8192
+    ---help---
+        Sets the maximum number of domains
+
+config KMAX_DOMAIN_INVOCATION_DEPTH
+    int "Maximum domain invocation depth"
+    default 8
+    range 1 256
+    ---help---
+        Sets the maximum number of nested domain invocations possible
+
+config KDYNAMIC_ASSERT
+    bool "Enable dynamic asserts"
+    default y
+    ---help---
+        Enables dynamic assertations for debugging purposes
+
+config KTICK_MS
+    int "Time taken between each tick (ms)"
+    default 1
+    range 1 2147483647
+    ---help---
+        Sets the number of milliseconds taken between each tick
+
+config KPLUGIN_DEMO
+    bool "Plugin demo"
+    default n
+    ---help---
+        Enables the demo for plugins

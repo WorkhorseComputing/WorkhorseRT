@@ -1,0 +1,8 @@
+gcc
+make
+python3
+pipx
+python3-kconfiglib
+mtools
+vim
+cmake

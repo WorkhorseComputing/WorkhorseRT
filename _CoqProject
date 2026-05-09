@@ -1,0 +1,27 @@
+# config
+
+-Q verif verif
+
+# utils
+
+verif/utils/utils.v
+
+# shared
+
+verif/shared/task.v
+
+# abstract
+
+verif/abstract/abstract.v
+
+verif/abstract/model/domainA.v
+verif/abstract/model/ipcA.v
+verif/abstract/model/taskA.v
+
+# concrete
+
+verif/concrete/concrete.v
+
+# refinement
+
+verif/refinement/refinement.v
