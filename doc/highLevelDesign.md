@@ -25,6 +25,8 @@ Design goals:
 
 WorkhorseRT has a configurable scheduler supporting multiple throttling algorithms and policies. The scheduler is designed such that new policies can be easily implemented if required.
 
+Partitioned scheduling is used, where each task is statically assigned to a specific core. This improves determinism and replayability by eliminating cross core migrations, making it much better suited for hard real-time systems.
+
 Throttling algorithms:
 - Burst Cooldown Server (BCS)
 - Deferrable Server (DS)
