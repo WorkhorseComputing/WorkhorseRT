@@ -1,0 +1,13 @@
+build/*
+generated/*
+include/generated/*
+
+Makefile
+Makefile.conf
+.Makefile.d
+
+verif/**/.*.aux
+verif/**/*.glob
+verif/**/*.vo
+verif/**/*.vok
+verif/**/*.vos
