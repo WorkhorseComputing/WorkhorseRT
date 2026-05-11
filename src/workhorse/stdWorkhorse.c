@@ -1,5 +1,6 @@
 #include <stdWorkhorse.h>
 
+inline
 void *memcpy(void *dest, const void *src, size_t n)
 {
     const char *_src = (char *)src;
@@ -11,6 +12,7 @@ void *memcpy(void *dest, const void *src, size_t n)
     return dest;
 }
 
+inline
 void *memset(void *str, int c, size_t n)
 {
     char *_str = (char *)str;
