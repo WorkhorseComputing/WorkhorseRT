@@ -34,7 +34,7 @@ static
 bool gOpsInitialized = false;
 
 static 
-kSchedTask_t *kTasks[CONFIG_KMAX_TASKS];
+kSchedTask_t *kTasks[CONFIG_KMAX_TASKS + CONFIG_KMAX_CPUS];
 
 int kSchedTaskAdd(uint32_t taskId, kSchedTask_t *task)
 {

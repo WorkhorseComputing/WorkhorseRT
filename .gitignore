@@ -11,3 +11,5 @@ verif/**/*.glob
 verif/**/*.vo
 verif/**/*.vok
 verif/**/*.vos
+
+.vscode

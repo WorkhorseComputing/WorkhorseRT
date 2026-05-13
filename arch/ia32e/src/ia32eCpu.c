@@ -479,6 +479,8 @@ void ia32eEarlyIdtInit(void)
         ia32eIdt64[i].reserved0 = 0;
     }   
 
+    ia32eIdt64High[IA32E_BREAKPOINT].attr |= (3 << 5);
+
     global->cpuDataStructures.idtr.base = (uintptr_t)ia32eIdt64High;
     global->cpuDataStructures.idtr.limit = sizeof(global->cpuDataStructures.idt) - 1;
 }
