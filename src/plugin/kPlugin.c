@@ -96,7 +96,7 @@ int kPluginInitTaskThread(kSchedTask_t *task, kPluginTaskThreadParam_t *param)
 
 #endif
 
-    memset(task, 0, sizeof(task));
+    memset(task, 0, sizeof(*task));
 
     task->cpuId = param->cpuId;
 
