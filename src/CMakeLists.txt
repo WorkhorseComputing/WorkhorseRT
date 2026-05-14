@@ -4,6 +4,7 @@ file(GLOB_RECURSE WORKHORSE_CORE_C
     workhorse/**/*.c
     workhorse/*.c
     plugin/*.c
+    *.c
 )
 
 set(WORKHORSE_CORE_OBJS
