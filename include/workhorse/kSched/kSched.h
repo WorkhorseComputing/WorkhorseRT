@@ -30,7 +30,7 @@
 #include <export/kDbgInterface.h>
 #include <export/kCpuInterface.h>
 
-#define K_SCHED_IDLE_TASK_ID() (kThisCpuId())
+#define K_SCHED_IDLE_TASK_ID() (CONFIG_KMAX_TASKS + kThisCpuId())
 
 typedef void (*kSchedInitFn_t)(void);
 typedef void (*kSchedTickTransitionCallbackFn_t)(void);
