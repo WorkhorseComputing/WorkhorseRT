@@ -148,7 +148,7 @@ int kPluginInitTaskLsr(kSchedTask_t *task, kPluginTaskLsrParam_t *param)
     if (!domain || !kCpuIdValidate(param->cpuId) || !kSchedTaskCanAdd(param->taskId))
         return -EINVAL; 
 
-    err = kCpuLsrInfoInit(&lsr->archInfo, &param->param);
+    err = kCpuLsrInfoInit(&lsr->archInfo, &param->archParam);
     if (err < 0)
         return err;
 
