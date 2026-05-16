@@ -61,6 +61,14 @@ typedef struct ia32eSchedCtx
     ia32eStack_t kStack;
 } ia32eSchedCtx_t;
 
+typedef struct ia32eSchedThreadParam
+{
+} ia32eSchedThreadParam_t;
+
+typedef struct ia32eSchedThreadInfo
+{
+} ia32eSchedThreadInfo_t;
+
 typedef struct ia32eSchedLsrParam
 {
     uint8_t vector;
@@ -88,6 +96,16 @@ typedef struct archSchedCtx
 {
     ia32eSchedCtx_t ia32eCtx;
 } archSchedCtx_t;
+
+typedef struct archSchedThreadParam
+{
+    ia32eSchedThreadParam_t ia32eParam;
+} archSchedThreadParam_t;
+
+typedef struct archSchedThreadInfo
+{
+    ia32eSchedThreadInfo_t ia32eInfo;
+} archSchedThreadInfo_t;
 
 typedef struct archSchedLsrParam
 {

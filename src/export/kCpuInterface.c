@@ -127,6 +127,12 @@ bool kCpuIdValidate(uint32_t cpuId)
     return gOps->kCpuIdValidateFn(cpuId);
 }
 
+int kCpuThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param)
+{
+    K_DYNAMIC_ASSERT(gOpsInitialized);
+    return gOps->kCpuThreadInfoInitFn(info, param);
+}
+
 int kCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
 {
     K_DYNAMIC_ASSERT(gOpsInitialized);

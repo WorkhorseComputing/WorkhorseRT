@@ -52,6 +52,7 @@ kCpuOps_t cpuOps = {
     .kCpuTaskLsrPushFn = ia32eCpuTaskLsrPush,
     .kCpuEventSenderFn = ia32eEventSender,
     .kCpuIdValidateFn = ia32eCpuIdValidate,
+    .kCpuThreadInfoInitFn = ia32eCpuThreadInfoInit,
     .kCpuLsrInfoInitFn = ia32eCpuLsrInfoInit,
     .kCpuDomainInfoInitFn = ia32eCpuDomainInfoInit
 };

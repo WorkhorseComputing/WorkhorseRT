@@ -45,6 +45,7 @@ typedef void (*kCpuEnterDomainFn_t)(kDomain_t *domain);
 typedef void (*kCpuTaskLsrPushFn_t)(kSchedTask_t *task);
 typedef uint32_t (*kCpuEventSenderFn_t)(void);
 typedef bool (*kCpuIdValidateFn_t)(uint32_t cpuId);
+typedef int (*kCpuThreadInfoInitFn_t)(archSchedThreadInfo_t *info, archSchedThreadParam_t *param);
 typedef int (*kCpuLsrInfoInitFn_t)(archSchedLsrInfo_t *info, archSchedLsrParam_t *param);
 typedef int (*kCpuDomainInfoInitFn_t)(archDomainInfo_t *info, archDomainParam_t *param);
 
@@ -64,6 +65,7 @@ typedef struct kCpuOps
     kCpuTaskLsrPushFn_t kCpuTaskLsrPushFn;
     kCpuEventSenderFn_t kCpuEventSenderFn;
     kCpuIdValidateFn_t kCpuIdValidateFn;
+    kCpuThreadInfoInitFn_t kCpuThreadInfoInitFn;
     kCpuLsrInfoInitFn_t kCpuLsrInfoInitFn;
     kCpuDomainInfoInitFn_t kCpuDomainInfoInitFn;
     
@@ -85,6 +87,7 @@ void kCpuEnterDomain(kDomain_t *domain);
 void kCpuTaskLsrPush(kSchedTask_t *task);
 uint32_t kCpuEventSender(void);
 bool kCpuIdValidate(uint32_t cpuId);
+int kCpuThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param);
 int kCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param);
 int kCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param);
 
