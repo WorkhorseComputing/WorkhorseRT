@@ -80,6 +80,7 @@ typedef struct kPluginDomainParam
 {
     uint32_t domId;
     kDomainParam_t param;
+    archDomainParam_t archParam;
 } kPluginDomainParam_t;
 
 #define kPluginPrintf(fmt, ...) kDbgStrf((fmt), ##__VA_ARGS__)
