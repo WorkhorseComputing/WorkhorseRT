@@ -48,6 +48,7 @@
 #define ATTR_NORETURN __attribute__((noreturn))
 #define ATTR_HIDDEN __attribute__((visibility("hidden")));
 #define ATTR_FALLTHROUGH __attribute__((fallthrough))
+#define ATTR_UNUSED __attribute__((unused))
 
 #define FEMTOSECOND 1000000000000000ULL
 

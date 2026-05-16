@@ -63,6 +63,7 @@ typedef struct kPluginTaskThreadParam
     uint32_t budget;
     uint32_t period;
     kSchedParam_t param;
+    archSchedThreadParam_t archParam;
     kSchedTaskCallbacks_t callbacks;
 } kPluginTaskThreadParam_t;
 
@@ -71,7 +72,7 @@ typedef struct kPluginTaskLsrParam
     uint32_t cpuId;
     uint32_t domId;
     uint32_t taskId;
-    archSchedLsrParam_t param;
+    archSchedLsrParam_t archParam;
     kSchedTaskCallbacks_t callbacks;
 } kPluginTaskLsrParam_t;
 

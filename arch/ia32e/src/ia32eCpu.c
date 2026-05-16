@@ -888,6 +888,11 @@ bool ia32eCpuIdValidate(uint32_t cpuId)
     return cpuId < global->numCpus && global->cpuTable[cpuId].cpuFlags.fields.online != 0;
 }
 
+int ia32eCpuThreadInfoInit(ATTR_UNUSED archSchedThreadInfo_t *info, ATTR_UNUSED archSchedThreadParam_t *param)
+{
+    return 0;
+}
+
 int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
 {
     uint8_t vector = 0;

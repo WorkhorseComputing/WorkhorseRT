@@ -301,6 +301,7 @@ void ia32eCpuEnterDomain(kDomain_t *domain);
 void ia32eCpuTaskLsrPush(kSchedTask_t *task);
 uint32_t ia32eEventSender(void);
 bool ia32eCpuIdValidate(uint32_t cpuId);
+int ia32eCpuThreadInfoInit(ATTR_UNUSED archSchedThreadInfo_t *info, ATTR_UNUSED archSchedThreadParam_t *param);
 int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param);
 int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param);
 

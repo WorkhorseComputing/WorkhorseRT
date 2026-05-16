@@ -40,6 +40,7 @@ int kPluginInitTaskThread(kSchedTask_t *task, kPluginTaskThreadParam_t *param)
 {
     kDomain_t *domain = NULL;
     kSchedThread_t *thread = NULL;
+    int err = 0;
 
     K_DYNAMIC_ASSERT(!gPluginsDone);
 
@@ -51,6 +52,8 @@ int kPluginInitTaskThread(kSchedTask_t *task, kPluginTaskThreadParam_t *param)
 #endif
 
     domain = kDomainUniverseGet(param->domId);
+    thread = &task->taggedInfo.info.thread;
+    
     if (!domain || !kCpuIdValidate(param->cpuId) || !kSchedTaskCanAdd(param->taskId) || param->budget == 0)
         return -EINVAL;
 
@@ -58,6 +61,10 @@ int kPluginInitTaskThread(kSchedTask_t *task, kPluginTaskThreadParam_t *param)
 
     if (param->param.paramRr.prio >= CONFIG_KSCHED_POLICY_RR_NUM_PRIO || param->param.paramRr.timesliceTicks == 0)
         return -EINVAL;
+
+    err = kCpuThreadInfoInit(&thread->archInfo, &param->archParam);
+    if (err < 0)
+        return err;
 
 #endif
 
@@ -80,6 +87,10 @@ int kPluginInitTaskThread(kSchedTask_t *task, kPluginTaskThreadParam_t *param)
         low = bit + 1;
     }
 
+    err = kCpuThreadInfoInit(&thread->archInfo, &param->archParam);
+    if (err < 0)
+        return err;
+
     low = 0;
    
     while ((bit = bitmapFfs(param->param.paramCyclic.frameBmp, CONFIG_KSCHED_POLICY_CYCLIC_NUM_FRAMES, low)) != -1) {
@@ -94,6 +105,10 @@ int kPluginInitTaskThread(kSchedTask_t *task, kPluginTaskThreadParam_t *param)
     if (param->param.paramEdf.virtualDeadline == 0)
         return -EINVAL;
 
+    err = kCpuThreadInfoInit(&thread->archInfo, &param->archParam);
+    if (err < 0)
+        return err;
+
 #endif
 
     memset(task, 0, sizeof(*task));
@@ -103,7 +118,6 @@ int kPluginInitTaskThread(kSchedTask_t *task, kPluginTaskThreadParam_t *param)
     task->state = K_TASK_STATE_READY;
     task->taggedInfo.type = K_TASK_THREAD;
 
-    thread = &task->taggedInfo.info.thread;
     thread->param = param->param;
     thread->tick.budget = param->budget;
     thread->tick.currentBudget = param->budget;
@@ -134,7 +148,7 @@ int kPluginInitTaskLsr(kSchedTask_t *task, kPluginTaskLsrParam_t *param)
     if (!domain || !kCpuIdValidate(param->cpuId) || !kSchedTaskCanAdd(param->taskId))
         return -EINVAL; 
 
-    err = kCpuLsrInfoInit(&lsr->archInfo, &param->param);
+    err = kCpuLsrInfoInit(&lsr->archInfo, &param->archParam);
     if (err < 0)
         return err;
 

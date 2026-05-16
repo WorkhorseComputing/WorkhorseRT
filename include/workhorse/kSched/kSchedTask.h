@@ -76,6 +76,7 @@ typedef struct kSchedTick
 typedef struct kSchedThread
 {
     kSchedParam_t param;
+    archSchedThreadInfo_t archInfo;
     kSchedThreadLink_t link;
     kSchedTick_t tick;
 } kSchedThread_t;
