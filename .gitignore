@@ -1,5 +1,5 @@
 .config
-.config.old
+.config.*
 
 build/*
 generated/*
