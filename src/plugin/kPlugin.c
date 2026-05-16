@@ -177,7 +177,7 @@ int kPluginInitDomain(kDomain_t *domain, kPluginDomainParam_t *param)
     if (!kDomainUniverseCanAdd(param->domId))
         return -EINVAL;
 
-    err = kCpuDomainInfoInit(&domain->archInfo, &param->param.archParam);
+    err = kCpuDomainInfoInit(&domain->archInfo, &param->archParam);
     if (err < 0)
         return err;
 

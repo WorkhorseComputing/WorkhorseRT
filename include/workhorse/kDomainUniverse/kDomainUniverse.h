@@ -65,7 +65,6 @@ typedef struct kDomainInvocationInfo
 
 typedef struct kDomainParam
 {
-    archDomainParam_t archParam;
     kDomainInvocationInfo_t invocationInfo;
 } kDomainParam_t;
 
