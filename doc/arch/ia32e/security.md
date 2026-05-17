@@ -12,6 +12,8 @@ The vectors 0-31, and 240-255 are reserved by the kernel and must never be targe
 
 All other vectors may be used for device interrupts, however, not all vectors will support LSR monitoring.
 
+Plugins may make use of the interrupt remapping (if supported by hardware), and masking IOAPIC entries to prevent misbehaving devices from sending interrupts at vectors that they otherwise shouldn't.
+
 ## DMA
 
 Although VT-d is currently not natively supported by WorkhorseRT, it can still be implemented and leveraged by a plugin to ensure devices aren't able to read/write to arbitrary memory.

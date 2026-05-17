@@ -29,6 +29,7 @@
 #include <workhorse/kSched/kSchedTask.h>
 #include <export/kDbgInterface.h>
 #include <export/kCpuInterface.h>
+#include <export/kCallbackInterface.h>
 
 #define K_SCHED_IDLE_TASK_ID() (CONFIG_KMAX_TASKS + kThisCpuId())
 
@@ -83,6 +84,8 @@ void kSchedTaskIdleInit(kSchedTask_t *idle)
 #else 
     kSchedTaskAdd(cpuId, idle);
 #endif
+
+    kCallbackActivation(idle);
 }
 
 #endif
