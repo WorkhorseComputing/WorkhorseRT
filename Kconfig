@@ -8,11 +8,18 @@ choice
     config ARCH_IA32E
         bool "ia32e"
 
+    config ARCH_MIPS32
+        bool "mips32"
+
 endchoice # Architecture
 
 if ARCH_IA32E
     source "arch/ia32e/Kconfig"
 endif # ARCH_IA32E
+
+if ARCH_MIPS32
+    source "arch/mips32/Kconfig"
+endif # ARCH_MIPS32
 
 config KMAX_CPUS
     int "Maximum number of CPUs"
