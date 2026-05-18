@@ -35,6 +35,7 @@
 #include <lib/acpi.h>
 #include <export/kCpuInterface.h>
 #include <export/kTimerInterface.h>
+#include <export/kCallbackInterface.h>
 
 static 
 kCpuOps_t cpuOps = {
@@ -61,6 +62,13 @@ static
 kTimerOps_t timerOps = {
     .kTimerFrequencyHzFn = ia32eTimerFrequencyHz,
     .kTimerArmPeriodicFn = ia32eTimerArmPeriodic
+};
+
+static 
+kCallbackOps_t callbackOps = {
+    .kCallbackActivationFn = ia32eCallbackActivation,
+    .kCallbackResponseFn = ia32eCallbackResponse,
+    .kCallbackCpuHandoffFn = ia32eCallbackCpuHandoff
 };
 
 static 
@@ -614,6 +622,7 @@ void ia32eInterfacesInit(void)
 {
     kCpuOpsInit(&cpuOps);
     kTimerOpsInit(&timerOps);
+    kCallbackOpsInit(&callbackOps);
 }
 
 /* Register initcalls */

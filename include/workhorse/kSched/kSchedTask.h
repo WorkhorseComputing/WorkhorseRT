@@ -59,6 +59,12 @@ typedef enum kSchedState
     K_TASK_STATE_FAILURE =                      10
 } kSchedState_t;
 
+#define K_SCHED_TASK_ACTIVATED(state)               \
+    (!((state) == K_TASK_STATE_INVALID ||           \
+    (state) == K_TASK_STATE_THREAD_THROTTLED ||     \
+    (state) == K_TASK_STATE_LSR_DORMANT ||          \
+    (state) == K_TASK_STATE_FAILURE))
+
 struct kSchedTask;
 typedef struct kSchedTask kSchedTask_t;
 

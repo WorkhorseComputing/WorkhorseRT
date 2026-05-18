@@ -63,10 +63,12 @@ typedef struct ia32eSchedCtx
 
 typedef struct ia32eSchedThreadParam
 {
+    uint8_t tpr;
 } ia32eSchedThreadParam_t;
 
 typedef struct ia32eSchedThreadInfo
 {
+    uint8_t tpr;
 } ia32eSchedThreadInfo_t;
 
 typedef struct ia32eSchedLsrParam

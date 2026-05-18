@@ -30,6 +30,7 @@
 #include <workhorse/kTick/kTick.h>
 #include <export/kCpuInterface.h>
 #include <export/kTimerInterface.h>
+#include <export/kCallbackInterface.h>
 #include <plugin/kPlugin.h>
 #include <stdWorkhorse.h>
 
@@ -48,6 +49,8 @@ void kPerCpuHandoff(void)
 
         kTimerArmPeriodic(ticks);
     }
+
+    kCallbackCpuHandoff();
 }
 
 static 
