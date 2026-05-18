@@ -1,1 +1,17 @@
 menu "mips32 Configuration"
+
+choice 
+
+    prompt "Board"
+    default MIPS32_BOARD_MALTA
+
+    config MIPS32_BOARD_MALTA
+        bool "malta"
+
+endchoice # Board
+
+if MIPS32_BOARD_MALTA
+    source "arch/mips32/bsp/malta/Kconfig"
+endif
+
+endmenu
