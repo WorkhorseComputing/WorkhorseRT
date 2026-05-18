@@ -139,8 +139,8 @@ void ia32eReloadTpr(void)
         }
     }
 
-    cpu->tpr = newTpr;
     __ia32eWriteCr8(newTpr);
+    cpu->tpr = newTpr;
 }
 
 bool ia32eThisTopology0x1f(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId)
