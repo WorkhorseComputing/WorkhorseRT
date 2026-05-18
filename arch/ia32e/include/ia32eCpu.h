@@ -139,6 +139,9 @@ typedef struct ia32ePerCpu
 
     kCpuInvokeRoutineFn_t selfIpiFn;
 
+    uint32_t tprCount[14];
+    uint8_t tpr;
+
     union
     {
         uint32_t val;
@@ -301,12 +304,16 @@ void ia32eCpuEnterDomain(kDomain_t *domain);
 void ia32eCpuTaskLsrPush(kSchedTask_t *task);
 uint32_t ia32eEventSender(void);
 bool ia32eCpuIdValidate(uint32_t cpuId);
-int ia32eCpuThreadInfoInit(ATTR_UNUSED archSchedThreadInfo_t *info, ATTR_UNUSED archSchedThreadParam_t *param);
+int ia32eCpuThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param);
 int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param);
 int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param);
 
 uint32_t ia32eTimerFrequencyHz(void);
 void ia32eTimerArmPeriodic(uint32_t ticks);
+
+void ia32eCallbackActivation(kSchedTask_t *task);
+void ia32eCallbackResponse(kSchedTask_t *task);
+void ia32eCallbackCpuHandoff(void);
 
 void ia32eIsrPreHandler(ia32eFrame_t *frame);
 

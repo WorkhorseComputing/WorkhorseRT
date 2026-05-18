@@ -27,6 +27,7 @@
 #include <workhorse/kSched/kSched.h>
 #include <export/kCpuInterface.h>
 #include <export/kDbgInterface.h>
+#include <export/kCallbackInterface.h>
 
 bool gPluginsDone = false;
 
@@ -102,6 +103,9 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
     kSchedTaskInCallbackFn_t inCallbackFn = NULL;
     kSchedTaskOutCallbackFn_t outCallbackFn = NULL;
 
+    bool wasActivated = false;
+    bool isActivated = false;
+
 #if CONFIG_KSCHED_ALGORITHM_BCS
     kSchedThread_t *thread = NULL;
 #endif 
@@ -114,6 +118,9 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
     oldState = task->state;
     inCallbackFn = task->callbacks.inCallbackFn;
     outCallbackFn = task->callbacks.outCallbackFn;
+
+    wasActivated = K_SCHED_TASK_ACTIVATED(oldState);
+    isActivated = K_SCHED_TASK_ACTIVATED(nextState);
 
     K_DYNAMIC_ASSERT(task->taggedInfo.type != K_TASK_INVALID);
     K_DYNAMIC_ASSERT(nextState != K_TASK_STATE_INVALID);
@@ -193,6 +200,11 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
             K_DYNAMIC_ASSERT(false);
             break;
     }
+
+    if (isActivated && !wasActivated)
+        kCallbackActivation(task);
+    else if (!isActivated && wasActivated)
+        kCallbackResponse(task);
 
     if (oldState == K_TASK_STATE_RUNNING) {
 
@@ -584,5 +596,10 @@ void kTickPluginTaskThreadInit(kSchedTask_t *task)
     K_DYNAMIC_ASSERT(task->taggedInfo.type == K_TASK_THREAD);
 #endif
 
+    /* kPlugin will have set the task to ready anyway */
+
+    K_DYNAMIC_ASSERT(task->state == K_TASK_STATE_READY);
+
     kSchedTaskPush(task);
+    kCallbackActivation(task);
 }

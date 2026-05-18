@@ -30,6 +30,7 @@
 #include <import/kSyscallHandler.h>
 #include <import/kLsrHandler.h>
 #include <import/kExceptionHandler.h>
+#include <workhorse/kTick/kTick.h>
 #include <lib/mcsLock.h>
 #include <errno.h>
 
@@ -117,6 +118,29 @@ static
 void ia32eFlushTlb(void)
 {
     __ia32eCr4ReenablePge();
+}
+
+static
+inline 
+void ia32eReloadTpr(void)
+{
+    ia32ePerCpu_t *cpu = NULL;
+    int32_t i = 0;
+    uint32_t newTpr = 0;
+
+    cpu = ia32eThisCpuData();
+    newTpr = 1;
+
+    for (i = ARRAY_LEN(cpu->tprCount) - 1; i >= 0; i--) {
+        
+        if (cpu->tprCount[i] > 0) {
+            newTpr = i + 1;
+            break;
+        }
+    }
+
+    cpu->tpr = newTpr;
+    __ia32eWriteCr8(newTpr);
 }
 
 bool ia32eThisTopology0x1f(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId)
@@ -745,8 +769,6 @@ void ia32eCpuTaskRestoreCtx(kSchedTask_t *task)
 {
     ia32ePerCpu_t *cpu = NULL;
     ia32eFrame_t *topFrame = NULL;
-    kSchedLsr_t *lsr = NULL;
-    uint8_t prio = 0;
 
     cpu = ia32eThisCpuData();
     topFrame = cpu->topFrame;
@@ -782,13 +804,6 @@ void ia32eCpuTaskRestoreCtx(kSchedTask_t *task)
     topFrame->rip = task->ctx.ia32eCtx.rip;
     topFrame->cs = task->ctx.ia32eCtx.cs;
     topFrame->ss = task->ctx.ia32eCtx.ss;
-
-    if (task->taggedInfo.type == K_TASK_LSR) {
-        lsr = &task->taggedInfo.info.lsr;
-        prio = IA32E_VECTOR_TO_PRIO(lsr->archInfo.ia32eInfo.vector);
-    }
-
-    __ia32eWriteCr8(prio);
 }
 
 uintptr_t ia32eCpuSyscallGetReturnAddress(void)
@@ -888,8 +903,12 @@ bool ia32eCpuIdValidate(uint32_t cpuId)
     return cpuId < global->numCpus && global->cpuTable[cpuId].cpuFlags.fields.online != 0;
 }
 
-int ia32eCpuThreadInfoInit(ATTR_UNUSED archSchedThreadInfo_t *info, ATTR_UNUSED archSchedThreadParam_t *param)
+int ia32eCpuThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param)
 {
+    if (param->ia32eParam.tpr >= IA32E_MAX_VECTOR_PRIO)
+        return -EINVAL;
+
+    info->ia32eInfo.tpr = param->ia32eParam.tpr > 1 ? param->ia32eParam.tpr : 1;
     return 0;
 }
 
@@ -984,6 +1003,101 @@ void ia32eTimerArmPeriodic(uint32_t ticks)
     ia32eApicWrite(IA32E_XAPIC_DCR_OFFSET, IA32E_XAPIC_DIV_16, false);
     ia32eApicWrite(IA32E_XAPIC_TIMER_OFFSET, timer, false);
     ia32eApicWrite(IA32E_XAPIC_INITIAL_COUNT_OFFSET, ticks, false);
+}
+
+/* Callback */
+
+void ia32eCallbackActivation(kSchedTask_t *task)
+{
+    ia32eGlobal_t *global = NULL;
+    ia32ePerCpu_t *cpu = NULL;
+
+    kSchedThread_t *thread = NULL;
+    kSchedLsr_t *lsr = NULL;
+
+    bool found = false;
+    uint8_t tpr = 0;
+
+    K_DYNAMIC_ASSERT(kCpuIdValidate(task->cpuId));
+
+    global = ia32eGetGlobalPtr();
+    cpu = &global->cpuTable[task->cpuId];
+
+    switch (task->taggedInfo.type) {
+        
+        case K_TASK_THREAD:
+            thread = &task->taggedInfo.info.thread;
+            found = true;
+            tpr = thread->archInfo.ia32eInfo.tpr;
+            K_DYNAMIC_ASSERT(tpr > 0 && tpr < IA32E_MAX_VECTOR_PRIO);
+            break;
+        
+        case K_TASK_LSR:
+            lsr = &task->taggedInfo.info.lsr;
+            found = true;
+            tpr = IA32E_VECTOR_TO_PRIO(lsr->archInfo.ia32eInfo.vector);
+            K_DYNAMIC_ASSERT(tpr > 1 && tpr < IA32E_MAX_VECTOR_PRIO);
+            break;
+        
+        default:
+            break;
+    }
+
+    if (found) {
+        K_DYNAMIC_ASSERT(cpu->tprCount[tpr - 1] < UINT32_MAX);
+        cpu->tprCount[tpr - 1]++; 
+
+        if (gPluginsDone && tpr > cpu->tpr)
+            ia32eReloadTpr();
+    }
+}
+
+void ia32eCallbackResponse(kSchedTask_t *task)
+{
+    ia32ePerCpu_t *cpu = NULL;
+    kSchedThread_t *thread = NULL;
+    kSchedLsr_t *lsr = NULL;
+
+    bool found = false;
+    uint8_t tpr = 0;
+
+    cpu = ia32eThisCpuData();
+    
+    switch (task->taggedInfo.type) {
+        
+        case K_TASK_THREAD:
+            thread = &task->taggedInfo.info.thread;
+            found = true;
+            tpr = thread->archInfo.ia32eInfo.tpr;
+            K_DYNAMIC_ASSERT(tpr > 0 && tpr < IA32E_MAX_VECTOR_PRIO);
+            break;
+        
+        case K_TASK_LSR:
+            lsr = &task->taggedInfo.info.lsr;
+            found = true;
+            tpr = IA32E_VECTOR_TO_PRIO(lsr->archInfo.ia32eInfo.vector);
+            K_DYNAMIC_ASSERT(tpr > 1 && tpr < IA32E_MAX_VECTOR_PRIO);
+            break;
+        
+        default:
+            break;
+    }
+
+    if (found) {
+
+        K_DYNAMIC_ASSERT(tpr <= cpu->tpr);
+        K_DYNAMIC_ASSERT(cpu->tprCount[tpr - 1] > 0);
+        
+        cpu->tprCount[tpr - 1]--; 
+
+        if (tpr == cpu->tpr && cpu->tprCount[tpr - 1] == 0)
+            ia32eReloadTpr();
+    }
+}
+
+void ia32eCallbackCpuHandoff(void)
+{
+    ia32eReloadTpr();   
 }
 
 /* Event */
