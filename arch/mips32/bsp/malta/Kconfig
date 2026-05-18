@@ -1,11 +1,5 @@
 menu "mips32/malta Configuration"
 
-# CMake configs
-
-config CMAKELISTS_SUBDIR
-    string 
-    default "arch/mips32/bsp/malta"
-
 config MIPS32_MALTA_KSTACK_SIZE
     int "Kernel stack size"
     default 2048

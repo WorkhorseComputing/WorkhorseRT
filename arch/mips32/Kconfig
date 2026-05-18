@@ -1,5 +1,13 @@
 menu "mips32 Configuration"
 
+# CMake configs
+
+config CMAKELISTS_SUBDIR
+    string 
+    default "arch/mips32/bsp/malta"
+
+# Kernel configs
+
 choice 
 
     prompt "Board"
