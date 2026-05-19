@@ -211,6 +211,7 @@ typedef struct ia32eGlobal
 
         uintptr_t rsdtPtr;
         uintptr_t madtPtr;
+        uintptr_t fadtPtr;
         uintptr_t hpetPtr;
     } acpi;
 
@@ -236,7 +237,16 @@ typedef struct ia32eGlobal
     struct
     {
         uintptr_t hpetMmio;
+        bool found;
     } hpet;
+
+    struct
+    {
+        uintptr_t acpiPmMmio;
+        uint64_t acpiPmPort;
+        bool mmio;
+        bool found;
+    } acpiPm;
 
     struct
     {

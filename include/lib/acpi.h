@@ -175,6 +175,9 @@ typedef struct ATTR_PACKED acpiEntryHdr
 #define ACPI_MADT_TRIGGERING_EDGE                           0b0100
 #define ACPI_MADT_TRIGGERING_LEVEL                          0b1100
 
+#define ACPI_PM_TMR_HZ                                      3579545
+#define ACPI_FADT_TMR_VAL_EXT_MASK                          (1 << 8)
+
 typedef struct ATTR_PACKED acpiMadt
 {
     acpiSdtHdr_t    hdr;
@@ -271,5 +274,65 @@ typedef struct ATTR_PACKED acpiHpet
 
 SIZE_ASSERT(acpiHpet_t, 56);
 
+typedef struct ATTR_PACKED acpiFadt 
+{
+    acpiSdtHdr_t hdr;
+    uint32_t     firmwareCtrl;
+    uint32_t     dsdt;
+    uint8_t      reserved0; 
+    uint8_t      preferredPmProfile;
+    uint16_t     sciInt;
+    uint32_t     smiCmd;
+    uint8_t      acpiEnable;
+    uint8_t      acpiDisable;
+    uint8_t      s4BiosReq;
+    uint8_t      pstateCnt;
+    uint32_t     pm1aEvtBlk;
+    uint32_t     pm1bEvtBlk;
+    uint32_t     pm1aCntBlk;
+    uint32_t     pm1bCntBlk;
+    uint32_t     pm2CntBlk;
+    uint32_t     pmTmrBlk;
+    uint32_t     gpe0Blk;
+    uint32_t     gpe1Blk;
+    uint8_t      pm1EvtLen;
+    uint8_t      pm1CntLen;
+    uint8_t      pm2CntLen;
+    uint8_t      pmTmrLen;
+    uint8_t      gpe0BlkLen;
+    uint8_t      gpe1BlkLen;
+    uint8_t      gpe1Base;
+    uint8_t      cstCnt;
+    uint16_t     pLvl2Lat;
+    uint16_t     pLvl3Lat;
+    uint16_t     flushSize;
+    uint16_t     flushStride;
+    uint8_t      dutyOffset;
+    uint8_t      dutyWidth;
+    uint8_t      dayAlrm;
+    uint8_t      monAlrm;
+    uint8_t      century;
+    uint16_t     iapcBootArch;
+    uint8_t      reserved1;
+    uint32_t     flags;
+    acpiGas_t    resetReg;
+    uint8_t      resetValue;
+    uint16_t     armBootArch;
+    uint8_t      fadtMinorVersion;
+    uint64_t     xFirmwareCtrl;
+    uint64_t     xDsdt;
+    acpiGas_t    xPm1aEvtBlk;
+    acpiGas_t    xPm1bEvtBlk;
+    acpiGas_t    xPm1aCntBlk;
+    acpiGas_t    xPm1bCntBlk;
+    acpiGas_t    xPm2CntBlk;
+    acpiGas_t    xPmTmrBlk;
+    acpiGas_t    xGpe0Blk;
+    acpiGas_t    xGpe1Blk;
+    acpiGas_t    sleepControlReg;
+    acpiGas_t    sleepStatusReg;
+    uint64_t     hypervisorVendorId;
+} acpiFadt_t;
+SIZE_ASSERT(acpiFadt_t, 276);
 
 #endif
