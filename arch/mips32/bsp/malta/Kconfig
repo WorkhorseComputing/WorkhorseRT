@@ -1,5 +1,51 @@
 menu "mips32/malta Configuration"
 
+config MIPS32_MALTA_FPU
+    bool "FPU"
+    default y
+    ---help---
+        Enables the floating point unit
+
+config MIPS32_MALTA_FR
+    bool "FR"
+    depends on MIPS32_MALTA_FPU
+    default n
+    ---help---
+        Enables floating point register mode
+
+config MIPS32_MALTA_DSP
+    bool "DSP"
+    default y
+    ---help---
+        Enables digital signal processing extension
+
+config MIPS32_MALTA_MSA
+    bool "MSA"
+    default y
+    ---help---
+        Enables MIPS SIMD architecture extension
+
+config MIPS32_MALTA_ASID
+    bool "asid"
+    default y
+    ---help---
+        Enables ASIDs
+
+config MIPS32_MALTA_ASID_WIDTH
+    int "asid width"
+    depends on MIPS32_MALTA_ASID
+    default 8
+    range 1 8
+    ---help---
+        Sets the max asid width supported by the cpu (WARNING: this can lead to issues if incorrectly set)
+
+config MIPS32_MALTA_AE
+    bool "asid extension"
+    default y
+    depends on MIPS32_MALTA_ASID
+    ---help---
+        Enables ASID extension if supported
+
 config MIPS32_MALTA_KSTACK_SIZE
     int "Kernel stack size"
     default 2048

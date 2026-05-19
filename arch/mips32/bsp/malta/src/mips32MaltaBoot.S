@@ -27,6 +27,7 @@
 
 /* Includes */
 
+#include <generated/autoconf.h>
 #include <mips32Asm.h>
 #include <mips32.h>
 
@@ -44,12 +45,35 @@
 .globl _start
 .type _start, @function
 
+.globl mips32MaltaBootA0
+.type mips32MaltaBootA0, @object
+
+.globl mips32MaltaBootA1
+.type mips32MaltaBootA1, @object
+
+.globl mips32MaltaBootA2
+.type mips32MaltaBootA2, @object
+
+.globl mips32MaltaBootA3
+.type mips32MaltaBootA3, @object
+
+.globl mips32MaltaApSp
+.type mips32MaltaApSp, @object
+
+.globl mips32MaltaApWatchLo
+.type mips32MaltaApWatchLo, @object
+
+.globl mips32MaltaApWatchHi
+.type mips32MaltaApWatchHi, @object
+
 /* Boot Entry */
 
 .section .boot.start
 
 .align 32
 _start:
+    b mips32MaltaBootSetup
+    nop
 
 /* Interrupt entry */
 
@@ -57,14 +81,33 @@ _start:
 
 .align 32
 _startInterrupt:
+    nop
 
-/* Boot routine */
+/* Boot routines */
 
 .section .boot.setup
 
 .align 32
-mips32MaltaBootSetup:
+mips32MaltaBootUartInit:
+    nop
 
+.align 32
+mips32MaltaBootUartLog:
+    nop
+
+.align 32
+mips32MaltaBootSetup:
+    nop
+
+/* Error messages */
+
+.section .data
+
+.align 32
+mips32MaltaBootFpuNotPresent:       .asciz "Boot Error, FPU not supported"
+mips32MaltaBootFrNotPresent:        .asciz "Boot error, FR not supported"
+mips32MaltaBootDspNotPresent:       .asciz "Boot error, Dsp not supported"
+mips32MaltaBootMsaNotPresent:       .asciz "Boot error, Msa not supported"
 
 /* Boot information */
 
@@ -77,8 +120,11 @@ mips32MaltaBootA2:                  .long
 mips32MaltaBootA3:                  .long
 mips32MipsMaltaBspEntered:          .long
 mips32MaltaApSp:                    .long
-mips32MaltaApWatchlo:               .long
+mips32MaltaApWatchLo:               .long
 mips32MaltaApWatchHi:               .long
+
+.align 32
+mips32MaltaFeatureBitmasks:         .skip (CONFIG_KMAX_CPUS * 4)
 
 .align 32
 mips32MaltaBootStackPadding:        .skip 16

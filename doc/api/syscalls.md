@@ -1,6 +1,7 @@
 # Syscalls
 
-All syscalls follow sysV ABI, and return a -errno on failure.
+All syscalls follow sysV ABI, and return a -errno on failure. If there is no sysV ABI defined for the architecture, 
+check the architecture/board specific docs.
 
 errno's will be a value between 1 - 63. Programs can check for errors by checking if the return value is between -1 
 and -63. Bsp's therefore must ensure that addresses between -63 and -1 are not accessible to userland.
