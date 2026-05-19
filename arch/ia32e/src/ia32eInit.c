@@ -634,7 +634,12 @@ void ia32eApWakeup(void)
     numCpus = global->numCpus;
     wakeupArea = (void *)IA32E_WAKEUP_ADDR;
     wakeupBlobSize = ia32eWakeupBlobEnd - ia32eWakeupBlobStart;
-    
+
+    if (wakeupBlobSize > IA32E_PAGE_SIZE_4KB) {
+        ia32eEarlyKpanic("wakeup blob too large\n");
+        UNREACHABLE();
+    }
+
     memcpy(ia32eWakeupBlobSaveArea, wakeupArea, wakeupBlobSize);
     memcpy(wakeupArea, ia32eWakeupBlobStart, wakeupBlobSize);
 
