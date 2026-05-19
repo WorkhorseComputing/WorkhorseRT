@@ -115,6 +115,14 @@ header_start:
     .word 0
     .long 8
 
+    .align MULTIBOOT_TAG_ALIGN
+    .short MULTIBOOT_TAG_TYPE_FRAMEBUFFER
+    .short 0 
+    .long 20 
+    .long 1024 
+    .long 768
+    .long 32 
+
 #endif
 header_end:
 
