@@ -385,6 +385,11 @@ void ia32eApicEnable(uint8_t spuriousVector)
 
 uint32_t ia32eApicCalibrate(uint8_t spuriousVector)
 {
+    ia32eGlobal_t *global = NULL;    
+
+    volatile uint32_t *acpiPmMmio = NULL;
+    uint16_t acpiPmPort = 0;
+
     uint32_t timer = 0;
 
     uint32_t counterFrequencyHz = 0;
@@ -395,22 +400,42 @@ uint32_t ia32eApicCalibrate(uint8_t spuriousVector)
     uint32_t apicTicksElapsed = 0;
     uint32_t apicFrequencyHz = 0;
 
+    global = ia32eThisCpuData()->global;
+
     if (!ia32eHpetIsInitialized()) {
         ia32eEarlyKpanic("failed to calibrate apic, no hpet\n");
         UNREACHABLE();
     }
 
     timer = spuriousVector | (1 << 16) | (IA32E_XAPIC_ONESHOT << 17);
-
-    counterFrequencyHz = ia32eHpetFrequencyHz();
-    calibrationTicks = msToTicks(CONFIG_IA32E_APIC_CALIBRATION_TIME_MS, counterFrequencyHz);
-
     ia32eApicWrite(IA32E_XAPIC_DCR_OFFSET, IA32E_XAPIC_DIV_16, false);
     ia32eApicWrite(IA32E_XAPIC_TIMER_OFFSET, timer, false);
     ia32eApicWrite(IA32E_XAPIC_INITIAL_COUNT_OFFSET, UINT32_MAX, false);
 
-    startTicks = ia32eHpetReadCounter();
-    spinUntil(ia32eHpetReadCounter() - startTicks >= calibrationTicks);
+    if (ia32eHpetIsInitialized()) {
+
+        counterFrequencyHz = ia32eHpetFrequencyHz();
+        calibrationTicks = msToTicks(CONFIG_IA32E_APIC_CALIBRATION_TIME_MS, counterFrequencyHz);
+        startTicks = ia32eHpetReadCounter();
+        spinUntil(ia32eHpetReadCounter() - startTicks >= calibrationTicks);
+
+    } else {
+
+        counterFrequencyHz = ACPI_PM_TMR_HZ;
+        calibrationTicks = msToTicks(CONFIG_IA32E_APIC_CALIBRATION_TIME_MS, counterFrequencyHz);
+
+        if (global->acpiPm.mmio) {
+
+            acpiPmMmio = (void *)global->acpiPm.acpiPmMmio;
+            startTicks = READ_ONCE(*acpiPmMmio);
+            spinUntil(READ_ONCE(*acpiPmMmio) - startTicks >= calibrationTicks);
+
+        } else {
+            acpiPmPort = (uint16_t)global->acpiPm.acpiPmPort;
+            startTicks = __ia32eInl(acpiPmPort);
+            spinUntil( __ia32eInl(acpiPmPort) - startTicks >= calibrationTicks);
+        }
+    }
 
     apicCur = ia32eApicRead(IA32E_XAPIC_CUR_COUNT_OFFSET, false) & 0xffffffff;
     apicTicksElapsed = UINT32_MAX - apicCur;

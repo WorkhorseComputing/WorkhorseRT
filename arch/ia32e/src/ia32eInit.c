@@ -166,12 +166,23 @@ void ia32eRsdtParser(void)
     size_t madtSize = 0;
     uintptr_t madtPhys = 0;
 
+    bool fadtFound = false;
+    size_t fadtSize = 0;
+    uintptr_t fadtPhys = 0;
+
     bool hpetFound = false;
     size_t hpetSize = 0;
     uintptr_t  hpetPhys = 0;
 
+    bool acpiPmFound = false;
+    bool acpiPm = false;
+
     void *madt = NULL;
+    void *fadt = NULL;
+    void *acpiPmMmio = NULL;
     void *hpet = NULL;
+
+    acpiFadt_t *acpiFadt = NULL;
 
     global = ia32eGetGlobalPtr();
 
@@ -214,6 +225,13 @@ void ia32eRsdtParser(void)
                 madtPhys = hdrPhys;
                 break;
 
+            case ACPI_FADT_SIGNATURE_UINT32:
+
+                fadtFound = true;
+                fadtSize = hdrSize;
+                fadtPhys = hdrPhys;                
+                break;
+
             case ACPI_HPET_SIGNATURE_UINT32:
 
                 hpetFound = true;
@@ -225,17 +243,12 @@ void ia32eRsdtParser(void)
                 break;
         }
 
-        if (madtFound && hpetFound)
+        if (madtFound && fadtFound && hpetFound)
             break;
     }
 
     if (!madtFound) {
         ia32eEarlyKpanic("failed to find madt\n");
-        UNREACHABLE();
-    }
-
-    if (!hpetFound) {
-        ia32eEarlyKpanic("failed to find hpet\n");
         UNREACHABLE();
     }
 
@@ -245,14 +258,78 @@ void ia32eRsdtParser(void)
         UNREACHABLE();
     }
 
-    hpet = ia32eVmaEarlyMapRange(hpetPhys, hpetSize, false);
-    if (!hpet) {
-        ia32eEarlyKpanic("failed to map hpet\n");
-        UNREACHABLE();
+    if (fadtFound) {
+     
+        fadt = ia32eVmaEarlyMapRange(fadtPhys, fadtSize, false);
+        if (fadt) {
+
+            acpiFadt = fadt;
+            if (acpiFadt->pmTmrLen == 4) {
+
+                acpiPmFound = true;
+
+                if (acpiFadt->hdr.revision >= 2 && acpiFadt->xPmTmrBlk.address != 0) {
+
+                    if (acpiFadt->xPmTmrBlk.addressSpaceId == ACPI_AS_ID_SYS_MEM) {
+
+                        acpiPmMmio = ia32eVmaEarlyMapRange(acpiFadt->xPmTmrBlk.address, 4, true);
+                        if (acpiPmMmio) {
+                            global->acpiPm.acpiPmMmio = (uintptr_t)acpiPmMmio;
+                            global->acpiPm.mmio = true;
+                            acpiPm = true;
+                        }
+
+                    } else {
+                        global->acpiPm.acpiPmPort = acpiFadt->xPmTmrBlk.address;
+                        acpiPm = true;   
+                    }
+
+                } else if (acpiFadt->pmTmrBlk != 0) {
+                    global->acpiPm.acpiPmPort = acpiFadt->pmTmrBlk;
+                    acpiPm = true;
+                }
+                
+                global->acpiPm.found = acpiPm;
+            }
+        }
+    }
+
+    if (hpetFound) {
+    
+        hpet = ia32eVmaEarlyMapRange(hpetPhys, hpetSize, false);
+        if (hpet) {
+
+            global->hpet.found = true;
+
+        } else {
+
+            if (!acpiPmFound) {
+                ia32eEarlyKpanic("failed to map hpet and acpiPM timer not found\n");
+                UNREACHABLE();
+            } 
+
+            if (!acpiPm) {
+                ia32eEarlyKpanic("failed to map hpet and acpiPM timer\n");
+                UNREACHABLE();
+            }
+        }
+ 
+    } else {
+
+        if (!acpiPmFound) {
+            ia32eEarlyKpanic("failed to find hpet and acpiPM timer not found\n");
+            UNREACHABLE();
+        } 
+
+        if (!acpiPm) {
+            ia32eEarlyKpanic("failed to find hpet and failed to map acpiPM timer\n");
+            UNREACHABLE();
+        }
     }
 
     global->acpi.rsdtPtr = (uintptr_t)rsdt;
     global->acpi.madtPtr = (uintptr_t)madt;
+    global->acpi.fadtPtr = (uintptr_t)fadt;
     global->acpi.hpetPtr = (uintptr_t)hpet;
 }
 
@@ -421,6 +498,9 @@ void ia32eHpetParser(void)
     void *hpetMmio = NULL;
 
     global = ia32eThisCpuData()->global;
+    if (!global->hpet.found)
+        return;
+
     hpet = (void *)global->acpi.hpetPtr;
 
     hpetMmioPhys = hpet->address.address;
