@@ -35,15 +35,25 @@ include("${CMAKE_SOURCE_DIR}/generated/autoconf.cmake")
 
 link_directories("${CMAKE_SOURCE_DIR}/generated")
 
+include("${CMAKE_SOURCE_DIR}/${CONFIG_CMAKE_TOOLCHAIN}") 
+
+set(CMAKE_C_COMPILER   "${ARCH_TOOLCHAIN_PREFIX}-linux-gnu-gcc")
+set(CMAKE_CXX_COMPILER "${ARCH_TOOLCHAIN_PREFIX}-linux-gnu-g++")
+set(CMAKE_ASM_COMPILER "${ARCH_TOOLCHAIN_PREFIX}-linux-gnu-gcc")
+
 add_executable(workhorse.elf "")
+
+set_property(GLOBAL PROPERTY ARCH_INCLUDE_DIRS "")
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/${CONFIG_CMAKELISTS_SUBDIR}")
 add_subdirectory(plugins)
 add_subdirectory(src)
 
+get_property(ALL_ARCH_INCLUDES GLOBAL PROPERTY ARCH_INCLUDE_DIRS)
+
 include_directories(
     ${CMAKE_SOURCE_DIR}/include 
-    ${ARCH_INCLUDE_DIRS}
+    ${ALL_ARCH_INCLUDES}
 )
 
 target_sources(workhorse.elf PRIVATE

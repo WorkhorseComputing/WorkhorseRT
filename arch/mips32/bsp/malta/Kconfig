@@ -1,5 +1,38 @@
 menu "mips32/malta Configuration"
 
+choice 
+
+    prompt "Endianness"
+    default MIPS32_MALTA_BE
+
+    config MIPS32_MALTA_BE
+        bool "Big endian"
+
+    config MIPS32_MALTA_LE
+        bool "Little endian"
+
+endchoice # Endianness
+
+config MIPS32_CMAKELISTS_SUBDIR
+    string
+    default "bsp/malta"
+
+if MIPS32_MALTA_BE
+
+config CMAKE_TOOLCHAIN
+    string
+    default "arch/mips32/bsp/malta/toolchainBe.cmake"
+
+endif # MIPS32_MALTA_BE 
+
+if MIPS32_MALTA_LE
+
+config CMAKE_TOOLCHAIN
+    string
+    default "arch/mips32/bsp/malta/toolchainLe.cmake"
+
+endif # MIPS32_MALTA_LE 
+
 config MIPS32_MALTA_FPU
     bool "FPU"
     default y

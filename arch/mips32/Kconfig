@@ -4,7 +4,7 @@ menu "mips32 Configuration"
 
 config CMAKELISTS_SUBDIR
     string 
-    default "arch/mips32/bsp/malta"
+    default "arch/mips32"
 
 # Kernel configs
 

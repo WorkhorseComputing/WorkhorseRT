@@ -5,8 +5,8 @@ On ia32e, threads are initialized with the parameter - ```uint8_t tpr```.
 The tpr must be a value between 0 and 14, if it is 0, the kernel will initialize the thread with a tpr of 1. 
 
 The kernel will ensure that on each core, the hardware tpr is set to the value of the highest tpr associated with a
-task that is in a schedulable state. E.g., if a task is throttled or dormant, it is not in a schedulable state, if a
-task is ready, running, pending or has a deferred tick it is in a schedulable state. 
+task associated with that core that is in a schedulable state. E.g., if a task is throttled or dormant, it is not in 
+a schedulable state, if a task is ready, running, pending or has a deferred tick it is in a schedulable state. 
 
 Interrupts will only arrive if their priority is greater than the hardware tpr.
 
