@@ -44,12 +44,14 @@ set(CMAKE_ASM_COMPILER "${ARCH_TOOLCHAIN_PREFIX}-linux-gnu-gcc")
 add_executable(workhorse.elf "")
 
 set_property(GLOBAL PROPERTY ARCH_INCLUDE_DIRS "")
+set_property(GLOBAL PROPERTY ARCH_OBJS "")
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/${CONFIG_CMAKELISTS_SUBDIR}")
 add_subdirectory(plugins)
 add_subdirectory(src)
 
 get_property(ALL_ARCH_INCLUDES GLOBAL PROPERTY ARCH_INCLUDE_DIRS)
+get_property(ALL_ARCH_OBJS GLOBAL PROPERTY ARCH_OBJS)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include 
@@ -57,7 +59,7 @@ include_directories(
 )
 
 target_sources(workhorse.elf PRIVATE
-    ${ARCH_OBJS}
+    ${ALL_ARCH_OBJS}
     ${PLUGINS_OBJS}
     ${WORKHORSE_CORE_OBJS}
 )

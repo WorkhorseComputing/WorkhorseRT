@@ -88,7 +88,7 @@
 /* Boot Information */
 
 .section .multiboot_header, "a", @progbits
-.align 64
+.balign 64
 header_start:
 #if CONFIG_IA32E_MULTIBOOT2
 
@@ -97,25 +97,25 @@ header_start:
     .long header_end - header_start
     .long 0x100000000 - (MULTIBOOT2_HEADER_MAGIC + 0 + (header_end - header_start))
 
-    .align MULTIBOOT_TAG_ALIGN
+    .balign MULTIBOOT_TAG_ALIGN
     .word MULTIBOOT_TAG_TYPE_ELF_SECTIONS
     .word 0
     .long 16  
     .long 0 
 
-    .align MULTIBOOT_TAG_ALIGN
+    .balign MULTIBOOT_TAG_ALIGN
     .word MULTIBOOT_TAG_TYPE_MMAP      
     .word 0
     .long 16
     .long 24     
     .long 0     
 
-    .align MULTIBOOT_TAG_ALIGN
+    .balign MULTIBOOT_TAG_ALIGN
     .word MULTIBOOT_TAG_TYPE_END
     .word 0
     .long 8
 
-    .align MULTIBOOT_TAG_ALIGN
+    .balign MULTIBOOT_TAG_ALIGN
     .short MULTIBOOT_TAG_TYPE_FRAMEBUFFER
     .short 0 
     .long 20 
@@ -134,7 +134,7 @@ header_end:
 
 .code32
 
-.align 64
+.balign 64
 _start:
     cli
     cld
@@ -153,7 +153,7 @@ _start:
 
 .code32
 
-.align 64
+.balign 64
 start32:
 
     /* disable paging */
@@ -198,7 +198,7 @@ start32:
 
 .code64
 
-.align 64
+.balign 64
 start64:
 
     /* reload data selectors */
@@ -217,7 +217,7 @@ start64:
 
 .section .lowdata
 
-.align 64
+.balign 64
 ia32eSignature:     .long 0
 ia32eMultiboot2Ptr: .quad 0
 
@@ -231,10 +231,10 @@ ia32eGdtr64:
     .word           ia32eGdt64End - ia32eGdt64Base - 1
     .quad           ia32eGdt64Base
 
-.align 64
+.balign 64
 ia32eIdt64:         .zero 4096
 
-.align 64
+.balign 64
 ia32eIdtr64:
     .word           4095
     .quad           ia32eIdt64
@@ -249,7 +249,7 @@ IA32E_ASM_GEN_PML4  ia32ePml4, ia32ePdpt
 
 .code64
 
-.align 64
+.balign 64
 __ia32eStartHigh64:
 
     /* load rsp based on whether we are bsp or ap */
@@ -320,7 +320,7 @@ __ia32eStartHigh64:
 
 .code16
 
-.align 64
+.balign 64
 ia32eWakeupBlobStart:
 
     cli
@@ -339,7 +339,7 @@ ia32eWakeupBlobStart:
 
 .code32
 
-.align 64
+.balign 64
 ia32eWakeup32:
 
     movl $IA32E_KDS_SELECTOR, %eax
@@ -352,7 +352,7 @@ ia32eWakeup32:
 
     hlt
 
-.align 64
+.balign 64
 ia32eGdt32Base:
     .quad 0
     .quad 0x00CF9A000000FFFF
@@ -370,11 +370,11 @@ ia32eApDr0:                 .quad 0
 
 .section .bss
 
-.align 64
+.balign 64
 ia32eBootStackPadding:      .skip 16
 ia32eBootStackBottom:
     .skip                   CONFIG_IA32E_KSTACK_SIZE
 ia32eBootStackTop:
 
-.align 64
+.balign 64
 ia32eWakeupBlobSaveArea:    .skip ia32eWakeupBlobEnd - ia32eWakeupBlobStart

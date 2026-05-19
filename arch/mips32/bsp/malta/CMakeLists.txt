@@ -44,10 +44,9 @@ file(GLOB ARCH_MIPS32_MALTA_ASM
     src/*.S
 )
 
-set(ARCH_OBJS
+set_property(GLOBAL APPEND PROPERTY ARCH_OBJS
     ${ARCH_MIPS32_MALTA_C}
     ${ARCH_MIPS32_MALTA_ASM}
-    PARENT_SCOPE
 )
 
 target_compile_options(workhorse.elf PRIVATE ${ARCH_FLAGS})

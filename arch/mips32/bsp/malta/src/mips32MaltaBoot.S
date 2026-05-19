@@ -70,7 +70,7 @@
 
 .section .boot.start
 
-.align 32
+.balign 32
 _start:
     b mips32MaltaBootSetup
     nop
@@ -79,7 +79,7 @@ _start:
 
 .section .boot.interrupt
 
-.align 32
+.balign 32
 _startInterrupt:
     nop
 
@@ -87,15 +87,15 @@ _startInterrupt:
 
 .section .boot.setup
 
-.align 32
+.balign 32
 mips32MaltaBootUartInit:
     nop
 
-.align 32
+.balign 32
 mips32MaltaBootUartLog:
     nop
 
-.align 32
+.balign 32
 mips32MaltaBootSetup:
     nop
 
@@ -103,7 +103,7 @@ mips32MaltaBootSetup:
 
 .section .data
 
-.align 32
+.balign 32
 mips32MaltaBootFpuNotPresent:       .asciz "Boot Error, FPU not supported"
 mips32MaltaBootFrNotPresent:        .asciz "Boot error, FR not supported"
 mips32MaltaBootDspNotPresent:       .asciz "Boot error, Dsp not supported"
@@ -113,7 +113,7 @@ mips32MaltaBootMsaNotPresent:       .asciz "Boot error, Msa not supported"
 
 .section .bss
 
-.align 32
+.balign 32
 mips32MaltaBootA0:                  .long
 mips32MaltaBootA1:                  .long
 mips32MaltaBootA2:                  .long
@@ -123,10 +123,10 @@ mips32MaltaApSp:                    .long
 mips32MaltaApWatchLo:               .long
 mips32MaltaApWatchHi:               .long
 
-.align 32
+.balign 32
 mips32MaltaFeatureBitmasks:         .skip (CONFIG_KMAX_CPUS * 4)
 
-.align 32
+.balign 32
 mips32MaltaBootStackPadding:        .skip 16
 mips32MaltaBootStackBottom:
     .skip                           CONFIG_MIPS32_MALTA_KSTACK_SIZE

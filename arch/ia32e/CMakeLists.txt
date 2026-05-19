@@ -54,10 +54,9 @@ file(GLOB ARCH_IA32E_ASM
     src/*.S
 )
 
-set(ARCH_OBJS
+set_property(GLOBAL APPEND PROPERTY ARCH_OBJS
     ${ARCH_IA32E_C}
     ${ARCH_IA32E_ASM}
-    PARENT_SCOPE
 )
 
 target_compile_options(workhorse.elf PRIVATE ${ARCH_FLAGS})

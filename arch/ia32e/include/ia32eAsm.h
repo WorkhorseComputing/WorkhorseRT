@@ -70,7 +70,7 @@
 #ifdef ASM_FILE
 
 .macro IA32E_ASM_GEN_ISR_ENTRY, ISR_NO, prefix, entry_func
-    .align 16
+    .balign 16
     \prefix\ISR_NO:
         pushq $0
         pushq $\ISR_NO
@@ -78,7 +78,7 @@
 .endm
 
 .macro IA32E_ASM_GEN_ISR_ENTRY_ERRCODE, ISR_NO, prefix, entry_func
-    .align 16
+    .balign 16
     \prefix\ISR_NO:
         pushq $\ISR_NO
         jmp \entry_func
@@ -174,7 +174,7 @@
 .endm
 
 .macro IA32E_ASM_GEN_PD name, numEntries, base
-    .align 4096
+    .balign 4096
     \name:
         .set addr, \base
         .rept \numEntries
@@ -184,7 +184,7 @@
 .endm
 
 .macro IA32E_ASM_GEN_PDPT name, pd
-    .align 4096
+    .balign 4096
     \name:
         .quad (\pd) + 0x103   /* P | RW | G */
 
@@ -194,7 +194,7 @@
 .endm
 
 .macro IA32E_ASM_GEN_PML4 name, pdpt
-    .align 4096
+    .balign 4096
     \name:
         .quad \pdpt + 0x103 /* P | RW | G */
 
