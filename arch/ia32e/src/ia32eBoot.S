@@ -239,7 +239,7 @@ ia32eIdtr64:
     .word           4095
     .quad           ia32eIdt64
 
-IA32E_ASM_GEN_PD    ia32ePd, IA32E_ASM_PDE_COUNT, 0
+IA32E_ASM_GEN_PD    ia32ePd
 IA32E_ASM_GEN_PDPT  ia32ePdpt, ia32ePd 
 IA32E_ASM_GEN_PML4  ia32ePml4, ia32ePdpt
 

@@ -26,6 +26,7 @@
 #ifndef _IA32E_ASM_H_
 #define _IA32E_ASM_H_
 
+#include <generated/autoconf.h>
 #include <ia32e.h>
 
 #define IA32E_KERNEL_OFFSET 0xffffff8000000000
@@ -173,11 +174,12 @@
     addq $24, %rsp
 .endm
 
-.macro IA32E_ASM_GEN_PD name, numEntries, base
+.macro IA32E_ASM_GEN_PD name
     .balign 4096
     \name:
-        .set addr, \base
-        .rept \numEntries
+        .set addr, 0
+        .set numEntries, (CONFIG_IA32E_KMAX_SIZE_MB + 1) / 2
+        .rept numEntries
             .quad addr + 0x183  /* P | RW | PS | G */
             .set addr, addr + (2 * 1024 * 1024)
         .endr

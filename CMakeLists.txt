@@ -37,9 +37,10 @@ link_directories("${CMAKE_SOURCE_DIR}/generated")
 
 include("${CMAKE_SOURCE_DIR}/${CONFIG_CMAKE_TOOLCHAIN}") 
 
-set(CMAKE_C_COMPILER   "${ARCH_TOOLCHAIN_PREFIX}-linux-gnu-gcc")
-set(CMAKE_CXX_COMPILER "${ARCH_TOOLCHAIN_PREFIX}-linux-gnu-g++")
-set(CMAKE_ASM_COMPILER "${ARCH_TOOLCHAIN_PREFIX}-linux-gnu-gcc")
+set(CMAKE_C_COMPILER   "${ARCH_TOOLCHAIN_PREFIX}-elf-gcc")
+set(CMAKE_CXX_COMPILER "${ARCH_TOOLCHAIN_PREFIX}-elf-g++")
+set(CMAKE_ASM_COMPILER "${ARCH_TOOLCHAIN_PREFIX}-elf-gcc")
+set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -x assembler-with-cpp")
 
 add_executable(workhorse.elf "")
 

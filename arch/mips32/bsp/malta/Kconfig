@@ -33,6 +33,11 @@ config CMAKE_TOOLCHAIN
 
 endif # MIPS32_MALTA_LE 
 
+config MIPS32_MALTA_KMAX_SIZE_MB
+    int "Maximum kernel size (MB)"
+    default 1
+    range 1 512
+
 config MIPS32_MALTA_FPU
     bool "FPU"
     default y

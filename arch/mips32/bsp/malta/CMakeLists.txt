@@ -33,7 +33,14 @@ set_property(GLOBAL APPEND PROPERTY ARCH_INCLUDE_DIRS
 )
 
 set(ARCH_FLAGS PRIVATE
-   "-march=mips32"
+    -march=mips32
+    -O2
+    -ffreestanding
+    -Wall
+    -Wextra
+    -fno-stack-protector
+    -fPIE
+    -fPIC
 )
 
 file(GLOB ARCH_MIPS32_MALTA_C

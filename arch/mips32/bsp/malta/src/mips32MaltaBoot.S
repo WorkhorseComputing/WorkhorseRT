@@ -75,12 +75,20 @@ _start:
     b mips32MaltaBootSetup
     nop
 
+/* xTlb entry */
+
+.section .boot.xTlb
+
+.balign 32
+_xTlbStart:
+    nop
+
 /* Interrupt entry */
 
 .section .boot.interrupt
 
 .balign 32
-_startInterrupt:
+_interruptStart:
     nop
 
 /* Boot routines */
