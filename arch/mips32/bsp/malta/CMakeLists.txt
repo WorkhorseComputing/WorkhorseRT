@@ -23,11 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
-set(CMAKE_EXE_LINKER_FLAGS
-    "-nostdlib -no-pie -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/linker.ld"
-    PARENT_SCOPE
-)
-
 set_property(GLOBAL APPEND PROPERTY ARCH_INCLUDE_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
@@ -57,3 +52,11 @@ set_property(GLOBAL APPEND PROPERTY ARCH_OBJS
 )
 
 target_compile_options(workhorse.elf PRIVATE ${ARCH_FLAGS})
+
+target_link_options(workhorse.elf PRIVATE
+    -nostdlib
+    -no-pie
+    -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/linker.ld
+)
+
+target_link_libraries(workhorse.elf PRIVATE gcc)

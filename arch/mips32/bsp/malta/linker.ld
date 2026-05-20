@@ -32,6 +32,8 @@ SECTIONS
     . = 0x80000000;
     __kernelStart = .;
 
+    /* entries */
+
     .boot.start : AT(ADDR(.boot.start))
     {
         . = ALIGN(4K);
@@ -52,6 +54,8 @@ SECTIONS
     {
         KEEP(*(.boot.setup))
     }
+
+    /* kernel */
 
     . = ALIGN(4K);
 
@@ -108,4 +112,4 @@ SECTIONS
     __kernelEnd = .;
 }
 
-ASSERT((__kernelEnd - __kernelStart + __bootEnd) <= (CONFIG_MIPS32_KMAX_SIZE_MB * 1M), "kernel image too large");
+ASSERT((__kernelEnd - __kernelStart) <= (CONFIG_MIPS32_MALTA_KMAX_SIZE_MB * 1M), "kernel image too large");
