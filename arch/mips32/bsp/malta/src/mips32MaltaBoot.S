@@ -132,9 +132,6 @@ mips32MaltaApWatchLo:               .long
 mips32MaltaApWatchHi:               .long
 
 .balign 32
-mips32MaltaFeatureBitmasks:         .skip (CONFIG_KMAX_CPUS * 4)
-
-.balign 32
 mips32MaltaBootStackPadding:        .skip 16
 mips32MaltaBootStackBottom:
     .skip                           CONFIG_MIPS32_MALTA_KSTACK_SIZE
