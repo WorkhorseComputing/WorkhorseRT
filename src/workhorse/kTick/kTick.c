@@ -102,9 +102,12 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
     kSchedState_t oldState = K_TASK_STATE_INVALID;
     kSchedTaskInCallbackFn_t inCallbackFn = NULL;
     kSchedTaskOutCallbackFn_t outCallbackFn = NULL;
+    kSchedTaskActivationCallbackFn_t activationCallbackFn = NULL;
+    kSchedTaskResponseCallbackFn_t responseCallbackFn = NULL;
 
     bool wasActivated = false;
     bool isActivated = false;
+    bool callbackRan = false;
 
 #if CONFIG_KSCHED_ALGORITHM_BCS
     kSchedThread_t *thread = NULL;
@@ -118,6 +121,8 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
     oldState = task->state;
     inCallbackFn = task->callbacks.inCallbackFn;
     outCallbackFn = task->callbacks.outCallbackFn;
+    activationCallbackFn = task->callbacks.activationCallbackFn;
+    responseCallbackFn = task->callbacks.responseCallbackFn;
 
     wasActivated = K_SCHED_TASK_ACTIVATED(oldState);
     isActivated = K_SCHED_TASK_ACTIVATED(nextState);
@@ -201,17 +206,32 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
             break;
     }
 
-    if (isActivated && !wasActivated)
+    if (isActivated && !wasActivated) {
+
+        K_DYNAMIC_ASSERT(nextState != K_TASK_STATE_RUNNING);
+
         kCallbackActivation(task);
-    else if (!isActivated && wasActivated)
+
+        if (activationCallbackFn)
+            activationCallbackFn(task);
+
+        callbackRan = true;
+
+    } else if (!isActivated && wasActivated) {
         kCallbackResponse(task);
+
+        if (responseCallbackFn)
+            responseCallbackFn(task);
+
+        callbackRan = true;
+    }
 
     if (oldState == K_TASK_STATE_RUNNING) {
 
         if (task->taggedInfo.type == K_TASK_LSR)
             kSchedTaskLsrOutCallback(task);
 
-        if (outCallbackFn)
+        if (outCallbackFn && !callbackRan)
             outCallbackFn(task);
     }
 }

@@ -70,6 +70,8 @@ typedef struct kSchedTask kSchedTask_t;
 
 typedef void (*kSchedTaskInCallbackFn_t)(kSchedTask_t *task);
 typedef void (*kSchedTaskOutCallbackFn_t)(kSchedTask_t *task);
+typedef void (*kSchedTaskActivationCallbackFn_t)(kSchedTask_t *task);
+typedef void (*kSchedTaskResponseCallbackFn_t)(kSchedTask_t *task);
 
 typedef struct kSchedTick
 {
@@ -116,6 +118,8 @@ typedef struct kSchedTaskCallbacks
 {
     kSchedTaskInCallbackFn_t inCallbackFn;
     kSchedTaskOutCallbackFn_t outCallbackFn;
+    kSchedTaskActivationCallbackFn_t activationCallbackFn;
+    kSchedTaskResponseCallbackFn_t responseCallbackFn;
 } kSchedTaskCallbacks_t;
 
 typedef struct kSchedTask
