@@ -48,6 +48,7 @@ kSchedTask_t *kSchedTaskPopRr(void);
 void kSchedTaskTickCallbackRr(kSchedTask_t *task);
 bool kSchedShouldRescheduleRr(void);
 void kSchedTaskLsrOutCallbackRr(kSchedTask_t *task);
+kSchedTask_t *kSchedGetIdleRr(uint32_t cpuId);
 
 #endif
 

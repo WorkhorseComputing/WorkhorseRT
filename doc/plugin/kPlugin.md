@@ -48,3 +48,11 @@ int kPluginInitDomain(kDomain_t *domain, kPluginDomainParam_t *param);
 Initializes a domain, including its configuration defined by the plugin.
 
 ---
+
+```c
+int kPluginInitIdleCallbacks(uint32_t cpuId, kSchedTaskCallbacks_t *callbacks);
+```
+
+Attaches event callbacks to the idle task of a given cpu.
+
+---

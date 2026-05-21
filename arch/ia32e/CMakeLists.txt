@@ -23,14 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
-set(CMAKE_EXE_LINKER_FLAGS
-    "-nostdlib -no-pie -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/linker.ld"
-    PARENT_SCOPE
-)
-
-set(ARCH_INCLUDE_DIRS 
+set_property(GLOBAL APPEND PROPERTY ARCH_INCLUDE_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    PARENT_SCOPE
 )
 
 set(ARCH_FLAGS PRIVATE
@@ -55,13 +49,18 @@ file(GLOB ARCH_IA32E_ASM
     src/*.S
 )
 
-set(ARCH_OBJS
+set_property(GLOBAL APPEND PROPERTY ARCH_OBJS
     ${ARCH_IA32E_C}
     ${ARCH_IA32E_ASM}
-    PARENT_SCOPE
 )
 
 target_compile_options(workhorse.elf PRIVATE ${ARCH_FLAGS})
+
+target_link_options(workhorse.elf PRIVATE
+    -nostdlib
+    -no-pie
+    -Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/linker.ld
+)
 
 set(OUTPUT_ISO ${CMAKE_BINARY_DIR}/workhorse.iso)
 

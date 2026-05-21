@@ -19,6 +19,12 @@ CMD=$1
 
 case "$CMD" in
 
+    cleanconfig)
+        rm  .config > /dev/null 2>&1 || true
+        rm -r generated > /dev/null 2>&1 || true
+        rm -r include/generated > /dev/null 2>&1 || true
+        ;;
+
     menuconfig)
         $PY -m menuconfig
         ;;
@@ -41,7 +47,7 @@ case "$CMD" in
         ;;
 
     help | "")
-        echo "Usage: ./configure.sh [menuconfig | alldefconfig | oldconfig | genconfig]"
+        echo "Usage: ./configure.sh [cleanconfig | menuconfig | alldefconfig | oldconfig | genconfig]"
         exit 0
         ;;
 

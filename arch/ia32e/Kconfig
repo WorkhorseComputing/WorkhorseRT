@@ -6,6 +6,10 @@ config CMAKELISTS_SUBDIR
     string 
     default "arch/ia32e"
 
+config CMAKE_TOOLCHAIN
+    string 
+    default "arch/ia32e/toolchain.cmake"
+
 # Kernel configs
 
 config IA32E_KSTACK_SIZE

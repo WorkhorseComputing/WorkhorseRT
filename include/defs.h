@@ -29,9 +29,11 @@
 #include <generated/autoconf.h>
 
 #if CONFIG_ARCH_IA32E
+#   include <ia32eDefs.h>
+#endif
 
-#include <ia32eDefs.h>
-
+#if CONFIG_ARCH_MIPS32
+#   include <mips32Defs.h>
 #endif
 
 #endif

@@ -51,6 +51,7 @@ kSchedTask_t *kSchedTaskPopCyclic(void);
 void kSchedTaskTickCallbackCyclic(kSchedTask_t *task);
 bool kSchedShouldRescheduleCyclic(void);
 void kSchedTaskLsrOutCallbackCyclic(kSchedTask_t *task);
+kSchedTask_t *kSchedGetIdleCyclic(uint32_t cpuId);
 
 #endif
 

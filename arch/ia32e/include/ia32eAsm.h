@@ -26,6 +26,7 @@
 #ifndef _IA32E_ASM_H_
 #define _IA32E_ASM_H_
 
+#include <generated/autoconf.h>
 #include <ia32e.h>
 
 #define IA32E_KERNEL_OFFSET 0xffffff8000000000
@@ -70,7 +71,7 @@
 #ifdef ASM_FILE
 
 .macro IA32E_ASM_GEN_ISR_ENTRY, ISR_NO, prefix, entry_func
-    .align 16
+    .balign 16
     \prefix\ISR_NO:
         pushq $0
         pushq $\ISR_NO
@@ -78,7 +79,7 @@
 .endm
 
 .macro IA32E_ASM_GEN_ISR_ENTRY_ERRCODE, ISR_NO, prefix, entry_func
-    .align 16
+    .balign 16
     \prefix\ISR_NO:
         pushq $\ISR_NO
         jmp \entry_func
@@ -173,18 +174,19 @@
     addq $24, %rsp
 .endm
 
-.macro IA32E_ASM_GEN_PD name, numEntries, base
-    .align 4096
+.macro IA32E_ASM_GEN_PD name
+    .balign 4096
     \name:
-        .set addr, \base
-        .rept \numEntries
+        .set addr, 0
+        .set numEntries, (CONFIG_IA32E_KMAX_SIZE_MB + 1) / 2
+        .rept numEntries
             .quad addr + 0x183  /* P | RW | PS | G */
             .set addr, addr + (2 * 1024 * 1024)
         .endr
 .endm
 
 .macro IA32E_ASM_GEN_PDPT name, pd
-    .align 4096
+    .balign 4096
     \name:
         .quad (\pd) + 0x103   /* P | RW | G */
 
@@ -194,7 +196,7 @@
 .endm
 
 .macro IA32E_ASM_GEN_PML4 name, pdpt
-    .align 4096
+    .balign 4096
     \name:
         .quad \pdpt + 0x103 /* P | RW | G */
 

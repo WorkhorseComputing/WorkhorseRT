@@ -186,3 +186,16 @@ int kPluginInitDomain(kDomain_t *domain, kPluginDomainParam_t *param)
     kDomainUniverseAdd(param->domId, domain);
     return 0;
 }
+
+int kPluginInitIdleCallbacks(uint32_t cpuId, kSchedTaskCallbacks_t *callbacks)
+{
+    kSchedTask_t *task = NULL;
+    
+    task = kSchedGetIdle(cpuId);
+    
+    if (!task)
+        return -EINVAL;
+
+    task->callbacks = *callbacks;
+    return 0;
+}

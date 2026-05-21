@@ -13,10 +13,12 @@ typedef struct kSchedTaskCallbacks
 {
     kSchedTaskInCallbackFn_t inCallbackFn;
     kSchedTaskOutCallbackFn_t outCallbackFn;
+    kSchedTaskActivationCallbackFn_t activationCallbackFn;
+    kSchedTaskResponseCallbackFn_t responseCallbackFn;
 } kSchedTaskCallbacks_t;
 ```
 
-This is essential for implementing execution models focused on improving determinism such as PREM, which often rely on knowing which task is currently running.
+This is essential for implementing execution models focused on improving determinism and power savings such as PREM and shared slack reclamation, which often rely on knowing which task is currently running.
 
 ---
 

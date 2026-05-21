@@ -42,7 +42,8 @@ kSchedOps_t ops = {
     .kSchedTaskPopFn = kSchedTaskPopEdf,
     .kSchedTaskTickCallbackFn = kSchedTaskTickCallbackEdf,
     .kSchedShouldRescheduleFn = kSchedShouldRescheduleEdf,
-    .kSchedTaskLsrOutCallbackFn = kSchedTaskLsrOutCallbackEdf
+    .kSchedTaskLsrOutCallbackFn = kSchedTaskLsrOutCallbackEdf,
+    .kSchedGetIdleFn = kSchedGetIdleEdf
 };
 
 static
@@ -312,6 +313,16 @@ void kSchedTaskLsrOutCallbackEdf(kSchedTask_t *task)
 
     lsr = &task->taggedInfo.info.lsr;
     lsr->link.linkEdf.idleWindowEpoch = 0;
+}
+
+kSchedTask_t *kSchedGetIdleEdf(uint32_t cpuId)
+{
+    if (!kCpuIdValidate(cpuId))
+        return NULL;
+
+    K_DYNAMIC_ASSERT(cpuId < CONFIG_KMAX_CPUS);
+
+    return &gSchedulersEdf[cpuId].idle;
 }
 
 #endif

@@ -63,7 +63,7 @@
 
 /* Isr entry rendezvous */
 
-.align 64
+.balign 64
 __ia32eIsrEntry:
 
     cld
@@ -93,7 +93,7 @@ IA32E_ASM_GEN_ISR_ENTRIES IA32E_ASM_ISR_ENTRY_PREFIX, __ia32eIsrEntry
 
 /* Syscall entry */
 
-.align 64
+.balign 64
 __ia32eSyscallEntry:
 
     /* Switch to the kernel gs, this is required before enabling interruptd as our
@@ -128,7 +128,7 @@ __ia32eSyscallEntry:
 
     int3
 
-.align 64
+.balign 64
 __ia32eTaskIdleEntry:
     
     sti
@@ -140,7 +140,7 @@ __ia32eTaskIdleEntry:
 
 /* This expects interrupts to be disabled beforehand */
 
-.align 64
+.balign 64
 __ia32eFakeIsr:
 
     movzx %sil, %esi
@@ -174,5 +174,5 @@ __ia32eFakeIsr:
 
 .section .data
 
-.align 64
+.balign 64
 ia32eIsrEntryTable: IA32E_ASM_GEN_ISR_TABLE IA32E_ASM_ISR_ENTRY_PREFIX

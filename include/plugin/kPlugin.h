@@ -88,5 +88,6 @@ typedef struct kPluginDomainParam
 int kPluginInitTaskThread(kSchedTask_t *task, kPluginTaskThreadParam_t *param);
 int kPluginInitTaskLsr(kSchedTask_t *task, kPluginTaskLsrParam_t *param);
 int kPluginInitDomain(kDomain_t *domain, kPluginDomainParam_t *param);
+int kPluginInitIdleCallbacks(uint32_t cpuId, kSchedTaskCallbacks_t *callbacks);
 
 #endif
