@@ -40,6 +40,7 @@ typedef kSchedTask_t *(*kSchedTaskPopFn_t)(void);
 typedef void (*kSchedTaskTickCallbackFn_t)(kSchedTask_t *task);
 typedef bool (*kSchedShouldRescheduleFn_t)(void);
 typedef void (*kSchedTaskLsrOutCallbackFn_t)(kSchedTask_t *task);
+typedef kSchedTask_t *(*kSchedGetIdleFn_t)(uint32_t cpuId);
 
 typedef struct kSchedOps
 {
@@ -50,6 +51,7 @@ typedef struct kSchedOps
     kSchedTaskTickCallbackFn_t kSchedTaskTickCallbackFn;
     kSchedShouldRescheduleFn_t kSchedShouldRescheduleFn;
     kSchedTaskLsrOutCallbackFn_t kSchedTaskLsrOutCallbackFn;
+    kSchedGetIdleFn_t kSchedGetIdleFn;
 } kSchedOps_t;
 
 int kSchedTaskAdd(uint32_t taskId, kSchedTask_t *task);
@@ -65,6 +67,7 @@ kSchedTask_t *kSchedTaskPop(void);
 void kSchedTaskTickCallback(kSchedTask_t *task);
 bool kSchedShouldReschedule(void);
 void kSchedTaskLsrOutCallback(kSchedTask_t *task);
+kSchedTask_t *kSchedGetIdle(uint32_t cpuId);
 
 inline
 void kSchedTaskIdleInit(kSchedTask_t *idle)

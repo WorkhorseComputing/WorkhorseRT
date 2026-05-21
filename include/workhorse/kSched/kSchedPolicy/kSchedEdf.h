@@ -46,6 +46,7 @@ kSchedTask_t *kSchedTaskPopEdf(void);
 void kSchedTaskTickCallbackEdf(kSchedTask_t *task);
 bool kSchedShouldRescheduleEdf(void);
 void kSchedTaskLsrOutCallbackEdf(kSchedTask_t *task);
+kSchedTask_t *kSchedGetIdleEdf(uint32_t cpuId);
 
 #endif
 

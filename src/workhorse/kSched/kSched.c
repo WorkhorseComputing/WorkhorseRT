@@ -110,3 +110,9 @@ void kSchedTaskLsrOutCallback(kSchedTask_t *task)
     K_DYNAMIC_ASSERT(gOpsInitialized);
     gOps->kSchedTaskLsrOutCallbackFn(task);
 }
+
+kSchedTask_t *kSchedGetIdle(uint32_t cpuId)
+{
+    K_DYNAMIC_ASSERT(gOpsInitialized);
+    return gOps->kSchedGetIdleFn(cpuId);   
+}
