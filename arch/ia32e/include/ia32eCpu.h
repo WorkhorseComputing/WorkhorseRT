@@ -191,27 +191,23 @@ typedef struct ia32ePerCpu
         uint32_t tscFrequencyHz;
         uint32_t vmxPreemptFrequencyHz;
 
-        struct
-        {
-            uint64_t hostDr[4];
-            uint64_t hostDr6;
-            uint64_t hostDr7;
-        } hostCtx;
-
         struct 
         {
-            /* counts - 5 */
-
-            uint32_t vmexitLoadCount; 
-            uint32_t vmexitStoreEntryLoadCount;
+            uint32_t msrAreaCount; 
 
             /* star/cstar/lstar/fmask, 
                kernelgsbase */
 
             ia32eVtxMsrEntry_t ATTR_ALIGNED(16) vmexitLoadArea[5];
 
+            /* context switch these !! */
 
-            ia32eVtxMsrEntry_t ATTR_ALIGNED(16) vmexitStoreEntryLoadArea[5];
+            ia32eVtxMsrEntry_t ATTR_ALIGNED(16) vmexitStoreVmentryLoadArea[5];
+            char ATTR_ALIGNED(4096) ioBitmap[8192];
+
+            /* no switch */
+            ia32eVtxVmxonRegion_t ATTR_ALIGNED(4096) vmxonRegion;
+
         } areas;
     } vtx;
 #endif
@@ -337,7 +333,7 @@ typedef struct ia32eGlobal
            efer,
            pat,
            gs/fsbase,
-           star/cstar/lstar/fmask, 
+           star/lstar/ctsar/fmask, 
            kernelgsbase */
 
         char ATTR_ALIGNED(4096) msrBitmap[4096];
@@ -364,12 +360,6 @@ bool ia32eThisTopology0x1f(uint32_t *lapicId, uint32_t *threadId, uint32_t *core
 bool ia32eThisTopology0x0b(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId);
 void ia32eThisTopologyLegacy(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId);
 void ia32eThisTopology(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId);
-
-#if CONFIG_IA32E_VTX
-
-void ia32eCpuVtxInit(void);
-
-#endif
 
 void ia32eCpuInit(void);
 

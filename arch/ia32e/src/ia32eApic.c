@@ -402,11 +402,6 @@ uint32_t ia32eApicCalibrate(uint8_t spuriousVector)
 
     global = ia32eThisCpuData()->global;
 
-    if (!ia32eHpetIsInitialized()) {
-        ia32eEarlyKpanic("failed to calibrate apic, no hpet\n");
-        UNREACHABLE();
-    }
-
     timer = spuriousVector | (1 << 16) | (IA32E_XAPIC_ONESHOT << 17);
     ia32eApicWrite(IA32E_XAPIC_DCR_OFFSET, IA32E_XAPIC_DIV_16, false);
     ia32eApicWrite(IA32E_XAPIC_TIMER_OFFSET, timer, false);
@@ -443,7 +438,7 @@ uint32_t ia32eApicCalibrate(uint8_t spuriousVector)
     apicFrequencyHz = (apicTicksElapsed * counterFrequencyHz) / calibrationTicks;    
 
     if (apicFrequencyHz == 0) {
-        ia32eEarlyKpanic("failed to calibrate apic, somehow ended up with a frequency of 0\n");
+        ia32eEarlyKpanic("failed to calibrate apic, ended up with a frequency of 0 after manual calibration\n");
         UNREACHABLE();
     }
 

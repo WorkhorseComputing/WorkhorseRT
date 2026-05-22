@@ -61,17 +61,24 @@
 #define IA32E_CR0_CD_MASK   (1 << 30)
 #define IA32E_CR0_PG_MASK   (1 << 31)
 
+#define IA32E_CR4_TSD_MASK          (1 << 2)
 #define IA32E_CR4_DE_MASK           (1 << 3)
 #define IA32E_CR4_PAE_MASK          (1 << 5)
+#define IA32E_CR4_MCE_MASK          (1 << 6)
 #define IA32E_CR4_PGE_MASK          (1 << 7)
+#define IA32E_CR4_PCE_MASK          (1 << 8)
 #define IA32E_CR4_OSFXSR_MASK       (1 << 9)
 #define IA32E_CR4_OSXMMEXCPT_MASK   (1 << 10)
 #define IA32E_CR4_UMIP_MASK         (1 << 11)
+#define IA32E_CR4_LA57_MASK         (1 << 12)
 #define IA32E_CR4_VMXE_MASK         (1 << 13)
 #define IA32E_CR4_FSGSBASE_MASK     (1 << 16)
 #define IA32E_CR4_PCIDE_MASK        (1 << 17)
+#define IA32E_CR4_OSXSAVE_MASK      (1 << 18)
 #define IA32E_CR4_SMEP_MASK         (1 << 20) 
 #define IA32E_CR4_SMAP_MASK         (1 << 21)
+#define IA32E_CR4_PKE_MASK          (1 << 22)
+#define IA32E_CR4_UINTR_MASK        (1 << 25)
 
 #define IA32E_TPR_MIN   0
 #define IA32E_TPR_MAX   15
@@ -148,6 +155,7 @@
 #define IA32E_CPUID1_D_TSC_MASK     (1 << 4)
 #define IA32E_CPUID1_D_MSR_MASK     (1 << 5)
 #define IA32E_CPUID1_D_PAE_MASK     (1 << 6)
+#define IA32E_CPUID1_D_MTRR_MASK    (1 << 12)
 #define IA32E_CPUID1_D_PGE_MASK     (1 << 13)
 #define IA32E_CPUID1_D_PAT_MASK     (1 << 16)
 #define IA32E_CPUID1_D_FXSR_MASK    (1 << 24)
@@ -259,6 +267,12 @@
 
 /* Msr */
 
+#define IA32E_SYSENTER_CS   0x174
+#define IA32E_SYSENTER_ESP  0x175
+#define IA32E_SYSENTER_EIP  0x176
+
+#define IA32E_PAT 0x277
+
 #define IA32E_EFER                          0xC0000080
 #define IA32E_EFER_SYSCALL_ENABLE_MASK      (1 << 0)
 #define IA32E_EFER_LONGMODE_ENABLE_MASK     (1 << 8)
@@ -271,6 +285,7 @@
 
 #define IA32E_STAR      0xC0000081
 #define IA32E_LSTAR     0xC0000082
+#define IA32E_CSTAR     0xC0000083
 #define IA32E_FMASK     0xC0000084
 
 #define IA32E_BIOS_DONE 0x151

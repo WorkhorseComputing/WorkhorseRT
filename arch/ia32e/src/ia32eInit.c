@@ -29,6 +29,7 @@
 #include <ia32eVma.h>
 #include <ia32eApic.h>
 #include <ia32eHpet.h>
+#include <ia32eHostCpu.h>
 #include <workhorse/kInit/kInit.h>
 #include <lib/multiboot2.h>
 #include <stdWorkhorse.h>
@@ -683,6 +684,10 @@ void ia32eBspConfig(void)
 
     global->ipiData.ipiSender = ia32eThisCpuData()->cpuId;
     global->intcSetup = true;
+
+#if CONFIG_IA32E_VTX
+    ia32eGlobalVtxInit();
+#endif
 }
 
 static

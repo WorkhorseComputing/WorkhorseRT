@@ -32,9 +32,6 @@
 .globl __ia32eVmlaunchStub
 .type __ia32eVmlaunchStub, @function
 
-.globl __ia32eVmresumeStub
-.type __ia32eVmresumeStub, @function
-
 .globl __ia32eVmexitStub
 .type __ia32eVmexitStub, @function
 
@@ -45,20 +42,17 @@
 .code64
 
 .balign 64
+__ia32eVmlaunchStub: 
+    nop
+    
+    vmlaunch 
+    jmp 1f
+
+.balign 64
 __ia32eVmexitStub:
     nop
 
-
-
-    jmp __ia32eVmresumeStub
-__ia32eVmlaunchStub: 
-    nop
-    vmlaunch 
-    jmp 1f
-__ia32eVmresumeStub:
-    nop
     vmresume
 
 1:
-
     int3

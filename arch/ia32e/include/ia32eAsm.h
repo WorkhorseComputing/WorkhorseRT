@@ -374,6 +374,12 @@ uint64_t __ia32eReadCr8(void)
 }
 
 inline 
+void __ia32eWriteCr0(uint64_t val)
+{
+    __asm__ __volatile__ ("movq %0, %%cr0" :: "r"(val));
+}
+
+inline 
 void __ia32eWriteCr3(uint64_t val)
 {
     __asm__ __volatile__ ("movq %0, %%cr3" :: "r"(val));
@@ -603,6 +609,20 @@ void __ia32eInvpcid(uint64_t type, uint32_t pcid, uint64_t addr)
 }
 
 inline 
+bool __ia32eVmxon(uintptr_t phys)
+{
+    uint8_t ret = 0;
+    __asm__ __volatile__(
+        "vmxon %[phys];"
+        "seta %[ret];"
+        : [ret] "=r"(ret)
+        : [phys] "m"(phys)
+        : "cc", "memory");
+
+    return ret;
+}
+
+inline 
 bool __ia32eVmread(uint64_t field, uint64_t *outp)
 {
     uint8_t ret = 0;
@@ -677,7 +697,7 @@ uint16_t ia32eVmread16(uint64_t field)
 }
 
 inline 
-bool __ia32eVmptrld(uint64_t phys)
+bool __ia32eVmptrld(uintptr_t phys)
 {
     uint8_t ret = 0;
     __asm__ __volatile__(
@@ -719,7 +739,7 @@ bool __ia32eVmresume(void)
 }
 
 inline 
-bool __ia32eVmclear(uint64_t phys)
+bool __ia32eVmclear(uintptr_t phys)
 {
     uint8_t ret = 0;
     __asm__ __volatile__(

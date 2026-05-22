@@ -33,6 +33,14 @@ config IA32E_VTX_VTIMER_COUNT
     ---help---
         Number of virtual timers assigned to each vcpu
 
+config IA32E_VTX_TSC_CALIBRATION_TIME_MS
+    int "Tsc calibration time ms"
+    depends on IA32E_VTX
+    default 1
+    range 1 10
+    ---help---
+        "Amount of time taken to calibrate the tsc"
+
 config IA32E_KSTACK_SIZE
     int "Kernel stack size"
     default 4096
