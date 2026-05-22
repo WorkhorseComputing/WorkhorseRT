@@ -153,6 +153,7 @@
 #define IA32E_CPUID1_D_FXSR_MASK    (1 << 24)
 #define IA32E_CPUID1_D_HTT_MASK     (1 << 28)
 
+#define IA32E_CPUID1_C_MONITOR_MWAIT_MASK       (1 << 3)
 #define IA32E_CPUID1_C_VMX_MASK                 (1 << 5)
 #define IA32E_CPUID1_C_PCID_MASK                (1 << 17)
 #define IA32E_CPUID1_C_X2APIC_MASK              (1 << 21)
@@ -168,7 +169,11 @@
 
 #define IA32E_CPUID7_0_D_ARCH_CAP_MASK      (1 << 29)
 
+#define IA32E_CPUID7_1_C_BIOS_DONE_MASK     (1 << 30)
+
 #define IA32E_CPUID7_1_D_PREFETCHI_MASK     (1 << 14)
+
+#define IA32E_CPUID_ESIG0 0x80000000
 
 #define IA32E_CPUID_ESIG1 0x80000001
 #define IA32E_CPUID_ESIG1_D_NX_MASK         (1 << 20)
@@ -177,7 +182,7 @@
 #define IA32E_CPUID_ESIG1_D_INTEL64_MASK    (1 << 29)
 
 #define IA32E_CPUID_ESIG7 0x80000007
-#define IA32E_CPUID_ESIG1_D_INVARIANT_TSC_MASK  (1 << 8)
+#define IA32E_CPUID_ESIG7_D_INVARIANT_TSC_MASK  (1 << 8)
 
 #define IA32E_CPUID_CORETYPE 0x1A
 
@@ -268,6 +273,8 @@
 #define IA32E_LSTAR     0xC0000082
 #define IA32E_FMASK     0xC0000084
 
+#define IA32E_BIOS_DONE 0x151
+
 #define IA32E_APIC_BASE                     0x1b
 #define IA32E_APIC_BASE_BSP_MASK            (1 << 8)
 #define IA32E_APIC_BASE_ENABLE_X2APIC_MASK  (1 << 10)
@@ -331,6 +338,44 @@
 
 #define IA32E_ARCH_CAP                              0x10A
 #define IA32E_ARCH_CAP_XAPIC_DISABLE_STATUS_MASK    (1 << 21)
+
+#define IA32E_VMX_BASIC                 0x480
+#define IA32E_VMX_PINBASED_CTLS         0x481
+#define IA32E_VMX_TRUE_PINBASED_CTLS    0x48D
+#define IA32E_VMX_PROCBASED_CTLS        0x482
+#define IA32E_VMX_TRUE_PROCBASED_CTLS   0x48E
+#define IA32E_VMX_PROCBASED_CTLS2       0x48B
+#define IA32E_VMX_PROCBASED_CTLS3       0x492
+#define IA32E_VMX_EXIT_CTLS             0x483
+#define IA32E_VMX_TRUE_EXIT_CTLS        0x48F
+#define IA32E_VMX_EXIT_CTLS2            0x493
+#define IA32E_VMX_ENTRY_CTLS            0x484
+#define IA32E_VMX_TRUE_ENTRY_CTLS       0x490
+#define IA32E_VMX_VMFUNC                0x491
+#define IA32E_VMX_MISC                  0x485
+#define IA32E_VMX_CR0_FIXED0            0x486
+#define IA32E_VMX_CR0_FIXED1            0x487
+#define IA32E_VMX_CR4_FIXED0            0x488
+#define IA32E_VMX_CR4_FIXED1            0x489
+#define IA32E_VMX_VMCS_ENUM             0x48A
+#define IA32E_VMX_EPT_VPID_CAP          0x48C
+
+#define IA32E_VMX_BASIC_PHYS_ADDR_WIDTH_BIT                     48
+#define IA32E_VMX_BASIC_INFO_REPORTS_BIT                        54
+#define IA32E_VMX_BASIC_TRUE_CTLS_BIT                           55
+
+#define IA32E_VMX_EPT_VPID_CAP_PWLEN4_MASK                      (1 << 6)
+#define IA32E_VMX_EPT_VPID_CAP_PAGE_UC_MASK                     (1 << 8)
+#define IA32E_VMX_EPT_VPID_CAP_PAGE_WB_MASK                     (1 << 14)
+#define IA32E_VMX_EPT_VPID_CAP_PAGE_2MB_MASK                    (1 << 16)
+#define IA32E_VMX_EPT_VPID_CAP_PAGE_1GB_MASK                    (1 << 17)
+#define IA32E_VMX_EPT_VPID_CAP_PAGE_AD_MASK                     (1 << 21)
+
+#define IA32E_FEATURE_CONTROL                           0x03A
+#define IA32E_FEATURE_CONTROL_LOCKED_MASK               (1 << 0)
+#define IA32E_FEATURE_CONTROL_VMX_OUTSIDE_SMX_MASK      (1 << 2)
+#define IA32E_FEATURE_CONTROL_SGX_LAUNCH_CONTROL_MASK   (1 << 17)
+#define IA32E_FEATURE_CONTROL_SGX_GLOBAL_CONTROL_MASK   (1 << 18)
 
 /* Misc */
 

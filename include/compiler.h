@@ -36,10 +36,9 @@
 
 #define UNREACHABLE() __builtin_unreachable()
 
-#define STATIC_ASSERT(...) _Static_assert(__VA_ARGS__)
+#define STATIC_ASSERT(...) _Static_assert(__VA_ARGS__, #__VA_ARGS__)
 
-#define SIZE_ASSERT(obj, size) \
-    STATIC_ASSERT(sizeof(obj) == (size), "size mismatch: " #obj)
+#define SIZE_ASSERT(obj, size) STATIC_ASSERT(sizeof(obj) == (size))
 
 #define ARRAY_LEN(arr) (sizeof(arr) / sizeof(arr[0]))
 

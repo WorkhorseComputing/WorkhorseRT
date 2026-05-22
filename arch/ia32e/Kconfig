@@ -12,6 +12,27 @@ config CMAKE_TOOLCHAIN
 
 # Kernel configs
 
+config IA32E_VTX
+    bool "Vtx"
+    default y
+    ---help---
+        Enable hardware assisted virtualization
+
+config IA32E_VTX_FEATURE_VPID
+    bool "Vpid"
+    depends on IA32E_VTX
+    default y
+    ---help---
+        Enable vpids if supported
+
+config IA32E_VTX_VTIMER_COUNT
+    int "Vtx vtimer count"
+    depends on IA32E_VTX
+    default 2
+    range 2 32
+    ---help---
+        Number of virtual timers assigned to each vcpu
+
 config IA32E_KSTACK_SIZE
     int "Kernel stack size"
     default 4096
@@ -76,5 +97,17 @@ config IA32E_FEATURE_UMIP
     default y
     ---help---
         "Enable UMIP if supported"
+
+config IA32E_FEATURE_SMEP
+    bool "Enable SMEP"
+    default y
+    ---help---
+        "Enable SMEP if supported"
+
+config IA32E_FEATURE_SMAP
+    bool "Enable SMAP"
+    default y
+    ---help---
+        "Enable SMAP if supported"
 
 endmenu

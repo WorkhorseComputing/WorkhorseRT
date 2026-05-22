@@ -29,6 +29,8 @@
 #include <compiler.h>
 
 #define msToTicks(ms, freqHz) (((ms) * (freqHz)) / 1000ULL)
+#define usToTicks(us, freqHz) (((us) * (freqHz)) / 1000000ULL)
+#define testBitLe(val, bit) ((((val) >> (bit)) & 1) != 0)
 
 #define READ_ONCE(x)					                        \
 ({      					                                    \

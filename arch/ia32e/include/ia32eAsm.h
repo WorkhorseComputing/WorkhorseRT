@@ -602,6 +602,150 @@ void __ia32eInvpcid(uint64_t type, uint32_t pcid, uint64_t addr)
     __asm__ __volatile__ ("invpcid %[d], %[t];"::[d]"m"(desc), [t]"r"(type):"memory");
 }
 
+inline 
+bool __ia32eVmread(uint64_t field, uint64_t *outp)
+{
+    uint8_t ret = 0;
+    __asm__ __volatile__(
+        "vmread %[field], %[outp];"
+        "seta %[ret];"
+        : [ret] "=r"(ret), [outp] "=rm"(*outp)
+        : [field] "r"(field)
+        : "cc", "memory");
+
+    return ret;
+}
+
+inline 
+bool __ia32eVmwrite(uint64_t field, uint64_t inp)
+{
+    uint8_t ret = 0;
+    __asm__ __volatile__(
+        "vmwrite %[inp], %[field];"
+        "seta %[ret];"
+        : [ret] "=r"(ret)
+        : [field] "r"(field), [inp] "rm"(inp)
+        : "cc", "memory");
+
+    return ret;
+}
+
+inline 
+bool __ia32eVmread32(uint64_t field, uint32_t *outp)
+{
+    uint64_t val = 0;
+    bool ret = __ia32eVmread(field, &val);
+    if (ret)
+        *outp = (uint32_t)val;
+
+    return ret;
+}
+
+inline 
+bool __ia32eVmread16(uint64_t field, uint16_t *outp)
+{
+    uint64_t val = 0;
+    bool ret = __ia32eVmread(field, &val);
+    if (ret)
+        *outp = (uint16_t)val;
+
+    return ret;
+}
+
+inline 
+uint64_t ia32eVmread(uint64_t field)
+{
+    uint64_t val = 0;
+    __ia32eVmread(field, &val);
+    return val;
+}
+
+inline 
+uint32_t ia32eVmread32(uint64_t field)
+{
+    uint32_t val = 0;
+    __ia32eVmread32(field, &val);
+    return val;
+}
+
+inline 
+uint16_t ia32eVmread16(uint64_t field)
+{
+    uint16_t val = 0;
+    __ia32eVmread16(field, &val);
+    return val;
+}
+
+inline 
+bool __ia32eVmptrld(uint64_t phys)
+{
+    uint8_t ret = 0;
+    __asm__ __volatile__(
+        "vmptrld %[phys];"
+        "seta %[ret];"
+        : [ret] "=r"(ret)
+        : [phys] "m"(phys)
+        : "cc", "memory");
+
+    return ret;
+}
+
+inline 
+bool __ia32eVmptrst(uint64_t *outp)
+{
+    uint8_t ret = 0;
+    __asm__ __volatile__(
+        "vmptrst %[phys];"
+        "seta %[ret];"
+        : [phys] "=m"(*outp), [ret] "=r"(ret)
+        :
+        : "cc", "memory");
+
+    return ret;
+}
+
+inline 
+bool __ia32eVmresume(void)
+{
+    uint8_t ret = 0;
+    __asm__ __volatile__(
+        "vmresume;"
+        "seta %[ret];"
+        : [ret] "=r"(ret)
+        :
+        : "cc");
+
+    return ret;
+}
+
+inline 
+bool __ia32eVmclear(uint64_t phys)
+{
+    uint8_t ret = 0;
+    __asm__ __volatile__(
+        "vmclear %[phys];"
+        "seta %[ret];"
+        : [ret] "=r"(ret)
+        : [phys] "m"(phys)
+        : "cc", "memory");
+
+    return ret;
+}
+
+inline 
+bool __ia32eVmlaunch(void)
+{
+    uint8_t ret = 0;
+    __asm__ __volatile__(
+        "vmlaunch;"
+        "seta %[ret];"
+        : [ret] "=r"(ret)
+        :
+        : "cc");
+
+    return ret;
+}
+
 #endif
 
 #endif

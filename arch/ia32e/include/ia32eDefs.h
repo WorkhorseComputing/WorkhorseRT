@@ -29,6 +29,12 @@
 #include <ia32eAsm.h>
 #include <lib/dsa/stackq.h>
 
+typedef enum ia32eDomainType
+{
+    IA32E_DOMAIN_TYPE_NATIVE = 0,
+    IA32E_DOMAIN_TYPE_VM =     1
+} ia32eDomainType_t;
+
 typedef struct ia32eSchedCtx
 {
     ia32eFxsave64_t fpCtx;
@@ -59,11 +65,17 @@ typedef struct ia32eSchedCtx
     uint16_t cs;
     uint16_t ss;
     ia32eStack_t kStack;
+
+#if CONFIG_IA32E_VTX
+    uintptr_t vmcsPhys;
+#endif
+
 } ia32eSchedCtx_t;
 
 typedef struct ia32eSchedThreadParam
 {
     uint8_t tpr;
+    uintptr_t vmcsPhys;
 } ia32eSchedThreadParam_t;
 
 typedef struct ia32eSchedThreadInfo
@@ -74,6 +86,7 @@ typedef struct ia32eSchedThreadInfo
 typedef struct ia32eSchedLsrParam
 {
     uint8_t vector;
+    uintptr_t vmcsPhys;
 } ia32eSchedLsrParam_t;
 
 typedef struct ia32eSchedLsrInfo
@@ -87,12 +100,42 @@ typedef struct ia32eDomainInfo
     uint8_t iopb[8192];
 } ia32eDomainInfo_t;
 
+typedef struct ia32eDomainInfoVm
+{
+    bool vm;
+    uintptr_t iobpPhys;
+
+#   if CONFIG_IA32E_VTX_FEATURE_VPID
+    uint16_t vpid;
+#   endif
+
+} ia32eDomainInfoVm_t;
+
+typedef union ia32eDomainInfoUnion
+{
+    ia32eDomainInfo_t domainInfo;
+    ia32eDomainInfoVm_t domainInfoVm;  
+} ia32eDomainInfoUnion_t;
+
 typedef struct ia32eDomainParam
 {
     ia32ePml4_t *pml4BaseVirt;
     uint64_t pml4BasePhys;
     uint8_t iopb[8192];
 } ia32eDomainParam_t;
+
+typedef struct ia32eDomainParamVm
+{
+    bool vm;
+    uintptr_t iobpPhys;
+    uintptr_t eptBasePhys;
+} ia32eDomainParamVm_t;
+
+typedef union ia32eDomainParamUnion
+{
+    ia32eDomainParam_t domainParam;
+    ia32eDomainParamVm_t domainParamVm;  
+} ia32eDomainParamUnion_t;
 
 typedef struct archSchedCtx
 {

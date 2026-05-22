@@ -51,6 +51,7 @@
 #include <export/kCpuInterface.h>
 #include <workhorse/kDomainUniverse/kDomainUniverse.h>
 #include <lib/dsa/stackq.h>
+#include <ia32eVmcs.h>
 
 STATIC_ASSERT((CONFIG_IA32E_KSTACK_SIZE % 16) == 0);
 STATIC_ASSERT(IA32E_ASM_PDE_COUNT <= 256);
@@ -151,14 +152,69 @@ typedef struct ia32ePerCpu
             uint32_t onlineCapable : 1;
             uint32_t online : 1;
             uint32_t bsp : 1;
+
+            uint32_t monitorMwait : 1;
             uint32_t de : 1;
             uint32_t pcid : 1;
             uint32_t fsgsbase : 1;
+            uint32_t smep : 1;
+            uint32_t smap : 1;
             uint32_t umip : 1;
             uint32_t nx : 1;
-            uint32_t resvd0 : 23;
+
+            uint32_t invTsc : 1;
+
+            uint32_t vcpuCapable : 1;
+            
+            uint32_t sgxEnabled : 1;
+            uint32_t vpid : 1;
+
+            uint32_t ept2mb : 1;
+            uint32_t ept1gb : 1;
+            uint32_t eptWb : 1;
+            uint32_t eptUc : 1;
+            uint32_t eptAd : 1;
+
+            uint32_t resvd0 : 11;
         } fields;
     } cpuFlags;
+
+#if CONFIG_IA32E_VTX
+    struct 
+    {   
+        uint32_t revisionId;
+        uint32_t ia32eVmxPinbasedCtls;
+        uint32_t ia32eVmxProcbasedCtls;
+        uint32_t ia32eVmxExitCtls;
+        uint32_t ia32eVmxEntryCtls;
+
+        uint32_t tscFrequencyHz;
+        uint32_t vmxPreemptFrequencyHz;
+
+        struct
+        {
+            uint64_t hostDr[4];
+            uint64_t hostDr6;
+            uint64_t hostDr7;
+        } hostCtx;
+
+        struct 
+        {
+            /* counts - 5 */
+
+            uint32_t vmexitLoadCount; 
+            uint32_t vmexitStoreEntryLoadCount;
+
+            /* star/cstar/lstar/fmask, 
+               kernelgsbase */
+
+            ia32eVtxMsrEntry_t ATTR_ALIGNED(16) vmexitLoadArea[5];
+
+
+            ia32eVtxMsrEntry_t ATTR_ALIGNED(16) vmexitStoreEntryLoadArea[5];
+        } areas;
+    } vtx;
+#endif
 
     struct 
     {    
@@ -186,8 +242,9 @@ typedef struct ia32eGlobal
         uint32_t val;
         struct 
         {
-            uint32_t x2apic : 1; 
-            uint32_t resvd0 : 31;
+            uint32_t x2apic : 1;
+            uint32_t vcpuCapableExists : 1;
+            uint32_t resvd0 : 30;
         } fields;
     } gFlags;
 
@@ -265,13 +322,35 @@ typedef struct ia32eGlobal
     volatile atomic_uint_fast32_t numCpusOnline;
 
 #if CONFIG_IA32E_FEATURE_PCID
-    DEFINE_BITMAP(pcidBitmap, 4096);
+    uint32_t pcidCtr;
+#endif
+
+#if CONFIG_IA32E_VTX
+
+    struct 
+    {
+#   if CONFIG_IA32E_VTX_FEATURE_VPID
+        uint32_t vpidCtr;
+#   endif
+
+        /* sysenter cs/eip/esp, 
+           efer,
+           pat,
+           gs/fsbase,
+           star/cstar/lstar/fmask, 
+           kernelgsbase */
+
+        char ATTR_ALIGNED(4096) msrBitmap[4096];
+    } vtxGlobal;
+
 #endif
 
 } ia32eGlobal_t;
 
 STATIC_ASSERT(offsetof(ia32ePerCpu_t, syscallStacks.syscallKsp) == IA32E_ASM_SYSCALL_KSP_OFF);
 STATIC_ASSERT(offsetof(ia32ePerCpu_t, syscallStacks.syscallUsp) == IA32E_ASM_SYSCALL_USP_OFF);
+
+STATIC_ASSERT(CONFIG_KMAX_DOMAINS < UINT16_MAX);
 
 #define ia32eInitCpuData(perCpuPtr) __ia32eWrmsr(IA32E_GS_BASE, (uint64_t)(perCpuPtr))
 #define ia32eThisCpuData() ((ia32ePerCpu_t *)__ia32eReadgs64(offsetof(ia32ePerCpu_t, thisPtr)))
@@ -285,6 +364,12 @@ bool ia32eThisTopology0x1f(uint32_t *lapicId, uint32_t *threadId, uint32_t *core
 bool ia32eThisTopology0x0b(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId);
 void ia32eThisTopologyLegacy(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId);
 void ia32eThisTopology(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId);
+
+#if CONFIG_IA32E_VTX
+
+void ia32eCpuVtxInit(void);
+
+#endif
 
 void ia32eCpuInit(void);
 

@@ -23,12 +23,42 @@
  * SOFTWARE.
 */
 
-#ifndef _K_EXCEPTION_HANDLER_H_
-#define _K_EXCEPTION_HANDLER_H_
+#define ASM_FILE 1
 
-#include <workhorse/kDomainUniverse/kDomainUniverse.h>
+/* Externs */
 
-void kExceptionHandler(bool fail, kDomainInvocationType_t type, uintptr_t returnAddress, 
-                       uintptr_t vmemFaultAddress, uintptr_t errorCode);
+/* Definitions */
 
-#endif
+.globl __ia32eVmlaunchStub
+.type __ia32eVmlaunchStub, @function
+
+.globl __ia32eVmresumeStub
+.type __ia32eVmresumeStub, @function
+
+.globl __ia32eVmexitStub
+.type __ia32eVmexitStub, @function
+
+/* Body */
+
+.section .text
+
+.code64
+
+.balign 64
+__ia32eVmexitStub:
+    nop
+
+
+
+    jmp __ia32eVmresumeStub
+__ia32eVmlaunchStub: 
+    nop
+    vmlaunch 
+    jmp 1f
+__ia32eVmresumeStub:
+    nop
+    vmresume
+
+1:
+
+    int3
