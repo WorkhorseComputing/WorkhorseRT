@@ -509,7 +509,7 @@ void ia32eCpuVtxInit(void)
         return;
 
     cpu->cpuFlags.fields.sgxEnabled = sgxEnabled;
-    cpu->cpuFlags.fields.vpid = testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_VPID_BIT);
+    cpu->cpuFlags.fields.vpid = testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_VPID_BIT + 32);
 
     cpu->cpuFlags.fields.ept2mb = (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_2MB_MASK) != 0;
     cpu->cpuFlags.fields.ept1gb = (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_1GB_MASK) != 0;
