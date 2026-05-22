@@ -55,6 +55,12 @@
 .globl __ia32eFakeIsr
 .type __ia32eFakeIsr, @function
 
+.globl __ia32eVmlaunchStub
+.type __ia32eVmlaunchStub, @function
+
+.globl __ia32eVmexitStub
+.type __ia32eVmexitStub, @function
+
 /* Body */
 
 .section .text
@@ -168,6 +174,24 @@ __ia32eFakeIsr:
 1:  .byte 0x0f, 0x1f, 0x80, 0x00, 0x00, 0x00, 0x00
     ret
 
+    int3
+
+/* Vtx stubs */
+
+.balign 64
+__ia32eVmlaunchStub: 
+    nop
+    
+    vmlaunch 
+    jmp 1f
+
+.balign 64
+__ia32eVmexitStub:
+    nop
+
+    vmresume
+
+1:
     int3
 
 /* Isr entry table */
