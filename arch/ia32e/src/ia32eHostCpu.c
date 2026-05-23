@@ -312,7 +312,10 @@ void ia32eCpuVtxInit(void)
     
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_INTERRUPT_WINDOW_EXITING_BIT + 32) ||
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDPMC_EXITING_BIT + 32) ||
-        !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT + 32) ||
+
+        (!testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT + 32) && 
+          CONFIG_IA32E_VTX_TSD) ||
+
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_NMI_WINDOW_EXITING_BIT  + 32) || 
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_IO_BITMAPS_BIT + 32) || 
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_MSR_BITMAPS_BIT + 32) ||
@@ -398,7 +401,7 @@ void ia32eCpuVtxInit(void)
 
     /* security checks */
 
-    if (((cr4 & IA32E_CR4_TSD_MASK) != 0) != CONFIG_IA32E_VTX_TSD ||
+    if (((cr4 & IA32E_CR4_TSD_MASK) != 0) != CONFIG_IA32E_TSD ||
         (cr4 & IA32E_CR4_MCE_MASK) != 0 || 
         (cr4 & IA32E_CR4_PCE_MASK) != 0 ||
         (cr4 & IA32E_CR4_LA57_MASK) != 0 ||
