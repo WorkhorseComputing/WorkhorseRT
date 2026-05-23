@@ -410,7 +410,8 @@ void ia32eCpuInit(void)
 
     ia32eCpuid(1, 0, &regs1[0], &regs1[1], &regs1[2], &regs1[3]);
 
-    cpu->cpuFlags.fields.monitorMwait = ((regs1[2] & IA32E_CPUID1_C_MONITOR_MWAIT_MASK) != 0);
+    cpu->cpuFlags.fields.monitorMwait = (regs1[2] & IA32E_CPUID1_C_MONITOR_MWAIT_MASK) != 0;
+    cpu->cpuFlags.fields.vme = (regs1[3] & IA32E_CPUID1_D_VME_MASK) != 0;
 
     if ((regs1[3] & IA32E_CPUID1_D_DE_MASK) != 0) {
         cr4 |= IA32E_CR4_DE_MASK;

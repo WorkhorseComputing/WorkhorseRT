@@ -661,10 +661,4 @@ typedef enum ia32eVtxVmcsGuestActivityState
     IA32E_VTX_VMCS_GUEST_WAIT_FOR_SIPI =    3,
 } ia32eVtxVmcsGuestActivityState_t;
 
-#if CONFIG_IA32E_VTX
-
-
-
-#endif
-
 #endif

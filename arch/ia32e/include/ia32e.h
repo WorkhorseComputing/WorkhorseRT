@@ -61,8 +61,11 @@
 #define IA32E_CR0_CD_MASK   (1 << 30)
 #define IA32E_CR0_PG_MASK   (1 << 31)
 
+#define IA32E_CR4_VME_MASK          (1 << 0)
+#define IA32E_CR4_PVI_MASK          (1 << 1)
 #define IA32E_CR4_TSD_MASK          (1 << 2)
 #define IA32E_CR4_DE_MASK           (1 << 3)
+#define IA32E_CR4_PSE_MASK          (1 << 4)
 #define IA32E_CR4_PAE_MASK          (1 << 5)
 #define IA32E_CR4_MCE_MASK          (1 << 6)
 #define IA32E_CR4_PGE_MASK          (1 << 7)
@@ -151,6 +154,7 @@
 #define IA32E_CPUID0_GENUINE_INTEL_EDX  0x49656E69
 
 #define IA32E_CPUID1_D_FPU_MASK     (1 << 0)
+#define IA32E_CPUID1_D_VME_MASK     (1 << 1)
 #define IA32E_CPUID1_D_DE_MASK      (1 << 2)
 #define IA32E_CPUID1_D_TSC_MASK     (1 << 4)
 #define IA32E_CPUID1_D_MSR_MASK     (1 << 5)

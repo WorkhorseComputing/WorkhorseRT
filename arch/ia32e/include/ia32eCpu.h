@@ -154,6 +154,7 @@ typedef struct ia32ePerCpu
             uint32_t bsp : 1;
 
             uint32_t monitorMwait : 1;
+            uint32_t vme : 1;
             uint32_t de : 1;
             uint32_t pat : 1;
             uint32_t pcid : 1;
@@ -175,7 +176,7 @@ typedef struct ia32ePerCpu
             uint32_t eptUc : 1;
             uint32_t eptAd : 1;
 
-            uint32_t resvd0 : 11;
+            uint32_t resvd0 : 10;
         } fields;
     } cpuFlags;
 
@@ -212,6 +213,7 @@ typedef struct ia32ePerCpu
             char ATTR_ALIGNED(4096) ioBitmap[8192];
 
             /* no switch */
+
             ia32eVtxVmxonRegion_t ATTR_ALIGNED(4096) vmxonRegion;
 
         } areas;
