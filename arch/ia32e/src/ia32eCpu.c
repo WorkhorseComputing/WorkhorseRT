@@ -400,6 +400,7 @@ void ia32eCpuInit(void)
     uint32_t regsEsig0[4] = {0};
     uint32_t regsEsig1[4] = {0};
     uint32_t regsEsig7[4] = {0};
+    uint32_t regs18[4] = {0};
     uint64_t efer = 0;
     uint64_t dr7 = 0;
 
@@ -474,6 +475,13 @@ void ia32eCpuInit(void)
         ia32eCpuid(IA32E_CPUID_ESIG7, 0, &regsEsig7[0], &regsEsig7[1], &regsEsig7[2], &regsEsig7[3]);
         cpu->cpuFlags.fields.invTsc = (regsEsig7[3] & IA32E_CPUID_ESIG7_D_INVARIANT_TSC_MASK) != 0;
     }
+
+    ia32eCpuid(18, 0, &regs18[0], &regs18[1], &regs18[2], &regs18[3]);
+    cpu->cpuFlags.fields.sgx = (regs18[0] & IA32E_CPUID18_0_A_SGX1_MASK) != 0;
+
+#if CONFIG_IA32E_TSD
+    cr4 |= IA32E_CR4_TSD_MASK;
+#endif
 
     efer |= IA32E_EFER_SYSCALL_ENABLE_MASK;
     __ia32eWrmsr(IA32E_STAR, ((((IA32E_UDS_IDX - 1) << 3) | 3) << 48) | (IA32E_KCS_SELECTOR << 32));

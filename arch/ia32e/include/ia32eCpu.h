@@ -163,10 +163,10 @@ typedef struct ia32ePerCpu
             uint32_t nx : 1;
 
             uint32_t invTsc : 1;
+            uint32_t sgx : 1;
 
             uint32_t vcpuCapable : 1;
             
-            uint32_t sgxEnabled : 1;
             uint32_t vpid : 1;
 
             uint32_t ept2mb : 1;

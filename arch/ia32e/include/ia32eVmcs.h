@@ -1,6 +1,32 @@
+/** MIT License
+ *
+ * Copyright (c) 2026 Humza Khan
+ * <mohammed.khan.2024@uni.strath.ac.uk>
+ * <https://github.com/humzak711>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+*/
+
 #ifndef _IA32E_VMCS_H_
 #define _IA32E_VMCS_H_
 
+#include <generated/autoconf.h>
 #include <stdWorkhorse.h>
 
 typedef enum ia32eVtxVmcsAccess
@@ -543,6 +569,7 @@ typedef enum ia32eVtxVmcsWidth
 #define IA32E_VTX_VMCS_PROCBASED_CTLS_INTERRUPT_WINDOW_EXITING_BIT   2
 #define IA32E_VTX_VMCS_PROCBASED_CTLS_MWAIT_EXITING_BIT              10
 #define IA32E_VTX_VMCS_PROCBASED_CTLS_RDPMC_EXITING_BIT              11
+#define IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT              12
 #define IA32E_VTX_VMCS_PROCBASED_CTLS_NMI_WINDOW_EXITING_BIT         22
 #define IA32E_VTX_VMCS_PROCBASED_CTLS_IO_BITMAPS_BIT                 25
 #define IA32E_VTX_VMCS_PROCBASED_CTLS_MSR_BITMAPS_BIT                28
@@ -633,5 +660,11 @@ typedef enum ia32eVtxVmcsGuestActivityState
     IA32E_VTX_VMCS_GUEST_SHUTDOWN =         2,
     IA32E_VTX_VMCS_GUEST_WAIT_FOR_SIPI =    3,
 } ia32eVtxVmcsGuestActivityState_t;
+
+#if CONFIG_IA32E_VTX
+
+
+
+#endif
 
 #endif

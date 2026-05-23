@@ -24,6 +24,16 @@ typedef struct archSchedCtx
     ...
 } archSchedCtx_t;
 
+typedef struct archSchedThreadParam
+{
+    ...
+} archSchedThreadParam_t;
+
+typedef struct archSchedThreadInfo
+{
+    ...
+} archSchedThreadInfo_t;
+
 typedef struct archSchedLsrParam
 {
     ...

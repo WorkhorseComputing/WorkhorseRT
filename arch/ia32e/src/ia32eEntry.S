@@ -178,10 +178,73 @@ __ia32eFakeIsr:
 
 /* Vtx stubs */
 
+#if CONFIG_IA32E_VTX
+
+.balign 64
+__ia32eScrubRegsStub:
+
+    xorl %eax, %eax
+    xorl %ebx, %ebx
+    xorl %ecx, %ecx
+    xorl %edx, %edx
+    xorl %edi, %edi
+    xorl %esi, %esi
+    xorl %ebp, %ebp
+    xorl %r8d, %r8d
+    xorl %r9d, %r9d
+    xorl %r10d, %r10d
+    xorl %r11d, %r11d
+    xorl %r12d, %r12d
+    xorl %r13d, %r13d
+    xorl %r14d, %r14d
+    xorl %r15d, %r15d
+
+    pushq 0x1f80
+    ldmxcsr (%rsp)
+    addq $8, %rsp
+
+    pxor %xmm0, %xmm0 
+    pxor %xmm1, %xmm1 
+    pxor %xmm2, %xmm2 
+    pxor %xmm3, %xmm3 
+    pxor %xmm4, %xmm4 
+    pxor %xmm5, %xmm5 
+    pxor %xmm6, %xmm6 
+    pxor %xmm7, %xmm7 
+    pxor %xmm8, %xmm8 
+    pxor %xmm9, %xmm9 
+    pxor %xmm10, %xmm10 
+    pxor %xmm11, %xmm11 
+    pxor %xmm12, %xmm12 
+    pxor %xmm13, %xmm13 
+    pxor %xmm14, %xmm14 
+    pxor %xmm15, %xmm15
+
+    fninit
+    fldz
+    fst %st(1) 
+    fst %st(2) 
+    fst %st(3) 
+    fst %st(4) 
+    fst %st(5) 
+    fst %st(6) 
+    fst %st(7) 
+    fstp %st(0)
+
+    movq %rax, %cr2
+
+    movq %rax, %dr6
+    movq %rax, %dr3
+    movq %rax, %dr2
+    movq %rax, %dr1
+    movq %rax, %dr0
+
+    ret
+    int3
+
 .balign 64
 __ia32eVmlaunchStub: 
-    nop
-    
+    call __ia32eScrubRegsStub
     vmlaunch 
     jmp 1f
 
@@ -191,8 +254,12 @@ __ia32eVmexitStub:
 
     vmresume
 
+/* vmentry failure stub */
+
 1:
     int3
+
+#endif
 
 /* Isr entry table */
 

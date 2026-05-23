@@ -1,3 +1,28 @@
+/** MIT License
+ *
+ * Copyright (c) 2026 Humza Khan
+ * <mohammed.khan.2024@uni.strath.ac.uk>
+ * <https://github.com/humzak711>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+*/
+
 #include <ia32eHostCpu.h>
 #include <ia32eCpu.h>
 #include <ia32eHpet.h>
@@ -202,7 +227,6 @@ void ia32eCpuVtxInit(void)
     ia32ePerCpu_t *cpu = NULL;
 
     uint64_t featureCtrl = 0;
-    bool sgxEnabled = false;
 
     uint64_t basic = 0;
 
@@ -234,21 +258,15 @@ void ia32eCpuVtxInit(void)
 
     featureCtrl = __ia32eRdmsr(IA32E_FEATURE_CONTROL);
 
-    if ((featureCtrl & IA32E_FEATURE_CONTROL_LOCKED_MASK) != 0) {
-
-        if ((featureCtrl & IA32E_FEATURE_CONTROL_VMX_OUTSIDE_SMX_MASK) == 0)
-            return;
-
-        sgxEnabled = (featureCtrl & IA32E_FEATURE_CONTROL_SGX_GLOBAL_CONTROL_MASK) != 0;
-
-    } else {
+    if ((featureCtrl & IA32E_FEATURE_CONTROL_LOCKED_MASK) == 0) {
 
         featureCtrl |= IA32E_FEATURE_CONTROL_VMX_OUTSIDE_SMX_MASK;
-        featureCtrl &= ~IA32E_FEATURE_CONTROL_SGX_LAUNCH_CONTROL_MASK;
-        featureCtrl &= ~IA32E_FEATURE_CONTROL_SGX_GLOBAL_CONTROL_MASK;
         featureCtrl |= IA32E_FEATURE_CONTROL_LOCKED_MASK;
 
         __ia32eWrmsr(IA32E_FEATURE_CONTROL, featureCtrl);
+
+    } else if ((featureCtrl & IA32E_FEATURE_CONTROL_VMX_OUTSIDE_SMX_MASK) == 0) {
+        return;
     }
 
     basic = __ia32eRdmsr(IA32E_VMX_BASIC);
@@ -293,6 +311,8 @@ void ia32eCpuVtxInit(void)
         !testBitLe(entryCtls, IA32E_VTX_VMCS_ENTRY_CTLS_LOAD_EFER_BIT + 32) ||
     
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_INTERRUPT_WINDOW_EXITING_BIT + 32) ||
+        !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDPMC_EXITING_BIT + 32) ||
+        !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT + 32) ||
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_NMI_WINDOW_EXITING_BIT  + 32) || 
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_IO_BITMAPS_BIT + 32) || 
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_MSR_BITMAPS_BIT + 32) ||
@@ -312,7 +332,9 @@ void ia32eCpuVtxInit(void)
     if (!testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_EPT_BIT + 32) ||
         !testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_URG_BIT + 32) ||
         !testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_WBINVD_EXITING_BIT + 32) ||
-        (sgxEnabled && !testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_ENCLS_EXITING_BIT + 32))) {
+        
+        (cpu->cpuFlags.fields.sgx != 0 && 
+         !testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_ENCLS_EXITING_BIT + 32))) {
 
         return;
     } 
@@ -321,7 +343,6 @@ void ia32eCpuVtxInit(void)
     if ((vpidCap & IA32E_VMX_EPT_VPID_CAP_PWLEN4_MASK) == 0)
         return;
 
-    cpu->cpuFlags.fields.sgxEnabled = sgxEnabled;
     cpu->cpuFlags.fields.vpid = testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_VPID_BIT + 32);
 
     cpu->cpuFlags.fields.ept2mb = (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_2MB_MASK) != 0;
@@ -377,7 +398,7 @@ void ia32eCpuVtxInit(void)
 
     /* security checks */
 
-    if ((cr4 & IA32E_CR4_TSD_MASK) != 0 ||
+    if (((cr4 & IA32E_CR4_TSD_MASK) != 0) != CONFIG_IA32E_VTX_TSD ||
         (cr4 & IA32E_CR4_MCE_MASK) != 0 || 
         (cr4 & IA32E_CR4_PCE_MASK) != 0 ||
         (cr4 & IA32E_CR4_LA57_MASK) != 0 ||

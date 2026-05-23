@@ -39,7 +39,14 @@ config IA32E_VTX_TSC_CALIBRATION_TIME_MS
     default 1
     range 1 10
     ---help---
-        "Amount of time taken to calibrate the tsc"
+        Amount of time taken to calibrate the tsc
+
+config IA32E_VTX_TSD
+    bool "Disable TSC in vtx"
+    depends on IA32E_VTX
+    default n
+    ---help---
+        Disable timestamp counter in virtual domains
 
 config IA32E_KSTACK_SIZE
     int "Kernel stack size"
@@ -85,37 +92,43 @@ config IA32E_APPLY_MADT_NMI_OVERRIDES
     bool "Apply MADT NMI overrides"
     default n
     ---help---
-        "Enable NMI overrides stated by the ACPI MADT"
+        Enable NMI overrides stated by the ACPI MADT
 
 config IA32E_APIC_CALIBRATION_TIME_MS
     int "Apic calibration time ms"
     default 1
     range 1 10
     ---help---
-        "Amount of time taken to calibrate the Apic"
+        Amount of time taken to calibrate the Apic
 
 config IA32E_FEATURE_PCID
     bool "Enable PCID"
     default y
     ---help---
-        "Enable PCID if supported"
+        Enable PCID if supported
 
 config IA32E_FEATURE_UMIP
     bool "Enable UMIP"
     default y
     ---help---
-        "Enable UMIP if supported"
+        Enable UMIP if supported
 
 config IA32E_FEATURE_SMEP
     bool "Enable SMEP"
     default y
     ---help---
-        "Enable SMEP if supported"
+        "Enable SMEP if supported
 
 config IA32E_FEATURE_SMAP
     bool "Enable SMAP"
     default y
     ---help---
-        "Enable SMAP if supported"
+        "Enable SMAP if supported
+
+config IA32E_TSD
+    bool "Disable TSC"
+    default n
+    ---help---
+        Disable timestamp counter in native domains
 
 endmenu

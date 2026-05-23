@@ -61,7 +61,16 @@ typedef struct ia32eSchedCtx
     ia32eStack_t kStack;
 
 #if CONFIG_IA32E_VTX
-    uintptr_t vmcsPhys;
+    struct 
+    { 
+        bool vmcsInitialized;
+        uintptr_t vmcsPhys;
+
+        uint64_t hostDr1;
+        uint64_t hostDr2;
+        uint64_t hostDr3;
+        uint64_t hostDr6;
+    } vtx;
 #endif
 
 } ia32eSchedCtx_t;
