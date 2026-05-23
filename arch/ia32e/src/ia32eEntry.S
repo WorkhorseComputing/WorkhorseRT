@@ -236,8 +236,11 @@ __ia32eScrubRegsStub:
     fstp %st(0)
 
     movq %rax, %cr2
-
+    
+    movl $0xffff0ff0, %eax
     movq %rax, %dr6
+    xorl %eax, %eax
+
     movq %rax, %dr3
     movq %rax, %dr2
     movq %rax, %dr1
