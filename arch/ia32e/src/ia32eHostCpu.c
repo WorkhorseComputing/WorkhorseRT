@@ -24,13 +24,14 @@
 */
 
 #include <ia32eHostCpu.h>
+
+#if CONFIG_IA32E_VTX
+
 #include <ia32eCpu.h>
 #include <ia32eHpet.h>
 #include <ia32eVma.h>
 #include <lib/acpi.h>
 #include <export/kDbgInterface.h>
-
-#if CONFIG_IA32E_VTX
 
 static
 uint32_t ia32eVtxVmcsMsrAllowList[] = {

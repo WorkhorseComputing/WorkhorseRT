@@ -24,11 +24,12 @@
 */
 
 #include <ia32eVmcsSetup.h>
+
+#if CONFIG_IA32E_VTX
+
 #include <ia32eCpu.h>
 #include <ia32eVma.h>
 #include <export/kDbgInterface.h>
-
-#if CONFIG_IA32E_VTX
 
 extern 
 void __ia32eVmexitStub(void);
