@@ -45,10 +45,10 @@ typedef enum ia32eVtxVmcsType
 
 typedef enum ia32eVtxVmcsWidth
 {
-    ia32eVtxVmcsWord =      0,
-    ia32eVtxVmcsQword =     1,
-    ia32eVtxVmcsDword =     2,
-    ia32eVtxVmcsNatural =   3,
+    ia32eVtxVmcsWidthWord =      0,
+    ia32eVtxVmcsWidthQword =     1,
+    ia32eVtxVmcsWidthDword =     2,
+    ia32eVtxVmcsWidthNatural =   3,
 } ia32eVtxVmcsWidth_t;
 
 #define IA32E_VTX_VMCS_ENC_COMPONENT(access, index, type, width) \
@@ -57,25 +57,25 @@ typedef enum ia32eVtxVmcsWidth
                ((unsigned short)(type) << 10) |        \
                ((unsigned short)(width) << 13))
 #define IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, width) \
-    IA32E_VTX_VMCS_ENC_COMPONENT(full, index, type, width)
+    IA32E_VTX_VMCS_ENC_COMPONENT(ia32eVtxVmcsAccessFull, index, type, width)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, width) \
-    IA32E_VTX_VMCS_ENC_COMPONENT(high, index, type, width)
+    IA32E_VTX_VMCS_ENC_COMPONENT(ia32eVtxVmcsAccessHigh, index, type, width)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_FULL_16(index, type) \
-    IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, word)
+    IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, ia32eVtxVmcsWidthWord)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_FULL_32(index, type) \
-    IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, dword)
+    IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, ia32eVtxVmcsWidthDword)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_FULL_64(index, type) \
-    IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, qword)
+    IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, ia32eVtxVmcsWidthQword)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_FULL_NAT(index, type) \
-    IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, natural)
+    IA32E_VTX_VMCS_ENC_COMPONENT_FULL(index, type, ia32eVtxVmcsWidthNatural)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_HIGH_16(index, type) \
-    IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, word)
+    IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, ia32eVtxVmcsWIdthWord)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_HIGH_32(index, type) \
-    IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, dword)
+    IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, ia32eVtxVmcsWidthDword)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_HIGH_64(index, type) \
-    IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, qword)
+    IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, ia32eVtxVmcsWidthQword)
 #define IA32E_VTX_VMCS_ENC_COMPONENT_HIGH_NAT(index, type) \
-    IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, natural)
+    IA32E_VTX_VMCS_ENC_COMPONENT_HIGH(index, type, ia32eVtxVmcsWidthNatural)
 
 // 16-bit fields (ia32eVtxVmcsTypeControl)
 #define IA32E_VTX_VMCS_CTRL_VPID \

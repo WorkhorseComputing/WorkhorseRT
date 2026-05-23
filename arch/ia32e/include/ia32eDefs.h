@@ -27,6 +27,7 @@
 #define _IA32E_DEFS_H_
 
 #include <ia32eAsm.h>
+#include <ia32eVmcs.h>
 #include <lib/dsa/stackq.h>
 
 typedef struct ia32eSchedCtx
@@ -64,12 +65,8 @@ typedef struct ia32eSchedCtx
     struct 
     { 
         bool vmcsInitialized;
+        ia32eVtxVmcsRegion_t *vmcsVirt;
         uintptr_t vmcsPhys;
-
-        uint64_t hostDr1;
-        uint64_t hostDr2;
-        uint64_t hostDr3;
-        uint64_t hostDr6;
     } vtx;
 #endif
 
@@ -78,7 +75,12 @@ typedef struct ia32eSchedCtx
 typedef struct ia32eSchedThreadParam
 {
     uint8_t tpr;
+
+#if CONFIG_IA32E_VTX
+    ia32eVtxVmcsRegion_t *vmcsVirt;
     uintptr_t vmcsPhys;
+#endif
+
 } ia32eSchedThreadParam_t;
 
 typedef struct ia32eSchedThreadInfo
@@ -89,7 +91,12 @@ typedef struct ia32eSchedThreadInfo
 typedef struct ia32eSchedLsrParam
 {
     uint8_t vector;
+    
+#if CONFIG_IA32E_VTX
+    ia32eVtxVmcsRegion_t *vmcsVirt;
     uintptr_t vmcsPhys;
+#endif
+
 } ia32eSchedLsrParam_t;
 
 typedef struct ia32eSchedLsrInfo
@@ -104,6 +111,7 @@ typedef struct ia32eDomainInfo
 
 #if CONFIG_IA32E_VTX
     bool vm;
+    uint16_t vpid;
 #endif
 
 } ia32eDomainInfo_t;
@@ -111,7 +119,7 @@ typedef struct ia32eDomainInfo
 typedef struct ia32eDomainParam
 {
     ia32ePml4_t *pml4BaseVirt;
-    uint64_t pml4BasePhys;
+    uintptr_t pml4BasePhys;
     uint8_t iopb[8192];
 
 #if CONFIG_IA32E_VTX

@@ -582,6 +582,30 @@ uint64_t __ia32eReadDr0(void)
 }
 
 inline 
+uint64_t __ia32eReadDr1(void)
+{
+    uint64_t val = 0;
+    __asm__ __volatile__ ("movq %%dr1, %0;":"=r"(val));
+    return val;
+}
+
+inline 
+uint64_t __ia32eReadDr2(void)
+{
+    uint64_t val = 0;
+    __asm__ __volatile__ ("movq %%dr2, %0;":"=r"(val));
+    return val;
+}
+
+inline 
+uint64_t __ia32eReadDr3(void)
+{
+    uint64_t val = 0;
+    __asm__ __volatile__ ("movq %%dr3, %0;":"=r"(val));
+    return val;
+}
+
+inline 
 uint64_t __ia32eReadDr6(void)
 {
     uint64_t val = 0;

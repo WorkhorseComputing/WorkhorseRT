@@ -155,6 +155,7 @@ typedef struct ia32ePerCpu
 
             uint32_t monitorMwait : 1;
             uint32_t de : 1;
+            uint32_t pat : 1;
             uint32_t pcid : 1;
             uint32_t fsgsbase : 1;
             uint32_t smep : 1;
@@ -171,7 +172,6 @@ typedef struct ia32ePerCpu
 
             uint32_t ept2mb : 1;
             uint32_t ept1gb : 1;
-            uint32_t eptWb : 1;
             uint32_t eptUc : 1;
             uint32_t eptAd : 1;
 
@@ -190,6 +190,12 @@ typedef struct ia32ePerCpu
 
         uint32_t tscFrequencyHz;
         uint32_t vmxPreemptFrequencyHz;
+
+        uint64_t hostDr1;
+        uint64_t hostDr2;
+        uint64_t hostDr3;
+        uint64_t hostDr6;
+        uint64_t hostDr7;
 
         struct 
         {
@@ -239,8 +245,10 @@ typedef struct ia32eGlobal
         struct 
         {
             uint32_t x2apic : 1;
+            uint32_t pcidCapableExists : 1;
             uint32_t vcpuCapableExists : 1;
-            uint32_t resvd0 : 30;
+            uint32_t vpidCapableExists : 1;
+            uint32_t resvd0 : 28;
         } fields;
     } gFlags;
 

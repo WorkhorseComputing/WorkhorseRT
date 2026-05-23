@@ -417,6 +417,8 @@ void ia32eCpuInit(void)
         cpu->cpuFlags.fields.de = 1;
     }
 
+    cpu->cpuFlags.fields.pat = (regs1[3] & IA32E_CPUID1_D_PAT_MASK) != 0;
+
     ia32eCpuid(7, 0, &regs7[0], &regs7[1], &regs7[2], &regs7[3]);
 
 #if CONFIG_IA32E_FEATURE_PCID
@@ -424,6 +426,7 @@ void ia32eCpuInit(void)
     if ((regs1[2] & IA32E_CPUID1_C_PCID_MASK) != 0 && (regs7[1] & IA32E_CPUID7_0_B_INVPCID_MASK) != 0) {
         cr4 |= IA32E_CR4_PCIDE_MASK;
         cpu->cpuFlags.fields.pcid = 1;
+        cpu->global->gFlags.fields.pcidCapableExists = 1;
     }
 
 #endif
@@ -890,7 +893,10 @@ void ia32eCpuExceptionSetReturnAddress(uintptr_t returnAddress)
 
 void ia32eCpuEnterDomain(kDomain_t *domain)
 {
+    uint64_t cr3 = 0;
     ia32ePerCpu_t *cpu = NULL;
+    
+    cr3 = domain->archInfo.ia32eInfo.cr3;
 
 #if CONFIG_IA32E_FEATURE_PCID && CONFIG_KMAX_DOMAINS > 4096
 
@@ -912,7 +918,14 @@ void ia32eCpuEnterDomain(kDomain_t *domain)
     cpu = ia32eThisCpuData();
 #endif
 
-    __ia32eWriteCr3(domain->archInfo.ia32eInfo.cr3);
+#if CONFIG_IA32E_FEATURE_PCID
+
+    if (cpu->cpuFlags.fields.pcid == 0)
+        cr3 &= ~0xfff;
+
+#endif
+
+    __ia32eWriteCr3(cr3);
     memcpy(cpu->cpuDataStructures.tssFull.iopb, domain->archInfo.ia32eInfo.iopb, sizeof(domain->archInfo.ia32eInfo.iopb));
 }
 
@@ -977,7 +990,7 @@ int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
 
 int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
 {
-    uint64_t pml4Phys = 0;
+    uintptr_t pml4Phys = 0;
     ia32ePml4_t *pml4Virt = NULL;
     ia32ePml4e_t pml4e = 0;
 
@@ -992,7 +1005,7 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     pml4Phys = param->ia32eParam.pml4BasePhys;
     pml4Virt = param->ia32eParam.pml4BaseVirt;
 
-    if (((uintptr_t)pml4Phys & 0xfff) != 0 || ((uintptr_t)pml4Virt & 0xfff) != 0)
+    if ((pml4Phys & 0xfff) != 0 || ((uintptr_t)pml4Virt & 0xfff) != 0)
         return -EINVAL;
 
     if ((pml4Virt->pml4e[511] & IA32E_PG_ENTRY_PRESENT_MASK) != 0)
@@ -1012,7 +1025,7 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
 
 #if CONFIG_IA32E_FEATURE_PCID
 
-    if (cpu->cpuFlags.fields.pcid != 0) {
+    if (global->gFlags.fields.pcidCapableExists != 0) {
 
         pcid = global->pcidCtr % 4096;
         global->pcidCtr++;

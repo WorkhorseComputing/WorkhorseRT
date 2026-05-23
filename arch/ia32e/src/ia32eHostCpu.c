@@ -124,8 +124,6 @@ void ia32eVtxVmcsUntrapMsrWrite(char *bitmap, uint32_t msr)
         K_DYNAMIC_ASSERT(bitmapIdx >= 0 && bitmapIdx < 4096);
 
         bitmap[bitmapIdx] &= ~(1 << (idx % 8));   
-    } else {
-        kDbgStrf("%u\n", msr);
     }
 }
 
@@ -225,6 +223,7 @@ void ia32eCpuVtxInit(void)
     /* validate that we are vcpu capable */
 
     ia32ePerCpu_t *cpu = NULL;
+    ia32eGlobal_t *global = NULL;
 
     uint64_t featureCtrl = 0;
 
@@ -255,6 +254,7 @@ void ia32eCpuVtxInit(void)
     uint64_t cr4 = 0;
 
     cpu = ia32eThisCpuData();
+    global = cpu->global;
 
     featureCtrl = __ia32eRdmsr(IA32E_FEATURE_CONTROL);
 
@@ -301,13 +301,13 @@ void ia32eCpuVtxInit(void)
     
         !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_ACKNOWLEDGE_INTERRUPT_ON_EXIT_BIT + 32) ||
         !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_HOST_ADDRESS_SPACE_SIZE_BIT + 32) ||
-        !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_LOAD_PAT_BIT + 32) ||
-        !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_SAVE_PAT_BIT + 32) ||
+        (cpu->cpuFlags.fields.pat != 0 && !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_LOAD_PAT_BIT + 32)) ||
+        (cpu->cpuFlags.fields.pat != 0 && !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_SAVE_PAT_BIT + 32)) ||
         !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_LOAD_EFER_BIT + 32) || 
         !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_SAVE_EFER_BIT + 32) ||
         !testBitLe(exitCtls, IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT + 32) ||
         
-        !testBitLe(entryCtls, IA32E_VTX_VMCS_ENTRY_CTLS_LOAD_PAT_BIT + 32) ||
+        (cpu->cpuFlags.fields.pat != 0 && !testBitLe(entryCtls, IA32E_VTX_VMCS_ENTRY_CTLS_LOAD_PAT_BIT + 32)) ||
         !testBitLe(entryCtls, IA32E_VTX_VMCS_ENTRY_CTLS_LOAD_EFER_BIT + 32) ||
     
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_INTERRUPT_WINDOW_EXITING_BIT + 32) ||
@@ -343,14 +343,13 @@ void ia32eCpuVtxInit(void)
     } 
 
     vpidCap = __ia32eRdmsr(IA32E_VMX_EPT_VPID_CAP);
-    if ((vpidCap & IA32E_VMX_EPT_VPID_CAP_PWLEN4_MASK) == 0)
+    if ((vpidCap & IA32E_VMX_EPT_VPID_CAP_PWLEN4_MASK) == 0 || (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_WB_MASK) == 0)
         return;
 
     cpu->cpuFlags.fields.vpid = testBitLe(procbasedCtls2, IA32E_VTX_VMCS_PROCBASED_CTLS2_VPID_BIT + 32);
 
     cpu->cpuFlags.fields.ept2mb = (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_2MB_MASK) != 0;
     cpu->cpuFlags.fields.ept1gb = (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_1GB_MASK) != 0;
-    cpu->cpuFlags.fields.eptWb = (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_WB_MASK) != 0;
     cpu->cpuFlags.fields.eptUc = (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_UC_MASK) != 0;
     cpu->cpuFlags.fields.eptAd = (vpidCap & IA32E_VMX_EPT_VPID_CAP_PAGE_AD_MASK) != 0;
 
@@ -379,6 +378,12 @@ void ia32eCpuVtxInit(void)
 
     vmxMisc = __ia32eRdmsr(IA32E_VMX_MISC);
     cpu->vtx.vmxPreemptFrequencyHz = cpu->vtx.tscFrequencyHz / (1 << (vmxMisc & 0x1f));
+
+    cpu->vtx.hostDr1 = __ia32eReadDr1();
+    cpu->vtx.hostDr2 = __ia32eReadDr2();
+    cpu->vtx.hostDr3 = __ia32eReadDr3();
+    cpu->vtx.hostDr6 = __ia32eReadDr6();
+    cpu->vtx.hostDr7 = __ia32eReadDr7();
 
     STATIC_ASSERT(ARRAY_LEN(cpu->vtx.areas.vmexitLoadArea) == ARRAY_LEN(ia32eVtxVmcsMsrCtxList));
     STATIC_ASSERT(ARRAY_LEN(cpu->vtx.areas.vmexitStoreVmentryLoadArea) == ARRAY_LEN(ia32eVtxVmcsMsrCtxList));
@@ -444,7 +449,8 @@ void ia32eCpuVtxInit(void)
     /* we are vcpu capable */
 
     cpu->cpuFlags.fields.vcpuCapable = 1;
-    cpu->global->gFlags.fields.vcpuCapableExists = 1;
+    global->gFlags.fields.vcpuCapableExists = 1;
+    global->gFlags.fields.pcidCapableExists |= cpu->cpuFlags.fields.vcpuCapable;
 }
 
 void ia32eGlobalVtxInit(void)

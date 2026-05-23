@@ -55,11 +55,15 @@
 .globl __ia32eFakeIsr
 .type __ia32eFakeIsr, @function
 
+#if CONFIG_IA32E_VTX
+
 .globl __ia32eVmlaunchStub
 .type __ia32eVmlaunchStub, @function
 
 .globl __ia32eVmexitStub
 .type __ia32eVmexitStub, @function
+
+#endif
 
 /* Body */
 
