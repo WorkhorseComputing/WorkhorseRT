@@ -94,10 +94,16 @@ void ia32eVtxVmcsSetup(kSchedTask_t *task)
                 (1U << IA32E_VTX_VMCS_PINBASED_CTLS_VIRTUAL_NMIS_BIT);
             
     proc = (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_MWAIT_EXITING_BIT) |
-                (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_MONITOR_EXITING_BIT) |
-                (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_IO_BITMAPS_BIT) |
-                (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_MSR_BITMAPS_BIT) |
-                (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_SECONDARY_CTLS_BIT);
+            (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_RDPMC_EXITING_BIT) |
+
+#if CONFIG_IA32E_VTX_TSD
+            (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT) |
+#endif
+
+            (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_IO_BITMAPS_BIT) |
+            (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_MSR_BITMAPS_BIT) |
+            (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_MONITOR_EXITING_BIT) |
+            (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_SECONDARY_CTLS_BIT);
                 
     exit = (1U << IA32E_VTX_VMCS_EXIT_CTLS_HOST_ADDRESS_SPACE_SIZE_BIT) |
             (1U << IA32E_VTX_VMCS_EXIT_CTLS_ACKNOWLEDGE_INTERRUPT_ON_EXIT_BIT) |
@@ -245,8 +251,12 @@ void ia32eVtxVmcsSetup(kSchedTask_t *task)
 
     __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_EPTP, task->domain.curDomain->archInfo.ia32eInfo.cr3);
 
+#if CONFIG_IA32E_VTX_FEATURE_VPID
+
     if (cpu->cpuFlags.fields.vpid != 0)
         __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VPID, task->domain.curDomain->archInfo.ia32eInfo.vpid);
+    
+#endif
 
     /* misc */
 

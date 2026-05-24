@@ -451,7 +451,7 @@ void ia32eCpuVtxInit(void)
 
     cpu->cpuFlags.fields.vcpuCapable = 1;
     global->gFlags.fields.vcpuCapableExists = 1;
-    global->gFlags.fields.pcidCapableExists |= cpu->cpuFlags.fields.vcpuCapable;
+    global->gFlags.fields.vpidCapableExists |= cpu->cpuFlags.fields.vpid;
 }
 
 void ia32eGlobalVtxInit(void)
