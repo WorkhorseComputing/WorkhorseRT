@@ -195,22 +195,22 @@ void ia32eVtxVmcsSetup(kSchedTask_t *task)
     cr4Mask = IA32E_CR4_TSD_MASK | IA32E_CR4_DE_MASK | IA32E_CR4_PSE_MASK | IA32E_CR4_PAE_MASK | IA32E_CR4_PGE_MASK |
               IA32E_CR4_OSFXSR_MASK | IA32E_CR4_OSXMMEXCPT_MASK;
 
-    if (cpu->cpuFlags.fields.vme)
+    if (cpu->cpuFlags.fields.vme != 0)
         cr4Mask |= IA32E_CR4_VME_MASK | IA32E_CR4_PVI_MASK;
 
-    if (cpu->cpuFlags.fields.umip)
+    if (cpu->cpuFlags.fields.umip != 0)
         cr4Mask |= IA32E_CR4_UMIP_MASK;
 
-    if (cpu->cpuFlags.fields.fsgsbase)
+    if (cpu->cpuFlags.fields.fsgsbase != 0)
         cr4Mask |= IA32E_CR4_FSGSBASE_MASK;
 
-    if (cpu->cpuFlags.fields.pcid)
+    if (cpu->cpuFlags.fields.pcid != 0)
         cr4Mask |= IA32E_CR4_PCIDE_MASK;
 
-    if (cpu->cpuFlags.fields.smep)
+    if (cpu->cpuFlags.fields.smep != 0)
         cr4Mask |= IA32E_CR4_SMEP_MASK;
 
-    if (cpu->cpuFlags.fields.smap)
+    if (cpu->cpuFlags.fields.smap != 0)
         cr4Mask |= IA32E_CR4_SMAP_MASK;
 
     __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_CR0_GUEST_HOST_MASK, cr0Mask);
