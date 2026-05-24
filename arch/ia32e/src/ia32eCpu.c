@@ -896,13 +896,12 @@ void ia32eCpuEnterDomain(kDomain_t *domain)
 {
     uint64_t cr3 = 0;
     ia32ePerCpu_t *cpu = NULL;
-    
-    cr3 = domain->archInfo.ia32eInfo.cr3;
 
 #if CONFIG_IA32E_FEATURE_PCID && CONFIG_KMAX_DOMAINS > 4096
 
     uint32_t pcid = 0;
-
+    
+    cr3 = domain->archInfo.ia32eInfo.cr3;
     cpu = ia32eThisCpuData();
 
     if (cpu->cpuFlags.fields.pcid != 0) {
@@ -916,6 +915,7 @@ void ia32eCpuEnterDomain(kDomain_t *domain)
     }
 
 #else 
+    cr3 = domain->archInfo.ia32eInfo.cr3;
     cpu = ia32eThisCpuData();
 #endif
 
