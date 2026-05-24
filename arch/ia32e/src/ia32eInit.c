@@ -29,7 +29,7 @@
 #include <ia32eVma.h>
 #include <ia32eApic.h>
 #include <ia32eHpet.h>
-#include <ia32eHostCpu.h>
+#include <ia32eCpuVtx.h>
 #include <workhorse/kInit/kInit.h>
 #include <lib/multiboot2.h>
 #include <stdWorkhorse.h>

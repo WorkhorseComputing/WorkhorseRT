@@ -23,16 +23,23 @@
  * SOFTWARE.
 */
 
-#ifndef _IA32E_HOST_CPU_H_
-#define _IA32E_HOST_CPU_H_
+#ifndef _IA32E_CPU_VTX_H_
+#define _IA32E_CPU_VTX_H_
 
 #include <generated/autoconf.h>
 #include <stdWorkhorse.h>
 
 #if CONFIG_IA32E_VTX
 
+#include <workhorse/kSched/kSchedTask.h>
+
 void ia32eCpuVtxInit(void);
 void ia32eGlobalVtxInit(void);
+
+void ia32eCpuTaskVtxInit(kSchedTask_t *task);
+void ia32eCpuTaskVtxSaveCtx(kSchedTask_t *task);
+void ia32eCpuTaskVtxRestoreCtx(kSchedTask_t *task);
+void ia32eCpuVtxEnterDomain(kDomain_t *domain);
 
 #endif
 

@@ -25,7 +25,7 @@
 
 #include <ia32eCpu.h>
 #include <ia32eApic.h>
-#include <ia32eHostCpu.h>
+#include <ia32eCpuVtx.h>
 #include <export/kDbgInterface.h>
 #include <import/kTickHandler.h>
 #include <import/kSyscallHandler.h>
@@ -759,6 +759,15 @@ void ia32eCpuTaskIdleCtxInit(kSchedTask_t *task)
 void ia32eCpuTaskCtxInit(kSchedTask_t *task, uintptr_t pc)
 {
     memset(&task->ctx, 0, sizeof(task->ctx));
+    
+#if CONFIG_IA32E_VTX
+
+    if (task->domain.curDomain->archInfo.ia32eInfo.vm) {
+        ia32eCpuTaskVtxInit(task);
+        return;
+    }
+
+#endif
 
     task->ctx.ia32eCtx.fpCtx.fcw = IA32E_DEFAULT_FCW;
     task->ctx.ia32eCtx.fpCtx.mxcsr = IA32E_DEFAULT_MXCSR;
@@ -815,6 +824,15 @@ void ia32eCpuTaskSaveCtx(kSchedTask_t *task)
     task->ctx.ia32eCtx.rip = topFrame->rip;
     task->ctx.ia32eCtx.cs = topFrame->cs;
     task->ctx.ia32eCtx.ss = topFrame->ss;
+
+#if CONFIG_IA32E_VTX
+
+    K_DYNAMIC_ASSERT(task->taggedInfo.type != K_TASK_INVALID);
+
+    if (task->taggedInfo.type != K_TASK_IDLE && task->domain.curDomain->archInfo.ia32eInfo.vm)
+        ia32eCpuTaskVtxSaveCtx(task);
+
+#endif
 }
 
 void ia32eCpuTaskRestoreCtx(kSchedTask_t *task)
@@ -856,6 +874,15 @@ void ia32eCpuTaskRestoreCtx(kSchedTask_t *task)
     topFrame->rip = task->ctx.ia32eCtx.rip;
     topFrame->cs = task->ctx.ia32eCtx.cs;
     topFrame->ss = task->ctx.ia32eCtx.ss;
+
+#if CONFIG_IA32E_VTX
+
+    K_DYNAMIC_ASSERT(task->taggedInfo.type != K_TASK_INVALID);
+
+    if (task->taggedInfo.type != K_TASK_IDLE && task->domain.curDomain->archInfo.ia32eInfo.vm)
+        ia32eCpuTaskVtxRestoreCtx(task);
+    
+#endif
 }
 
 uintptr_t ia32eCpuSyscallGetReturnAddress(void)
@@ -898,8 +925,24 @@ void ia32eCpuEnterDomain(kDomain_t *domain)
     ia32ePerCpu_t *cpu = NULL;
 
 #if CONFIG_IA32E_FEATURE_PCID && CONFIG_KMAX_DOMAINS > 4096
-
     uint32_t pcid = 0;
+#endif
+
+    cr3 = domain->archInfo.ia32eInfo.cr3;
+    cpu = ia32eThisCpuData();
+
+#if CONFIG_IA32E_VTX
+
+    if (domain->archInfo.ia32eInfo.vm) {
+        ia32eCpuVtxEnterDomain(domain);
+        return;
+    }
+
+#endif
+
+#if CONFIG_IA32E_FEATURE_PCID 
+
+#   if CONFIG_KMAX_DOMAINS > 4096
     
     cr3 = domain->archInfo.ia32eInfo.cr3;
     cpu = ia32eThisCpuData();
@@ -914,12 +957,7 @@ void ia32eCpuEnterDomain(kDomain_t *domain)
         cpu->pcidLastDomain[pcid] = domain;
     }
 
-#else 
-    cr3 = domain->archInfo.ia32eInfo.cr3;
-    cpu = ia32eThisCpuData();
-#endif
-
-#if CONFIG_IA32E_FEATURE_PCID
+#   endif 
 
     if (cpu->cpuFlags.fields.pcid == 0)
         cr3 &= ~0xfff;

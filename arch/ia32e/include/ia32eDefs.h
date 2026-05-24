@@ -30,6 +30,12 @@
 #include <ia32eVmcs.h>
 #include <lib/dsa/stackq.h>
 
+typedef struct ia32eVtxParam
+{
+    ia32eVtxVmcsRegion_t *vmcsVirt;
+    uintptr_t vmcsPhys;
+} ia32eVtxParam_t;
+
 typedef struct ia32eSchedCtx
 {
     ia32eFxsave64_t fpCtx;
@@ -65,8 +71,7 @@ typedef struct ia32eSchedCtx
     struct 
     { 
         bool vmcsInitialized;
-        ia32eVtxVmcsRegion_t *vmcsVirt;
-        uintptr_t vmcsPhys;
+        uint64_t vmexitStoreVmentryLoadAreaData[5];
     } vtx;
 #endif
 
@@ -77,8 +82,7 @@ typedef struct ia32eSchedThreadParam
     uint8_t tpr;
 
 #if CONFIG_IA32E_VTX
-    ia32eVtxVmcsRegion_t *vmcsVirt;
-    uintptr_t vmcsPhys;
+    ia32eVtxParam_t vtxParam;
 #endif
 
 } ia32eSchedThreadParam_t;
@@ -86,6 +90,11 @@ typedef struct ia32eSchedThreadParam
 typedef struct ia32eSchedThreadInfo
 {
     uint8_t tpr;
+
+#if CONFIG_IA32E_VTX
+    ia32eVtxParam_t vtxParam;
+#endif
+
 } ia32eSchedThreadInfo_t;
 
 typedef struct ia32eSchedLsrParam
@@ -93,8 +102,7 @@ typedef struct ia32eSchedLsrParam
     uint8_t vector;
     
 #if CONFIG_IA32E_VTX
-    ia32eVtxVmcsRegion_t *vmcsVirt;
-    uintptr_t vmcsPhys;
+    ia32eVtxParam_t vtxParam;
 #endif
 
 } ia32eSchedLsrParam_t;
@@ -102,6 +110,11 @@ typedef struct ia32eSchedLsrParam
 typedef struct ia32eSchedLsrInfo
 {
     uint8_t vector;
+
+#if CONFIG_IA32E_VTX
+    ia32eVtxParam_t vtxParam;
+#endif
+
 } ia32eSchedLsrInfo_t;
 
 typedef struct ia32eDomainInfo

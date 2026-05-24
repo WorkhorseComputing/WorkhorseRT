@@ -207,9 +207,12 @@ typedef struct ia32ePerCpu
 
             ia32eVtxMsrEntry_t ATTR_ALIGNED(16) vmexitLoadArea[5];
 
-            /* context switch these !! */
+            /* context switch this !! */
 
             ia32eVtxMsrEntry_t ATTR_ALIGNED(16) vmexitStoreVmentryLoadArea[5];
+
+            /* switch on enter domain */
+
             char ATTR_ALIGNED(4096) ioBitmap[8192];
 
             /* no switch */
