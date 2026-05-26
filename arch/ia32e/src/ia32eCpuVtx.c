@@ -195,6 +195,27 @@ bool ia32eCpuVtxIsVcpuCapable(uint32_t cpuId)
 }
 
 static
+inline
+int ia32eCpuVtxTaskInfoInit(ia32eVtxTaskInfo_t *info, uint32_t domId , ia32eVtxParam_t *param)
+{
+    kDomain_t *domain = NULL;
+
+    if ((param->vmcsPhys & 0xfff) != 0 || ((uintptr_t)param->vmcsVirt & 0xfff) != 0)
+        return -EINVAL;
+
+    domain = kDomainUniverseGet(domId);
+
+    K_DYNAMIC_ASSERT(domain->archInfo.ia32eInfo.numVcpus < UINT32_MAX);
+
+    info->vtxParam = *param;
+    info->vcpuId = domain->archInfo.ia32eInfo.numVcpus;
+    dqPushBack(&domain->archInfo.ia32eInfo.vcpuVector, &info->vcpuVectorNode);
+
+    domain->archInfo.ia32eInfo.numVcpus++;
+    return 0;
+}
+
+static
 uint32_t ia32eVtxCalibrateTscManual(void)
 {
     ia32eGlobal_t *global = NULL;    
@@ -285,14 +306,14 @@ void ia32eCpuVtxVmcsSetup(kSchedTask_t *task)
         
         case K_TASK_THREAD:
             thread = &task->taggedInfo.info.thread;
-            vmcsVirt = thread->archInfo.ia32eInfo.vtxParam.vmcsVirt;
-            vmcsPhys = thread->archInfo.ia32eInfo.vtxParam.vmcsPhys;
+            vmcsVirt = thread->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsVirt;
+            vmcsPhys = thread->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsPhys;
             break;
 
         case K_TASK_LSR:
             lsr = &task->taggedInfo.info.lsr;
-            vmcsVirt = lsr->archInfo.ia32eInfo.vtxParam.vmcsVirt;
-            vmcsPhys = lsr->archInfo.ia32eInfo.vtxParam.vmcsPhys;
+            vmcsVirt = lsr->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsVirt;
+            vmcsPhys = lsr->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsPhys;
             break;
 
         default:
@@ -810,12 +831,12 @@ void ia32eCpuTaskVtxRestoreCtx(kSchedTask_t *task)
     
         case K_TASK_THREAD:
             thread = &task->taggedInfo.info.thread;
-            vmcsPhys = thread->archInfo.ia32eInfo.vtxParam.vmcsPhys;
+            vmcsPhys = thread->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsPhys;
             break;
 
         case K_TASK_LSR:
             lsr = &task->taggedInfo.info.lsr;
-            vmcsPhys = lsr->archInfo.ia32eInfo.vtxParam.vmcsPhys;
+            vmcsPhys = lsr->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsPhys;
             break;
 
         default:
@@ -883,61 +904,58 @@ int ia32eCpuVtxThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_
 {
     kPluginTaskThreadParam_t *threadParam = NULL;
 
-    uintptr_t vmcsPhys = 0;
-    uintptr_t vmcsVirt = 0;
-
     threadParam = containerOf(param, kPluginTaskThreadParam_t, archParam);
 
-    vmcsPhys = param->ia32eParam.vtxParam.vmcsPhys;
-    vmcsVirt = (uintptr_t)param->ia32eParam.vtxParam.vmcsVirt;
-
-    if (!ia32eCpuVtxIsVcpuCapable(threadParam->cpuId) || (vmcsPhys & 0xfff) != 0 || (vmcsVirt & 0xfff) != 0)
+    if (!ia32eCpuVtxIsVcpuCapable(threadParam->cpuId))
         return -EINVAL;
 
-    info->ia32eInfo.vtxParam.vmcsPhys = vmcsPhys;
-    info->ia32eInfo.vtxParam.vmcsVirt = (void *)vmcsVirt;
-    
-    return 0;
+    return ia32eCpuVtxTaskInfoInit(&info->ia32eInfo.vtxInfo, threadParam->domId, &param->ia32eParam.vtxParam);
 }
 
 int ia32eCpuVtxLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
 {
     kPluginTaskLsrParam_t *lsrParam = NULL;
 
-    uintptr_t vmcsPhys = 0;
-    uintptr_t vmcsVirt = 0;
-
     lsrParam = containerOf(param, kPluginTaskLsrParam_t, archParam);
 
-    vmcsPhys = param->ia32eParam.vtxParam.vmcsPhys;
-    vmcsVirt = (uintptr_t)param->ia32eParam.vtxParam.vmcsVirt;
-
-    if (!ia32eCpuVtxIsVcpuCapable(lsrParam->cpuId) || (vmcsPhys & 0xfff) != 0 || (vmcsVirt & 0xfff) != 0)
+    if (!ia32eCpuVtxIsVcpuCapable(lsrParam->cpuId))
         return -EINVAL;    
 
-    info->ia32eInfo.vtxParam.vmcsPhys = vmcsPhys;
-    info->ia32eInfo.vtxParam.vmcsVirt = (void *)vmcsVirt;
-    
-    return 0;
+    return ia32eCpuVtxTaskInfoInit(&info->ia32eInfo.vtxInfo, lsrParam->domId, &param->ia32eParam.vtxParam);    
 }
 
 int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
 {
     ia32eGlobal_t *global = NULL;
 
+    kPluginDomainParam_t *domainParam = NULL;
     uintptr_t pml4Phys = 0;
     uintptr_t pml4Virt = 0;
+
+    uint32_t i = 0;
 
     global = ia32eThisCpuData()->global;
 
     if (global->gFlags.fields.vcpuCapableExists == 0)
         return -EINVAL;
 
+    domainParam = containerOf(param, kPluginDomainParam_t, archParam);
     pml4Phys = param->ia32eParam.pml4BasePhys;
     pml4Virt = (uintptr_t)param->ia32eParam.pml4BaseVirt;
 
-    if ((pml4Phys & 0xfff) != 0 || (pml4Virt & 0xfff) != 0)
+    /* Vm domains should NOT be allowed to partake in IPC, and must have a valid _start to boot in realmode */
+
+    for (i = 0; i < ARRAY_LEN(domainParam->param.invocationInfo.invokePermMap); i++) {
+        if (domainParam->param.invocationInfo.invokePermMap[i] != 0)
+            return -EINVAL;
+    }
+
+    if (domainParam->param.invocationInfo.invocationIpc.valid || 
+        domainParam->param.invocationInfo._start > UINT16_MAX ||
+        (pml4Phys & 0xfff) != 0 || (pml4Virt & 0xfff) != 0) {
+
         return -EINVAL;
+    }
 
     STATIC_ASSERT(sizeof(info->ia32eInfo.iopb) == sizeof(param->ia32eParam.iopb));
 
@@ -956,6 +974,9 @@ int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     }
     
 #endif
+
+    info->ia32eInfo.numVcpus = 0;
+    dqInit(&info->ia32eInfo.vcpuVector);
 
     return 0;
 }

@@ -29,12 +29,20 @@
 #include <ia32eAsm.h>
 #include <ia32eVmcs.h>
 #include <lib/dsa/stackq.h>
+#include <lib/dsa/dq.h>
 
 typedef struct ia32eVtxParam
 {
     ia32eVtxVmcsRegion_t *vmcsVirt;
     uintptr_t vmcsPhys;
 } ia32eVtxParam_t;
+
+typedef struct ia32eVtxTaskInfo 
+{
+    ia32eVtxParam_t vtxParam;
+    uint32_t vcpuId;
+    dqListNode_t vcpuVectorNode;
+} ia32eVtxTaskInfo_t;
 
 typedef struct ia32eSchedCtx
 {
@@ -92,7 +100,7 @@ typedef struct ia32eSchedThreadInfo
     uint8_t tpr;
 
 #if CONFIG_IA32E_VTX
-    ia32eVtxParam_t vtxParam;
+    ia32eVtxTaskInfo_t vtxInfo;
 #endif
 
 } ia32eSchedThreadInfo_t;
@@ -112,7 +120,7 @@ typedef struct ia32eSchedLsrInfo
     uint8_t vector;
 
 #if CONFIG_IA32E_VTX
-    ia32eVtxParam_t vtxParam;
+    ia32eVtxTaskInfo_t vtxInfo;
 #endif
 
 } ia32eSchedLsrInfo_t;
@@ -125,6 +133,9 @@ typedef struct ia32eDomainInfo
 #if CONFIG_IA32E_VTX
     bool vm;
     uint16_t vpid;
+
+    uint32_t numVcpus;
+    dq_t vcpuVector;
 #endif
 
 } ia32eDomainInfo_t;
