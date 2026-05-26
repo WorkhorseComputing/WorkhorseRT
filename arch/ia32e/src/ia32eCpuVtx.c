@@ -32,6 +32,8 @@
 #include <ia32eVma.h>
 #include <lib/acpi.h>
 #include <export/kDbgInterface.h>
+#include <plugin/kPlugin.h>
+#include <workhorse/kDomainUniverse/kDomainUniverse.h>
 
 extern 
 void __ia32eVmlaunchStub(void);
@@ -177,6 +179,19 @@ bool ia32eVmwriteAdjusted(uint32_t msr, uint64_t field, uint64_t val)
     val &= (cap >> 32);
 
     return __ia32eVmwrite(field, val);
+}
+
+static
+inline
+bool ia32eCpuVtxIsVcpuCapable(uint32_t cpuId)
+{
+    ia32eGlobal_t *global = NULL;
+
+    global = ia32eThisCpuData()->global;
+
+    K_DYNAMIC_ASSERT(kCpuIdValidate(cpuId));
+
+    return global->cpuTable[cpuId].cpuFlags.fields.vcpuCapable != 0;
 }
 
 static
@@ -733,7 +748,19 @@ void ia32eGlobalVtxInit(void)
     memset(global->vtxGlobal.msrBitmap, 0xff, sizeof(global->vtxGlobal.msrBitmap));
 
     for (i = 0; i < ARRAY_LEN(ia32eVtxVmcsMsrAllowList); i++)
-        ia32eVtxVmcsUntrapMsr(global->vtxGlobal.msrBitmap, ia32eVtxVmcsMsrAllowList[i]);    
+        ia32eVtxVmcsUntrapMsr(global->vtxGlobal.msrBitmap, ia32eVtxVmcsMsrAllowList[i]); 
+    
+    global->gFlags.fields.allEptAd = 1;
+
+    K_DYNAMIC_ASSERT(global->numCpus <= ARRAY_LEN(global->cpuTable));
+
+    for (i = 0; i < global->numCpus; i++) {
+
+        if (global->cpuTable[i].cpuFlags.fields.online != 0 && global->cpuTable[i].cpuFlags.fields.eptAd == 0) {
+            global->gFlags.fields.allEptAd = 0;
+            break;
+        }
+    }
 }
 
 void ia32eCpuTaskVtxInit(kSchedTask_t *task)
@@ -825,6 +852,113 @@ void ia32eCpuVtxEnterDomain(kDomain_t *domain)
     STATIC_ASSERT(sizeof(cpu->vtx.areas.ioBitmap) == sizeof(domain->archInfo.ia32eInfo.iopb));
 
     memcpy(cpu->vtx.areas.ioBitmap, domain->archInfo.ia32eInfo.iopb, sizeof(domain->archInfo.ia32eInfo.iopb));
+}
+
+bool ia32eCpuVtxThreadParamIsVm(archSchedThreadParam_t *param)
+{
+    kPluginTaskThreadParam_t *threadParam = NULL;
+    kDomain_t *domain = NULL;
+
+    threadParam = containerOf(param, kPluginTaskThreadParam_t, archParam);
+    domain = kDomainUniverseGet(threadParam->domId);
+
+    K_DYNAMIC_ASSERT(domain);
+
+    return domain->archInfo.ia32eInfo.vm;
+}
+
+bool ia32eCpuVtxLsrParamIsVm(archSchedLsrParam_t *param)
+{
+    kPluginTaskLsrParam_t *lsrParam = NULL;
+    kDomain_t *domain = NULL;
+
+    lsrParam = containerOf(param, kPluginTaskLsrParam_t, archParam);
+    domain = kDomainUniverseGet(lsrParam->domId);
+
+    K_DYNAMIC_ASSERT(domain);
+
+    return domain->archInfo.ia32eInfo.vm;   
+}
+
+int ia32eCpuVtxThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param)
+{
+    kPluginTaskThreadParam_t *threadParam = NULL;
+
+    uintptr_t vmcsPhys = 0;
+    uintptr_t vmcsVirt = 0;
+
+    threadParam = containerOf(param, kPluginTaskThreadParam_t, archParam);
+
+    vmcsPhys = param->ia32eParam.vtxParam.vmcsPhys;
+    vmcsVirt = (uintptr_t)param->ia32eParam.vtxParam.vmcsVirt;
+
+    if (!ia32eCpuVtxIsVcpuCapable(threadParam->cpuId) || (vmcsPhys & 0xfff) != 0 || (vmcsVirt & 0xfff) != 0)
+        return -EINVAL;
+
+    info->ia32eInfo.vtxParam.vmcsPhys = vmcsPhys;
+    info->ia32eInfo.vtxParam.vmcsVirt = (void *)vmcsVirt;
+    
+    return 0;
+}
+
+int ia32eCpuVtxLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
+{
+    kPluginTaskLsrParam_t *lsrParam = NULL;
+
+    uintptr_t vmcsPhys = 0;
+    uintptr_t vmcsVirt = 0;
+
+    lsrParam = containerOf(param, kPluginTaskLsrParam_t, archParam);
+
+    vmcsPhys = param->ia32eParam.vtxParam.vmcsPhys;
+    vmcsVirt = (uintptr_t)param->ia32eParam.vtxParam.vmcsVirt;
+
+    if (!ia32eCpuVtxIsVcpuCapable(lsrParam->cpuId) || (vmcsPhys & 0xfff) != 0 || (vmcsVirt & 0xfff) != 0)
+        return -EINVAL;    
+
+    info->ia32eInfo.vtxParam.vmcsPhys = vmcsPhys;
+    info->ia32eInfo.vtxParam.vmcsVirt = (void *)vmcsVirt;
+    
+    return 0;
+}
+
+int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
+{
+    ia32eGlobal_t *global = NULL;
+
+    uintptr_t pml4Phys = 0;
+    uintptr_t pml4Virt = 0;
+
+    global = ia32eThisCpuData()->global;
+
+    if (global->gFlags.fields.vcpuCapableExists == 0)
+        return -EINVAL;
+
+    pml4Phys = param->ia32eParam.pml4BasePhys;
+    pml4Virt = (uintptr_t)param->ia32eParam.pml4BaseVirt;
+
+    if ((pml4Phys & 0xfff) != 0 || (pml4Virt & 0xfff) != 0)
+        return -EINVAL;
+
+    STATIC_ASSERT(sizeof(info->ia32eInfo.iopb) == sizeof(param->ia32eParam.iopb));
+
+    memcpy(info->ia32eInfo.iopb, param->ia32eParam.iopb, sizeof(info->ia32eInfo.iopb));
+
+    info->ia32eInfo.cr3 = pml4Phys | (global->gFlags.fields.allEptAd << 6) | (3 << 3) | IA32E_VTX_EPT_WB;
+    info->ia32eInfo.vm = param->ia32eParam.vm;
+
+#if CONFIG_IA32E_VTX_FEATURE_VPID
+
+    K_DYNAMIC_ASSERT(global->vtxGlobal.vpidCtr <= UINT16_MAX);
+
+    if (global->gFlags.fields.vpidCapableExists != 0) {
+        info->ia32eInfo.vpid = global->vtxGlobal.vpidCtr;
+        global->vtxGlobal.vpidCtr++;
+    }
+    
+#endif
+
+    return 0;
 }
 
 #endif

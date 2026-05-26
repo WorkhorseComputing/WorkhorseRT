@@ -704,6 +704,9 @@ void ia32eCpuInvokeAllRendezvous(kCpuInvokeRoutineFn_t fn)
 
     sentCount = 0;
     numCpus = global->numCpus;
+    
+    K_DYNAMIC_ASSERT(numCpus <= ARRAY_LEN(global->cpuTable));
+
     for (i = 0; i < numCpus; i++) {
 
         targetCpu = &global->cpuTable[i];
@@ -1000,13 +1003,30 @@ bool ia32eCpuIdValidate(uint32_t cpuId)
 
     global = ia32eThisCpuData()->global;
 
+    K_DYNAMIC_ASSERT(global->numCpus <= ARRAY_LEN(global->cpuTable));
+
     return cpuId < global->numCpus && global->cpuTable[cpuId].cpuFlags.fields.online != 0;
 }
 
 int ia32eCpuThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param)
 {
+#if CONFIG_IA32E_VTX
+    int ret = 0;
+#endif
+
     if (param->ia32eParam.tpr >= IA32E_MAX_VECTOR_PRIO)
         return -EINVAL;
+
+#if CONFIG_IA32E_VTX
+    
+    if (ia32eCpuVtxThreadParamIsVm(param)) {
+
+        ret = ia32eCpuVtxThreadInfoInit(info, param);
+        if (ret < 0)
+            return ret;
+    } 
+
+#endif
 
     info->ia32eInfo.tpr = param->ia32eParam.tpr > 1 ? param->ia32eParam.tpr : 1;
     return 0;
@@ -1017,11 +1037,27 @@ int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
     uint8_t vector = 0;
     uint8_t prio = 0;
 
+#if CONFIG_IA32E_VTX
+    int ret = 0;
+#endif
+
     vector = param->ia32eParam.vector;
     prio = IA32E_VECTOR_TO_PRIO(vector);
 
     if (prio <= 1 || prio == IA32E_MAX_VECTOR_PRIO)
         return -EINVAL;
+
+
+#if CONFIG_IA32E_VTX
+    
+    if (ia32eCpuVtxLsrParamIsVm(param)) {
+
+        ret = ia32eCpuVtxLsrInfoInit(info, param);
+        if (ret < 0)
+            return ret;
+    } 
+
+#endif
 
     info->ia32eInfo.vector = vector;
     return 0;
@@ -1039,6 +1075,13 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     int32_t pcid = 0;
 
     global = cpu->global;
+#endif
+
+#if CONFIG_IA32E_VTX
+
+    if (param->ia32eParam.vm)
+        return ia32eCpuVtxDomainInfoInit(info, param);
+
 #endif
 
     pml4Phys = param->ia32eParam.pml4BasePhys;

@@ -253,7 +253,8 @@ typedef struct ia32eGlobal
             uint32_t pcidCapableExists : 1;
             uint32_t vcpuCapableExists : 1;
             uint32_t vpidCapableExists : 1;
-            uint32_t resvd0 : 28;
+            uint32_t allEptAd : 1;
+            uint32_t resvd0 : 27;
         } fields;
     } gFlags;
 

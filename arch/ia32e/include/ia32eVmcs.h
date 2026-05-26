@@ -598,6 +598,12 @@ typedef enum ia32eVtxVmcsWidth
 #define IA32E_VTX_VMCS_MSR_WRITE_LOW   2048
 #define IA32E_VTX_VMCS_MSR_WRITE_HIGH  3072
 
+#define IA32E_VTX_EPT_UC 0
+#define IA32E_VTX_EPT_WC 1
+#define IA32E_VTX_EPT_WT 4
+#define IA32E_VTX_EPT_WP 5
+#define IA32E_VTX_EPT_WB 6
+
 typedef enum a32eVtxVmcsCrAccessType
 {
     IA32E_VTX_VMCS_MOV_TO_CR = 0,

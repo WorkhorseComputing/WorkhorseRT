@@ -68,4 +68,5 @@ The following linker sections must be defined by architecture specific code:
 
 # Kconfig
 
-```config CMAKELISTS_SUBDIR``` must be defined in architecture specific Kconfig, with a path to the directory containing the relevant CMakeLists.txt file.
+- ```config CMAKELISTS_SUBDIR``` - Path to the directory containing the relevant CMakeLists.txt file.
+- ```config CMAKE_TOOLCHAIN``` - Path to the file containing toolchain configurations.

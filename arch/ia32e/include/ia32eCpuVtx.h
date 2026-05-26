@@ -41,6 +41,13 @@ void ia32eCpuTaskVtxSaveCtx(kSchedTask_t *task);
 void ia32eCpuTaskVtxRestoreCtx(kSchedTask_t *task);
 void ia32eCpuVtxEnterDomain(kDomain_t *domain);
 
+bool ia32eCpuVtxThreadParamIsVm(archSchedThreadParam_t *param);
+bool ia32eCpuVtxLsrParamIsVm(archSchedLsrParam_t *param);
+
+int ia32eCpuVtxThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param);
+int ia32eCpuVtxLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param);
+int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param);
+
 #endif
 
 
