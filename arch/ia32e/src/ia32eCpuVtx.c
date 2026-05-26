@@ -209,10 +209,10 @@ int ia32eCpuVtxTaskInfoInit(ia32eVtxTaskInfo_t *info, uint32_t domId , ia32eVtxP
 
     info->vtxParam = *param;
     info->vcpuId = domain->archInfo.ia32eInfo.numVcpus;
-    
-    dqPushBack(&domain->archInfo.ia32eInfo.vcpuVector, &info->vcpuVectorNode);
 
+    dqPushBack(&domain->archInfo.ia32eInfo.vcpuVector, &info->vcpuVectorNode);
     domain->archInfo.ia32eInfo.numVcpus++;
+    
     return 0;
 }
 

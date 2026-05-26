@@ -132,7 +132,10 @@ typedef struct ia32eDomainInfo
 
 #if CONFIG_IA32E_VTX
     bool vm;
+
+#   if CONFIG_IA32E_VTX_FEATURE_VPID
     uint16_t vpid;
+#   endif
 
     uint32_t numVcpus;
     dq_t vcpuVector;
