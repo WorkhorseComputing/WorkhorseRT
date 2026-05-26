@@ -251,6 +251,7 @@ __ia32eScrubRegsStub:
 
 .balign 64
 __ia32eVmlaunchStub: 
+    cli
     call __ia32eScrubRegsStub
     vmlaunch 
     jmp 1f
