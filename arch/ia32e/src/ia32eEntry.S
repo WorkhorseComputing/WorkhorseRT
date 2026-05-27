@@ -312,7 +312,8 @@ __ia32eVmexitStub:
 
 /* vmentry failure stub */
 
-1:  call ia32eEmulatorFailure
+1:  call __ia32eScrubRegsStub
+    call ia32eEmulatorFailure
     int3
 
 #endif
