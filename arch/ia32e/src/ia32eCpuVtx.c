@@ -785,7 +785,7 @@ void ia32eGlobalVtxInit(void)
     }
 }
 
-void ia32eCpuTaskVtxInit(kSchedTask_t *task)
+void ia32eCpuVtxTaskInit(kSchedTask_t *task)
 {
     task->ctx.ia32eCtx.fpCtx.fcw = IA32E_DEFAULT_FCW;
     task->ctx.ia32eCtx.fpCtx.mxcsr = IA32E_DEFAULT_MXCSR;
@@ -802,7 +802,7 @@ void ia32eCpuTaskVtxInit(kSchedTask_t *task)
     task->ctx.ia32eCtx.ksp = (uint64_t)&task->ctx.ia32eCtx.kStack.stack[sizeof(task->ctx.ia32eCtx.kStack.stack)];   
 }
 
-void ia32eCpuTaskVtxSaveCtx(kSchedTask_t *task)
+void ia32eCpuVtxTaskSaveCtx(kSchedTask_t *task)
 {
     ia32ePerCpu_t *cpu = NULL;
     uint32_t i = 0;
@@ -816,7 +816,7 @@ void ia32eCpuTaskVtxSaveCtx(kSchedTask_t *task)
         task->ctx.ia32eCtx.vtx.vmexitStoreVmentryLoadAreaData[i] = cpu->vtx.areas.vmexitStoreVmentryLoadArea[i].msrData;
 }
 
-void ia32eCpuTaskVtxRestoreCtx(kSchedTask_t *task)
+void ia32eCpuVtxTaskRestoreCtx(kSchedTask_t *task)
 {
     ia32ePerCpu_t *cpu = NULL;
 

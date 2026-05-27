@@ -22,3 +22,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
 */
+
+#ifndef _IA32E_EMULATOR_H_
+#define _IA32E_EMULATOR_H_
+
+#include <generated/autoconf.h>
+#include <ia32eAsm.h>
+
+typedef struct ATTR_PACKED ia32eVmexitRegs
+{
+    uint64_t cr2;
+    uint64_t dr0;
+    uint64_t dr1;
+    uint64_t dr2;
+    uint64_t dr3;
+    uint64_t dr6;
+    ia32eRegs_t regs;
+} ia32eVmexitRegs_t;
+
+STATIC_ASSERT((sizeof(ia32eVmexitRegs_t) % 16) == 0);
+
+#if CONFIG_IA32E_VTX
+
+void ia32eEmulatorFailure(void);
+void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs);
+
+#endif
+
+#endif

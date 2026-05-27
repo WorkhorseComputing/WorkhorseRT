@@ -309,6 +309,8 @@ __ia32eStartHigh64:
 
     /* jump to c entry */
 
+    push $0
+
     test %edi, %edi
     jz ia32eCpuApStart
 

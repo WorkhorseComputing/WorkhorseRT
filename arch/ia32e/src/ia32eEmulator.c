@@ -22,3 +22,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
 */
+
+#include <ia32eEmulator.h>
+
+#if CONFIG_IA32E_VTX
+
+void ia32eEmulatorFailure(void)
+{
+
+}
+
+void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
+{
+
+}
+
+#endif

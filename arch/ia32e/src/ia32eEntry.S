@@ -39,6 +39,13 @@
 .extern ia32eIsrHandler
 .extern ia32eSyscallHandler
 
+#if CONFIG_IA32E_VTX
+
+.extern ia32eEmulatorDispatcher
+.extern ia32eEmulatorFailure
+
+#endif 
+
 /* Definitions */
 
 #define IA32E_ASM_ISR_ENTRY_PREFIX __ia32eIsrEntry_
@@ -257,13 +264,55 @@ __ia32eVmlaunchStub:
 
 .balign 64
 __ia32eVmexitStub:
-    nop
+    
+    IA32E_ASM_PUSH_REGS
+
+    movq %dr6, %rax 
+    pushq %rax
+
+    movq %dr3, %rax 
+    pushq %rax
+
+    movq %dr2, %rax 
+    pushq %rax
+
+    movq %dr1, %rax 
+    pushq %rax
+
+    movq %dr0, %rax 
+    pushq %rax
+
+    movq %cr2, %rax 
+    pushq %rax
+
+    movq %rsp, %rdi 
+    call ia32eEmulatorDispatcher
+
+    popq %rax 
+    movq %rax, %cr2
+
+    popq %rax 
+    movq %rax, %dr0
+    
+    popq %rax 
+    movq %rax, %dr1
+
+    popq %rax 
+    movq %rax, %dr2
+
+    popq %rax 
+    movq %rax, %dr3
+
+    popq %rax 
+    movq %rax, %dr6
+
+    IA32E_ASM_POP_REGS
 
     vmresume
 
 /* vmentry failure stub */
 
-1:
+1:  call ia32eEmulatorFailure
     int3
 
 #endif

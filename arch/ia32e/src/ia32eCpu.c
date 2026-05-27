@@ -766,7 +766,7 @@ void ia32eCpuTaskCtxInit(kSchedTask_t *task, uintptr_t pc)
 #if CONFIG_IA32E_VTX
 
     if (task->domain.curDomain->archInfo.ia32eInfo.vm) {
-        ia32eCpuTaskVtxInit(task);
+        ia32eCpuVtxTaskInit(task);
         return;
     }
 
@@ -833,7 +833,7 @@ void ia32eCpuTaskSaveCtx(kSchedTask_t *task)
     K_DYNAMIC_ASSERT(task->taggedInfo.type != K_TASK_INVALID);
 
     if (task->taggedInfo.type != K_TASK_IDLE && task->domain.curDomain->archInfo.ia32eInfo.vm)
-        ia32eCpuTaskVtxSaveCtx(task);
+        ia32eCpuVtxTaskSaveCtx(task);
 
 #endif
 }
@@ -883,7 +883,7 @@ void ia32eCpuTaskRestoreCtx(kSchedTask_t *task)
     K_DYNAMIC_ASSERT(task->taggedInfo.type != K_TASK_INVALID);
 
     if (task->taggedInfo.type != K_TASK_IDLE && task->domain.curDomain->archInfo.ia32eInfo.vm)
-        ia32eCpuTaskVtxRestoreCtx(task);
+        ia32eCpuVtxTaskRestoreCtx(task);
     
 #endif
 }
