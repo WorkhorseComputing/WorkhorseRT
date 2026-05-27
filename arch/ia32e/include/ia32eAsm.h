@@ -164,6 +164,13 @@
     addq $512, %rsp
 .endm
 
+.macro IA32E_ASM_RELOAD_FP_STATE 
+    pushq $0x1f80
+    ldmxcsr (%rsp)
+    addq $8, %rsp
+    fninit
+.endm 
+
 .macro IA32E_ASM_PUSH_FRAME
     push $0
     IA32E_ASM_PUSH_REGS

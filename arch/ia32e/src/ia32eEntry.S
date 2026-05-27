@@ -86,6 +86,8 @@ __ia32eIsrEntry:
     cld
     IA32E_ASM_PUSH_FRAME
 
+    IA32E_ASM_RELOAD_FP_STATE
+
     movq %rsp, %rdi
     call ia32eIsrPreHandler
 
@@ -128,10 +130,7 @@ __ia32eSyscallEntry:
 
     IA32E_ASM_PUSH_REGS
 
-    pushq 0x1f80
-    ldmxcsr (%rsp)
-    addq $8, %rsp
-    fninit
+    IA32E_ASM_RELOAD_FP_STATE
 
     movq %rsp, %rdi
     call ia32eSyscallHandler
@@ -215,7 +214,7 @@ __ia32eScrubRegsStub:
     xorl %r14d, %r14d
     xorl %r15d, %r15d
 
-    pushq 0x1f80
+    pushq $0x1f80
     ldmxcsr (%rsp)
     addq $8, %rsp
 

@@ -292,10 +292,7 @@ __ia32eStartHigh64:
 
     /* clean the floating point state */
     
-    fninit
-    pushq 0x1f80
-    ldmxcsr (%rsp)
-    popq %rax
+    IA32E_ASM_RELOAD_FP_STATE
 
     /* load the boot idt */
 
