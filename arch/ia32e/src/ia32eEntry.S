@@ -128,6 +128,11 @@ __ia32eSyscallEntry:
 
     IA32E_ASM_PUSH_REGS
 
+    pushq 0x1f80
+    ldmxcsr (%rsp)
+    addq $8, %rsp
+    fninit
+
     movq %rsp, %rdi
     call ia32eSyscallHandler
 
