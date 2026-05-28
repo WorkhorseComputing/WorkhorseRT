@@ -800,6 +800,8 @@ void ia32eCpuVtxTaskInit(kSchedTask_t *task)
 
     task->ctx.ia32eCtx.dr0 = (uintptr_t)task->ctx.ia32eCtx.kStack.padding;
     task->ctx.ia32eCtx.ksp = (uint64_t)&task->ctx.ia32eCtx.kStack.stack[sizeof(task->ctx.ia32eCtx.kStack.stack)];   
+
+    task->ctx.ia32eCtx.rsp = task->ctx.ia32eCtx.ksp;
 }
 
 void ia32eCpuVtxTaskSaveCtx(kSchedTask_t *task)
