@@ -195,9 +195,10 @@ __ia32eFakeIsr:
 
 #if CONFIG_IA32E_VTX
 
-.balign 64
-__ia32eScrubRegsStub:
 
+.balign 64
+__ia32eVmlaunchStub:
+ 
     xorl %eax, %eax
     xorl %ebx, %ebx
     xorl %ecx, %ecx
@@ -257,12 +258,6 @@ __ia32eScrubRegsStub:
     movq %rax, %dr1
     movq %rax, %dr0
 
-    ret
-    int3
-
-.balign 64
-__ia32eVmlaunchStub: 
-    call __ia32eScrubRegsStub
     vmlaunch 
     jmp 1f
 
@@ -289,6 +284,8 @@ __ia32eVmexitStub:
     movq %cr2, %rax 
     pushq %rax
 
+    IA32E_ASM_RELOAD_FP_STATE
+
     movq %rsp, %rdi 
     call ia32eEmulatorDispatcher
 
@@ -313,11 +310,11 @@ __ia32eVmexitStub:
     IA32E_ASM_POP_REGS
 
     vmresume
+    IA32E_ASM_RELOAD_FP_STATE
 
 /* vmentry failure stub */
 
-1:  call __ia32eScrubRegsStub
-    call ia32eEmulatorFailure
+1:  call ia32eEmulatorFailure
     int3
 
 #endif
