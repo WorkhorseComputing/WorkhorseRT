@@ -41,8 +41,8 @@
 
 #if CONFIG_IA32E_VTX
 
+.extern ia32eEmulatorVcpuFailureEntry
 .extern ia32eEmulatorDispatcher
-.extern ia32eEmulatorFailure
 
 #endif 
 
@@ -314,7 +314,7 @@ __ia32eVmexitStub:
 
 /* vmentry failure stub */
 
-1:  call ia32eEmulatorFailure
+1:  call ia32eEmulatorVcpuFailureEntry
     int3
 
 #endif

@@ -56,6 +56,7 @@
 #define WORKHORSE_SCHED_CTRL_YIELD              0
 #define WORKHORSE_SCHED_CTRL_THROTTLE           1
 #define WORKHORSE_SCHED_CTRL_LSR_DONE           2
+#define WORKHORSE_SCHED_CTRL_FAILURE            3
 
 #define WORKHORSE_TASK_TYPE_THREAD              0
 #define WORKHORSE_TASK_TYPE_LSR                 1

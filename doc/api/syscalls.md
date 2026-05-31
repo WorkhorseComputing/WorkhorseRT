@@ -82,7 +82,12 @@ Ctrls:
 ```WORKHORSE_SCHED_CTRL_LSR_DONE 2```
 
 - LSR only
-- Hands control to the scheduler and Transitions the calling LSR to a dormant state, where it is woken up on the next relevant hardware event
+- Hands control to the scheduler and transitions the calling LSR to a dormant state, where it is woken up on the next relevant hardware event.
+
+```WORKHORSE_SCHED_CTRL_FAILURE 3```
+
+- Thread and LSR only
+- Hands control to the scheduler and transitions the task to a failure state.
 
 ---
 

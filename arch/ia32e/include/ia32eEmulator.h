@@ -45,7 +45,7 @@ typedef void (*ia32eEmulatorFn_t)(ia32eVmexitRegs_t *regs);
 
 #if CONFIG_IA32E_VTX
 
-void ia32eEmulatorFailure(void);
+void ia32eEmulatorVcpuFailureEntry(void);
 void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs);
 
 #endif
