@@ -44,6 +44,24 @@ typedef struct ia32eVtxTaskInfo
     dqListNode_t vcpuVectorNode;
 } ia32eVtxTaskInfo_t;
 
+typedef struct ia32eVtxVectoredEvent
+{
+    union 
+    {
+        uint32_t val;
+        struct
+        {
+            uint32_t vector : 8;
+            uint32_t type : 3;
+            uint32_t deliverErrcode : 1;
+            uint32_t advance : 1;
+            uint32_t valid : 1;
+            uint32_t resvd0 : 18;
+        } fields;
+    } delivery;
+    uint64_t errcode;
+} ia32eVtxVectoredEvent_t;
+
 typedef struct ia32eSchedCtx
 {
     ia32eFxsave64_t fpCtx;
@@ -80,6 +98,8 @@ typedef struct ia32eSchedCtx
     { 
         bool vmcsInitialized;
         uint64_t vmexitStoreVmentryLoadAreaData[5];
+
+        ia32eVtxVectoredEvent_t syntheticEvent;
     } vtx;
 #endif
 

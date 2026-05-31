@@ -41,6 +41,15 @@ typedef struct ATTR_PACKED ia32eVmexitRegs
 } ia32eVmexitRegs_t;
 STATIC_ASSERT((sizeof(ia32eVmexitRegs_t) % 16) == 0);
 
+typedef enum ia32eEmulatorMode
+{
+    IA32E_EMULATOR_INVALID =    0,
+    IA32E_EMULATOR_16 =         1,
+    IA32E_EMULATOR_V8086 =      2,
+    IA32E_EMULATOR_32 =         3,
+    IA32E_EMULATOR_64 =         4
+} ia32eEmulatorMode_t;
+
 typedef void (*ia32eEmulatorFn_t)(ia32eVmexitRegs_t *regs);
 
 #if CONFIG_IA32E_VTX

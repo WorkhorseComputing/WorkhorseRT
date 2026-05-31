@@ -28,6 +28,7 @@
 #if CONFIG_IA32E_VTX
 
 #include <ia32eCpu.h>
+#include <export/kDbgInterface.h>
 #include <import/kSyscallHandler.h>
 #include <workhorse/kTick/kTick.h>
 
@@ -62,6 +63,154 @@ char *ia32eEmulatorErrorTable[] = {
     [28] = "Invalid operand to INVEPT / INVVPID"
 };
 
+/* VMCS helpers */
+
+static 
+ia32eEmulatorMode_t ia32eEmulatorMode(void)
+{
+    uint64_t guestCr0 = 0;
+    uint64_t guestEfer = 0;
+    uint32_t guestAr = 0;
+    uint64_t guestFlags = 0;
+
+    guestCr0 = ia32eVmread(IA32E_VTX_VMCS_GUEST_CR0);
+    if ((guestCr0 & IA32E_CR0_PE_MASK) == 0)
+        return IA32E_EMULATOR_16;
+
+    guestEfer = ia32eVmread(IA32E_VTX_VMCS_GUEST_IA32E_EFER);
+    if ((guestEfer & IA32E_EFER_LONGMODE_ACTIVE_MASK) != 0) {
+        
+        guestAr = ia32eVmread(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS);
+        return (guestAr & IA32E_ACCESS_RIGHTS_LONGMODE_MASK) != 0 ? IA32E_EMULATOR_64 : 
+               (guestAr & IA32E_ACCESS_RIGHTS_DB_MASK) != 0 ? IA32E_EMULATOR_32 : IA32E_EMULATOR_16;
+    }
+
+    guestFlags = ia32eVmread(IA32E_VTX_VMCS_GUEST_RFLAGS);
+    if ((guestFlags & IA32E_FLAGS_VM_MASK) != 0)
+        return IA32E_EMULATOR_V8086;
+
+    guestAr = ia32eVmread(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS);
+    return (guestAr & IA32E_ACCESS_RIGHTS_DB_MASK) != 0 ? IA32E_EMULATOR_32 : IA32E_EMULATOR_16;
+}
+
+static
+bool ia32eEmulatorCpl0(void)
+{
+    ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
+    uint32_t guestAr = 0;
+
+    mode = ia32eEmulatorMode();
+
+    K_DYNAMIC_ASSERT(mode != IA32E_EMULATOR_INVALID);
+
+    if (mode == IA32E_EMULATOR_16)
+        return true;
+
+    if (mode == IA32E_EMULATOR_V8086)
+        return false;
+
+    guestAr = ia32eVmread(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS);
+    return (guestAr & IA32E_ACCESS_RIGHTS_DPL_MASK) == 0;
+}
+
+static
+void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool deliverErrcode, uint64_t errcode, 
+                              bool deliverLength, uint64_t length)
+{
+    uint32_t info = 0;
+    
+    info = vector | (type << 8) | ((deliverErrcode ? 1 : 0) << 11) | (1 << 31);
+
+#if CONFIG_KDYNAMIC_ASSERT
+    
+    K_DYNAMIC_ASSERT(__ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_INFO, info));
+
+    if (deliverErrcode)
+        K_DYNAMIC_ASSERT(__ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_ERROR_CODE, errcode));
+
+    if (deliverLength)
+        K_DYNAMIC_ASSERT(__ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INSTRUCTION_LENGTH, length));
+
+#else 
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_INFO, info);
+
+    if (deliverErrcode)
+        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_ERROR_CODE, errcode);
+
+    if (deliverLength)
+        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INSTRUCTION_LENGTH, length);
+
+#endif
+}
+
+static
+void ia32eEmulatorAdvance(void)
+{
+    uintptr_t guestIp = 0;
+    uintptr_t length = 0;
+    uint64_t guestFlags = 0;
+    ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
+
+    guestIp = ia32eVmread(IA32E_VTX_VMCS_GUEST_RIP);
+    length = ia32eVmread(IA32E_VTX_VMCS_RO_VMEXIT_INSTRUCTION_LENGTH);
+    guestFlags = ia32eVmread(IA32E_VTX_VMCS_GUEST_RFLAGS);
+    mode = ia32eEmulatorMode();
+
+    K_DYNAMIC_ASSERT(mode != IA32E_EMULATOR_INVALID);
+
+    guestIp += length;
+
+    switch (mode) {
+
+        case IA32E_EMULATOR_16:
+        case IA32E_EMULATOR_V8086:
+            guestIp &= 0xffff;
+            break;
+        
+        case IA32E_EMULATOR_32:
+            guestIp &= 0xffffffff;
+            break;
+
+        default:
+            break;        
+    }
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RIP, guestIp);
+
+    if ((guestFlags & IA32E_FLAGS_TF_MASK) != 0)
+        ia32eEmulatorInjectEvent(IA32E_DEBUG_EXCEPTION, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, false, 0, false, 0);
+
+    K_DYNAMIC_ASSERT(mode != IA32E_EMULATOR_INVALID);
+}
+
+/* Vcpu helpers */
+
+static 
+inline 
+void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
+                                      bool deliverErrcode, uint64_t errcode)
+{
+    kSchedTask_t *task = NULL;
+
+    task = kTickGetRunningTask();
+
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.valid = 1;
+
+    if (advance) {
+        task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.advance = 1;
+        return;
+    }
+
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.vector = vector;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.type = type;
+
+    if (deliverErrcode) {
+        task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode = 1;
+        task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = errcode;
+    }
+}
+
 /* General purpose events */
 
 static 
@@ -75,7 +224,6 @@ void ia32eEmulatorNop(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
 
 }
-
 
 static 
 void ia32eEmulatorNopAdvance(ATTR_UNUSED ia32eVmexitRegs_t *regs)
@@ -229,6 +377,12 @@ void ia32eEmulatorVcpuFailureEntry(void)
 void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
 {
     ia32eEmulatorEntryHandler();
+
+    cpuEnableInterrupts();
+
+
+
+    cpuDisableInterrupts();
 }
 
 #endif

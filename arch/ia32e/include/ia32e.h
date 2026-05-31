@@ -269,7 +269,14 @@
 #define IA32E_FLAGS_TF_MASK         (1 << 8)
 #define IA32E_FLAGS_IF_MASK         (1 << 9)
 #define IA32E_FLAGS_DF_MASK         (1 << 10)
+#define IA32E_FLAGS_VM_MASK         (1 << 17)
 #define IA32E_FLAGS_AC_MASK         (1 << 18)
+
+/* Segmentation */
+
+#define IA32E_ACCESS_RIGHTS_DPL_MASK        (3 << 5)
+#define IA32E_ACCESS_RIGHTS_LONGMODE_MASK   (1 << 13)
+#define IA32E_ACCESS_RIGHTS_DB_MASK         (1 << 14)
 
 /* Msr */
 
