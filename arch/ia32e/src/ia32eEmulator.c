@@ -32,7 +32,15 @@
 #include <import/kSyscallHandler.h>
 #include <workhorse/kTick/kTick.h>
 
-#define ia32eEmulatorHandleVcpuFailure() ia32eEmulatorVcpuFailure(NULL)
+#define ia32eEmulatorHandleVcpuFailure() \
+    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0)
+
+#define ia32eEmulatorQueueUd() \
+    ia32eEmulatorQueueEventSynthetic(false, IA32E_INVALID_OPCODE, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, false, 0)
+
+#define ia32eEmulatorQueueGp0()                                                         \
+    ia32eEmulatorQueueEventSynthetic(false, IA32E_GENERAL_PROTECTION_FAULT,             \
+                                     IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, true, 0)
 
 char *ia32eEmulatorErrorTable[] = {
     [0] = "UNKNOWN, ERRCODE 0",
@@ -390,7 +398,7 @@ void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterru
 static 
 void ia32eEmulatorUd(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
-    ia32eEmulatorQueueEventSynthetic(false, IA32E_INVALID_OPCODE, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, false, 0);
+    ia32eEmulatorQueueUd();
 }
 
 static 
@@ -409,7 +417,7 @@ ATTR_NORETURN
 static
 void ia32eEmulatorVcpuFailure(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
-    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);
+    ia32eEmulatorHandleVcpuFailure();
     UNREACHABLE();
 }
 
@@ -417,8 +425,7 @@ static
 void ia32eEmulatorAccessDenied(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
 #if CONFIG_IA32E_VTX_ACCESS_DENIED_GP0
-    ia32eEmulatorQueueEventSynthetic(false, IA32E_GENERAL_PROTECTION_FAULT, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION,
-                                     true, 0);
+    ia32eEmulatorQueueGp0();
 #else 
     ia32eEmulatorHandleVcpuFailure();
 #endif 
@@ -445,9 +452,32 @@ void ia32eEmulatorCpuid(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 }
 
 static 
-void ia32eEmulatorVmcall(ATTR_UNUSED ia32eVmexitRegs_t *regs)
+void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
 {
+    ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
+    
+    if (!ia32eEmulatorCpl0()) {
+        ia32eEmulatorQueueGp0();
+        return;
+    }
 
+    mode = kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode;
+    if (mode == IA32E_EMULATOR_64) {
+        ia32eSyscallHandler(&regs->regs);
+        return;
+    }
+
+    /* Guest cant vmcall in v8086 */
+
+    K_DYNAMIC_ASSERT(mode == IA32E_EMULATOR_16 || mode == IA32E_EMULATOR_32);
+
+    regs->regs.rax &= 0xffffffff;
+    regs->regs.rdi &= 0xffffffff;
+    regs->regs.rsi &= 0xffffffff;
+
+    ia32eSyscallHandler(&regs->regs);
+
+    regs->regs.rax &= 0xffffffff;
 }
 
 static 
@@ -457,15 +487,66 @@ void ia32eEmulatorCrAccess(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 }
 
 static 
-void ia32eEmulatorRdmsr(ATTR_UNUSED ia32eVmexitRegs_t *regs)
+void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 {
+    uint32_t ecx = 0;
 
+    uint64_t val = 0;
+    bool inval = false; 
+
+    ecx = regs->regs.rcx & 0xffffffff;
+
+    switch (ecx) {
+
+        case IA32E_BIOS_DONE:
+            val = 1;
+            break;
+
+        default:
+            inval = true;
+            break;
+    }
+
+    if (inval) {
+        ia32eEmulatorQueueGp0();
+        return;
+    }
+
+    regs->regs.rax = val & 0xffffffff;
+    regs->regs.rdx = val >> 32;
 }
 
 static 
 void ia32eEmulatorWrmsr(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
+    uint32_t ecx = 0;
+    uint32_t eax = 0;
+    uint32_t edx = 0;
 
+    bool inval = false;
+
+    ecx = regs->regs.rcx & 0xffffffff;
+    eax = regs->regs.rax & 0xffffffff;
+    edx = regs->regs.rdx & 0xffffffff;
+
+    switch (ecx) {
+
+        case IA32E_BIOS_DONE:
+
+            if (eax != 1 || edx != 0)
+                inval = true;
+
+            break;
+
+        default:
+            inval = true;
+            break;
+    }
+
+    if (inval) {
+        ia32eEmulatorQueueGp0();
+        return;
+    }
 }
 
 /* MCE's currently not supported, processor will enter shutdown upon one anyway */
