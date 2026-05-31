@@ -56,7 +56,8 @@ typedef struct ia32eVtxVectoredEvent
             uint32_t deliverErrcode : 1;
             uint32_t advance : 1;
             uint32_t valid : 1;
-            uint32_t resvd0 : 18;
+            uint32_t mode : 3;
+            uint32_t resvd0 : 15;
         } fields;
     } delivery;
     uint64_t errcode;

@@ -289,6 +289,8 @@ __ia32eVmexitStub:
     movq %rsp, %rdi 
     call ia32eEmulatorDispatcher
 
+    cli
+
     popq %rax 
     movq %rax, %cr2
 

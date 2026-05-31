@@ -601,12 +601,16 @@ typedef enum ia32eVtxVmcsWidth
 #define IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_NMI_UNBLOCKING_MASK     (1U << 12)
 #define IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_VALID_MASK              (1U << 31)
 
+#define IA32E_VTX_VMCS_EXIT_REASON_MASK                 0xffffU
+#define IA32E_VTX_VMCS_EXIT_REASON_ENCLAVE_MASK         (1U << 27)
+#define IA32E_VTX_VMCS_EXIT_REASON_VMENTRY_FAILURE_MASK (1U << 31)
+
 typedef enum a32eVtxVmcsCrAccessType
 {
-    IA32E_VTX_VMCS_MOV_TO_CR = 0,
-    IA32E_VTX_VMCS_MOV_FROM_CR = 1,
-    IA32E_VTX_VMCS_CLTS = 2,
-    IA32E_VTX_VMCS_LMSW = 3
+    IA32E_VTX_VMCS_MOV_TO_CR =      0,
+    IA32E_VTX_VMCS_MOV_FROM_CR =    1,
+    IA32E_VTX_VMCS_CLTS =           2,
+    IA32E_VTX_VMCS_LMSW =           3
 } ia32eVtxVmcsCrAccessType_t;
 
 #define IA32E_VTX_VMCS_LMSW_OPERAND_REG 0

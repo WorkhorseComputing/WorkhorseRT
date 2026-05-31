@@ -48,6 +48,13 @@ config IA32E_VTX_TSD
     ---help---
         Disable timestamp counter in virtual domains
 
+config IA32E_VTX_ACCESS_DENIED_GP0
+    bool "GP0 on denied access to resources in vtx"
+    depends on IA32E_VTX
+    default n
+    ---help---
+        Inject GP0 when a guest attempt to access a resource is denied instead of failing the vcpu
+
 config IA32E_KSTACK_SIZE
     int "Kernel stack size"
     default 4096
@@ -115,13 +122,13 @@ config IA32E_FEATURE_UMIP
 
 config IA32E_FEATURE_SMEP
     bool "Enable SMEP"
-    default y
+    default n
     ---help---
         "Enable SMEP if supported
 
 config IA32E_FEATURE_SMAP
     bool "Enable SMAP"
-    default y
+    default n
     ---help---
         "Enable SMAP if supported
 
