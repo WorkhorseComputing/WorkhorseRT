@@ -318,7 +318,7 @@ void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool de
 {
     uint32_t info = 0;
     
-    info = vector | (type << 8) | ((deliverErrcode ? 1 : 0) << 11) | (1 << 31);
+    info = vector | (type << 8) | (deliverErrcode ? (1 << 11) : 0) | (1 << 31);
 
 #if CONFIG_KDYNAMIC_ASSERT
     
