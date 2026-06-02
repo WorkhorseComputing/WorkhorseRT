@@ -530,14 +530,8 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
                 regs->regs.rdx = cpuidRegs[3];
                 break;
 
-            case IA32E_CPUID_ESIG5:
-                break;
-
             case IA32E_CPUID_ESIG6:
                 regs->regs.rcx = cpu->cpuFlags.fields.l2LineSize;
-                break;
-
-            case IA32E_CPUID_ESIG7:
                 break;
 
             case IA32E_CPUID_ESIG8:
