@@ -410,6 +410,8 @@ void ia32eCpuInit(void)
 
     ia32eCpuid(1, 0, &regs1[0], &regs1[1], &regs1[2], &regs1[3]);
 
+    cpu->cpuVersion = regs1[0];
+
     cpu->cpuFlags.fields.monitorMwait = (regs1[2] & IA32E_CPUID1_C_MONITOR_MWAIT_MASK) != 0;
     cpu->cpuFlags.fields.vme = (regs1[3] & IA32E_CPUID1_D_VME_MASK) != 0;
 
@@ -466,6 +468,8 @@ void ia32eCpuInit(void)
 
     ia32eCpuid(IA32E_CPUID_ESIG0, 0, &regsEsig0[0], &regsEsig0[1], &regsEsig0[2], &regsEsig0[3]);
     
+    cpu->esigMax = regsEsig0[0];
+
     if (regsEsig0[0] >= IA32E_CPUID_ESIG1) {
 
         ia32eCpuid(IA32E_CPUID_ESIG1, 0, &regsEsig1[0], &regsEsig1[1], &regsEsig1[2], &regsEsig1[3]);

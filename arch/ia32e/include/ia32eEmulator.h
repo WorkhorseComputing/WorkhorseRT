@@ -54,6 +54,19 @@ typedef void (*ia32eEmulatorFn_t)(ia32eVmexitRegs_t *regs);
 
 #if CONFIG_IA32E_VTX
 
+#define IA32E_EMULATOR_CPUIDV_START             0x40000000
+#define IA32E_EMULATOR_CPUIDV_PARAVIRT          0x40000001
+#define IA32E_EMULATOR_CPUIDV_EMULATION         0x40000002
+#define IA32E_EMULATOR_CPUIDV_END               0x4fffffff
+
+#define IA32E_EMULATOR_CPUIDV_EMULATION_D_ACCESS_DENIED_GP0_MASK    (1 << 0)
+#define IA32E_EMULATOR_CPUIDV_EMULATION_D_TASK_GATE_SUP_MASK        (1 << 1)
+#define IA32E_EMULATOR_CPUIDV_EMULATION_D_NE_UNCLAMPED_MASK         (1 << 2)
+
+#define IA32E_EMULATOR_CPUIDV_EBX 0x6b726f77
+#define IA32E_EMULATOR_CPUIDV_ECX 0x73726f68
+#define IA32E_EMULATOR_CPUIDV_EDX 0x78747665
+
 void ia32eEmulatorVcpuFailureEntry(void);
 void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs);
 

@@ -143,6 +143,7 @@ typedef struct ia32ePerCpu
     uint32_t tprCount[14];
     uint8_t tpr;
 
+    uint32_t cpuVersion;
     union
     {
         uint32_t val;
@@ -179,6 +180,8 @@ typedef struct ia32ePerCpu
             uint32_t resvd0 : 10;
         } fields;
     } cpuFlags;
+
+    uint32_t esigMax;
 
 #if CONFIG_IA32E_VTX
     struct 

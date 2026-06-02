@@ -446,9 +446,101 @@ void ia32eEmulatorExtIntr(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 }
 
 static 
-void ia32eEmulatorCpuid(ATTR_UNUSED ia32eVmexitRegs_t *regs)
+void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
 {
+    uint32_t eax = 0;
+    uint32_t ecx = 0;
 
+    uint32_t cpuidRegs[4] = {0};
+
+    eax = regs->regs.rax & 0xffffffff;
+    ecx = regs->regs.rcx & 0xffffffff;
+
+    regs->regs.rax = 0;
+    regs->regs.rbx = 0;
+    regs->regs.rcx = 0;
+    regs->regs.rdx = 0;
+
+    if (eax >= IA32E_EMULATOR_CPUIDV_START && eax <= IA32E_EMULATOR_CPUIDV_EMULATION) {
+        
+        switch (eax) {
+
+            case IA32E_EMULATOR_CPUIDV_START:
+                regs->regs.rax = IA32E_EMULATOR_CPUIDV_EMULATION;
+                regs->regs.rbx = IA32E_EMULATOR_CPUIDV_EBX;
+                regs->regs.rcx = IA32E_EMULATOR_CPUIDV_ECX;
+                regs->regs.rdx = IA32E_EMULATOR_CPUIDV_EDX;
+                break;
+
+            case IA32E_EMULATOR_CPUIDV_EMULATION:
+
+#if CONFIG_IA32E_VTX_ACCESS_DENIED_GP0
+                regs-regs.rdx |= IA32E_EMULATOR_CPUIDV_EMULATION_D_ACCESS_DENIED_GP0_MASK;
+#endif            
+                break;
+
+            default:
+                break;
+        }
+
+        return;
+    }
+
+    switch (eax) {
+
+        case 0:
+            regs->regs.rax = 7;
+            regs->regs.rbx = IA32E_CPUID0_GENUINE_INTEL_EBX;
+            regs->regs.rcx = IA32E_CPUID0_GENUINE_INTEL_ECX;
+            regs->regs.rdx = IA32E_CPUID0_GENUINE_INTEL_EDX;
+            break;
+
+        case 1:
+            break;
+
+        case 2:
+            regs->regs.rax = (1 << 31);
+            regs->regs.rbx = (1 << 31);
+            regs->regs.rcx = (1 << 31);
+            regs->regs.rdx = (1 << 31);
+            break;
+
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+            break;
+
+        case IA32E_CPUID_ESIG0:
+            break;
+            
+        case IA32E_CPUID_ESIG1:
+            break;
+
+        case IA32E_CPUID_ESIG2:
+            break;
+
+        case IA32E_CPUID_ESIG3:
+            break;
+
+        case IA32E_CPUID_ESIG4:
+            break;
+
+        case IA32E_CPUID_ESIG5:
+            break;
+
+        case IA32E_CPUID_ESIG6:
+            break;
+
+        case IA32E_CPUID_ESIG7:
+            break;
+
+        case IA32E_CPUID_ESIG8:
+            break;
+
+        default:
+            break;
+    }
 }
 
 static 
