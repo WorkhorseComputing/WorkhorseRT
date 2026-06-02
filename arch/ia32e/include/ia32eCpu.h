@@ -146,38 +146,46 @@ typedef struct ia32ePerCpu
     uint32_t cpuVersion;
     union
     {
-        uint32_t val;
+        uint64_t val;
         struct
         {
-            uint32_t enabled : 1;
-            uint32_t onlineCapable : 1;
-            uint32_t online : 1;
-            uint32_t bsp : 1;
+            uint64_t enabled : 1;
+            uint64_t onlineCapable : 1;
+            uint64_t online : 1;
+            uint64_t bsp : 1;
 
-            uint32_t monitorMwait : 1;
-            uint32_t vme : 1;
-            uint32_t de : 1;
-            uint32_t pat : 1;
-            uint32_t pcid : 1;
-            uint32_t fsgsbase : 1;
-            uint32_t smep : 1;
-            uint32_t smap : 1;
-            uint32_t umip : 1;
-            uint32_t nx : 1;
+            uint64_t monitorMwait : 1;
+            uint64_t vme : 1;
+            uint64_t de : 1;
+            uint64_t pat : 1;
+            uint64_t pcid : 1;
+            uint64_t fsgsbase : 1;
+            uint64_t smep : 1;
+            uint64_t smap : 1;
+            uint64_t umip : 1;
+            uint64_t nx : 1;
 
-            uint32_t invTsc : 1;
-            uint32_t sgx : 1;
+            uint64_t lahf64 : 1;
+            uint64_t lzcnt : 1;
+            uint64_t prefetchw : 1;
+            uint64_t pg1Gb : 1;
 
-            uint32_t vcpuCapable : 1;
+            uint64_t l2LineSize : 8;
+
+            uint64_t invTsc : 1;
+            uint64_t wbnoinvd : 1;
+            uint64_t sgx : 1;
+
+            uint64_t vcpuCapable : 1;
             
-            uint32_t vpid : 1;
+            uint64_t vpid : 1;
 
-            uint32_t ept2mb : 1;
-            uint32_t ept1gb : 1;
-            uint32_t eptUc : 1;
-            uint32_t eptAd : 1;
+            uint64_t ept2mb : 1;
+            uint64_t ept1gb : 1;
+            uint64_t eptUc : 1;
+            uint64_t eptAd : 1;
 
-            uint32_t resvd0 : 10;
+            uint64_t resvd0 : 29;
         } fields;
     } cpuFlags;
 

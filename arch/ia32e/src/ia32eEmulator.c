@@ -451,10 +451,14 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     uint32_t eax = 0;
     uint32_t ecx = 0;
 
+    ia32ePerCpu_t *cpu = NULL;
+
     uint32_t cpuidRegs[4] = {0};
 
     eax = regs->regs.rax & 0xffffffff;
     ecx = regs->regs.rcx & 0xffffffff;
+
+    cpu = ia32eThisCpuData();
 
     regs->regs.rax = 0;
     regs->regs.rbx = 0;
@@ -477,6 +481,68 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
 #if CONFIG_IA32E_VTX_ACCESS_DENIED_GP0
                 regs-regs.rdx |= IA32E_EMULATOR_CPUIDV_EMULATION_D_ACCESS_DENIED_GP0_MASK;
 #endif            
+                break;
+
+            default:
+                break;
+        }
+
+        return;
+    }
+
+    if (eax >= IA32E_CPUID_ESIG0 && eax <= IA32E_CPUID_ESIG8 && eax <= cpu->esigMax) {
+        
+        switch (eax) {
+
+            case IA32E_CPUID_ESIG0:
+                regs->regs.rax = min(IA32E_CPUID_ESIG8, cpu->esigMax);
+                break;
+
+            case IA32E_CPUID_ESIG1:
+
+                regs->regs.rdx = IA32E_CPUID_ESIG1_D_SYSCALL_MASK | IA32E_CPUID_ESIG1_D_INTEL64_MASK;
+                
+                if (cpu->cpuFlags.fields.lahf64 != 0)
+                    regs->regs.rcx |= IA32E_CPUID_ESIG1_C_LAHF64_MASK;
+
+                if (cpu->cpuFlags.fields.lzcnt != 0)
+                    regs->regs.rcx |= IA32E_CPUID_ESIG1_C_LZCNT_MASK;
+
+                if (cpu->cpuFlags.fields.prefetchw != 0)
+                    regs->regs.rcx |= IA32E_CPUID_ESIG1_C_PREFETCHW_MASK;
+
+                if (cpu->cpuFlags.fields.nx != 0)
+                    regs->regs.rdx |= IA32E_CPUID_ESIG1_D_NX_MASK;
+
+                if (cpu->cpuFlags.fields.pg1Gb != 0)
+                    regs->regs.rdx |= IA32E_CPUID_ESIG1_D_PG_1GB_MASK;
+
+                break;
+
+            case IA32E_CPUID_ESIG2:
+            case IA32E_CPUID_ESIG3:
+            case IA32E_CPUID_ESIG4:
+                ia32eCpuid(eax, 0, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+
+                regs->regs.rax = cpuidRegs[0];
+                regs->regs.rbx = cpuidRegs[1];
+                regs->regs.rcx = cpuidRegs[2];
+                regs->regs.rdx = cpuidRegs[3];
+                break;
+
+            case IA32E_CPUID_ESIG5:
+                break;
+
+            case IA32E_CPUID_ESIG6:
+                regs->regs.rcx = cpu->cpuFlags.fields.l2LineSize;
+                break;
+
+            case IA32E_CPUID_ESIG7:
+                break;
+
+            case IA32E_CPUID_ESIG8:
+                regs->regs.rax = 48 | (48 << 8) | (48 << 16);
+                regs->regs.rbx = (cpu->cpuFlags.fields.wbnoinvd << 9);
                 break;
 
             default:
@@ -509,33 +575,6 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
         case 4:
         case 5:
         case 6:
-            break;
-
-        case IA32E_CPUID_ESIG0:
-            break;
-            
-        case IA32E_CPUID_ESIG1:
-            break;
-
-        case IA32E_CPUID_ESIG2:
-            break;
-
-        case IA32E_CPUID_ESIG3:
-            break;
-
-        case IA32E_CPUID_ESIG4:
-            break;
-
-        case IA32E_CPUID_ESIG5:
-            break;
-
-        case IA32E_CPUID_ESIG6:
-            break;
-
-        case IA32E_CPUID_ESIG7:
-            break;
-
-        case IA32E_CPUID_ESIG8:
             break;
 
         default:

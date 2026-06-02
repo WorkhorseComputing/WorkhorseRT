@@ -399,7 +399,9 @@ void ia32eCpuInit(void)
     uint32_t regs7[4] = {0};
     uint32_t regsEsig0[4] = {0};
     uint32_t regsEsig1[4] = {0};
+    uint32_t regsEsig6[4] = {0};
     uint32_t regsEsig7[4] = {0};
+    uint32_t regsEsig8[4] = {0};
     uint32_t regs18[4] = {0};
     uint64_t efer = 0;
     uint64_t dr7 = 0;
@@ -477,11 +479,26 @@ void ia32eCpuInit(void)
             efer |= IA32E_EFER_XD_ENABLE_MASK;
             cpu->cpuFlags.fields.nx = 1;
         }
+
+        cpu->cpuFlags.fields.lahf64 = (regsEsig1[2] & IA32E_CPUID_ESIG1_C_LAHF64_MASK) != 0;
+        cpu->cpuFlags.fields.lzcnt = (regsEsig1[2] & IA32E_CPUID_ESIG1_C_LZCNT_MASK) != 0;
+        cpu->cpuFlags.fields.prefetchw = (regsEsig1[2] & IA32E_CPUID_ESIG1_C_PREFETCHW_MASK) != 0;
+        cpu->cpuFlags.fields.pg1Gb = (regsEsig1[3] & IA32E_CPUID_ESIG1_D_PG_1GB_MASK) != 0;
+    }
+
+    if (regsEsig0[0] >= IA32E_CPUID_ESIG6) {
+        ia32eCpuid(IA32E_CPUID_ESIG6, 0, &regsEsig6[0], &regsEsig6[1], &regsEsig6[2], &regsEsig6[3]);
+        cpu->cpuFlags.fields.l2LineSize = regsEsig6[2] & 0xff;
     }
 
     if (regsEsig0[0] >= IA32E_CPUID_ESIG7) {
         ia32eCpuid(IA32E_CPUID_ESIG7, 0, &regsEsig7[0], &regsEsig7[1], &regsEsig7[2], &regsEsig7[3]);
         cpu->cpuFlags.fields.invTsc = (regsEsig7[3] & IA32E_CPUID_ESIG7_D_INVARIANT_TSC_MASK) != 0;
+    }
+
+    if (regsEsig0[0] >= IA32E_CPUID_ESIG8) {
+        ia32eCpuid(IA32E_CPUID_ESIG8, 0, &regsEsig8[0], &regsEsig8[1], &regsEsig8[2], &regsEsig8[3]);
+        cpu->cpuFlags.fields.wbnoinvd = (regsEsig8[1] & IA32E_CPUID_ESIG8_B_WBNOINVD_MASK) != 0;
     }
 
     ia32eCpuid(18, 0, &regs18[0], &regs18[1], &regs18[2], &regs18[3]);

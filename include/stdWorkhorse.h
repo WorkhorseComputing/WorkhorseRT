@@ -32,6 +32,9 @@
 #define usToTicks(us, freqHz) (((us) * (freqHz)) / 1000000ULL)
 #define testBitLe(val, bit) ((((val) >> (bit)) & 1) != 0)
 
+#define min(x, y) ((x) < (y) ? (x) : (y))
+#define max(x, y) ((x) > (y) ? (x) : (y))
+
 #define READ_ONCE(x)					                        \
 ({      					                                    \
 	union {typeof((x)) __val; char __c[1];} __u = {.__c = {0}}; \
