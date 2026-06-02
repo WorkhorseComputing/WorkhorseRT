@@ -751,7 +751,7 @@ void ia32eCpuSelfIpi(kCpuInvokeRoutineFn_t fn)
 {
     ia32ePerCpu_t *cpu = NULL;
     uint64_t rsp = 0;
-    uintptr_t status = 0;
+    uint64_t status = 0;
 
     cpu = ia32eThisCpuData();
     rsp = (uint64_t)&cpu->intStack.stack[sizeof(cpu->intStack.stack)];

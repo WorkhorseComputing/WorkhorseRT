@@ -42,6 +42,9 @@
     ia32eEmulatorQueueEventSynthetic(false, IA32E_GENERAL_PROTECTION_FAULT,             \
                                      IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, true, 0)
 
+#define ia32eEmulatorQueueAdvance() \
+    ia32eEmulatorQueueEventSynthetic(true, 0, IA32E_INTERRUPT_TYPE_OTHER_EVENT, false, 0)
+
 char *ia32eEmulatorErrorTable[] = {
     [0] = "UNKNOWN, ERRCODE 0",
     [1] = "VMCALL executed in VMX root operation",
@@ -366,8 +369,8 @@ void ia32eEmulatorAdvance(void)
     if ((interruptibilityState & IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK) != 0 ||
         (interruptibilityState & IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK) != 0) {
 
-        interruptibilityState |= IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK;
-        interruptibilityState |= IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK;
+        interruptibilityState &= ~IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK;
+        interruptibilityState &= ~IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK;
 
         __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
     }
@@ -401,6 +404,59 @@ void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterru
     }
 }
 
+static
+inline
+void ia32eEmulatorUnsetNmiBlocking(void)
+{
+    uint32_t interruptibilityState = 0;
+
+    interruptibilityState = ia32eVmread(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE);
+    interruptibilityState &= ~IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_NMI_MASK; 
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
+}
+
+static
+inline 
+void ia32eEmulatorSelfIpi(uint8_t vector)
+{
+    ia32ePerCpu_t *cpu = NULL;
+    ia32eIdtDescriptor64_t *ia32eIdt64High = NULL;
+    uint8_t ist = 0;
+
+    uint64_t rsp = 0; 
+    uint64_t status = 0;
+
+    cpu = ia32eThisCpuData();
+    ia32eIdt64High = cpu->global->cpuDataStructures.idt;
+    ist = ia32eIdt64High[vector].ist;
+
+    switch (ist) {
+
+        case 1:
+            rsp = (uint64_t)&cpu->intStack.stack[sizeof(cpu->intStack.stack)];
+            break;
+
+        case 2:
+            rsp = (uint64_t)&cpu->nmiStack.stack[sizeof(cpu->nmiStack.stack)];
+            break;
+
+        case 3:
+            rsp = (uint64_t)&cpu->doubleFaultStack.stack[sizeof(cpu->doubleFaultStack.stack)];
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }
+
+    status = cpuReadStatus();
+    cpuDisableInterrupts();
+
+    __ia32eFakeIsr(rsp, vector, 0);
+
+    cpuWriteStatus(status);
+}
+
 /* General purpose events */
 
 static 
@@ -418,7 +474,7 @@ void ia32eEmulatorNop(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 static 
 void ia32eEmulatorNopAdvance(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
-    ia32eEmulatorQueueEventSynthetic(true, 0, IA32E_INTERRUPT_TYPE_OTHER_EVENT, false, 0);
+    ia32eEmulatorQueueAdvance();
 }
 
 ATTR_NORETURN
@@ -444,13 +500,58 @@ void ia32eEmulatorAccessDenied(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 static 
 void ia32eEmulatorException(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
+    uint32_t info = 0;
 
+    uint8_t vector = 0;
+    ia32eInterruptType_t type = IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION;
+    
+    bool deliverErrcode = false;
+    uint64_t errcode = 0;
+
+    info = ia32eVmread(IA32E_VTX_VMCS_RO_VMEXIT_INTERRUPT_INFO);
+
+    K_DYNAMIC_ASSERT((info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_VALID_MASK) != 0);
+
+    vector = info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_VECTOR_MASK;    
+
+    type = ((info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_EVENT_TYPE_MASK) >> 
+             IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_EVENT_TYPE_SHIFT);
+
+    if ((info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_NMI_UNBLOCKING_MASK) != 0)
+        ia32eEmulatorUnsetNmiBlocking();
+            
+    if (type == IA32E_INTERRUPT_TYPE_NMI) {
+        K_DYNAMIC_ASSERT(vector == IA32E_NMI);
+        
+        ia32eEmulatorSelfIpi(vector);
+        return;
+    }
+
+    K_DYNAMIC_ASSERT(vector == IA32E_DEBUG_EXCEPTION || vector == IA32E_ALIGNMENT_CHECK);
+
+    deliverErrcode = (info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_ERRCODE_MASK) != 0;
+    if (deliverErrcode)
+        errcode = ia32eVmread(IA32E_VTX_VMCS_RO_IDT_VECTORING_ERROR_CODE);
+
+    ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);
 }
 
 static 
 void ia32eEmulatorExtIntr(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
+    uint32_t info = 0;
+    uint8_t vector = 0;
 
+    info = ia32eVmread(IA32E_VTX_VMCS_RO_VMEXIT_INTERRUPT_INFO);
+
+    K_DYNAMIC_ASSERT((info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_VALID_MASK) != 0);
+    
+    vector = info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_VECTOR_MASK;
+
+    if ((info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_NMI_UNBLOCKING_MASK) != 0)
+        ia32eEmulatorUnsetNmiBlocking();
+
+    ia32eEmulatorSelfIpi(vector);
 }
 
 static 
@@ -472,6 +573,8 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     regs->regs.rbx = 0;
     regs->regs.rcx = 0;
     regs->regs.rdx = 0;
+
+    ia32eEmulatorQueueAdvance();
 
     if (eax >= IA32E_EMULATOR_CPUIDV_START && eax <= IA32E_EMULATOR_CPUIDV_EMULATION) {
         
@@ -594,6 +697,8 @@ void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
         return;
     }
 
+    ia32eEmulatorQueueAdvance();
+
     mode = kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode;
     if (mode == IA32E_EMULATOR_64) {
         ia32eSyscallHandler(&regs->regs);
@@ -647,6 +752,8 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 
     regs->regs.rax = val & 0xffffffff;
     regs->regs.rdx = val >> 32;
+
+    ia32eEmulatorQueueAdvance();
 }
 
 static 
@@ -680,6 +787,8 @@ void ia32eEmulatorWrmsr(ATTR_UNUSED ia32eVmexitRegs_t *regs)
         ia32eEmulatorQueueGp0();
         return;
     }
+
+    ia32eEmulatorQueueAdvance();
 }
 
 /* MCE's currently not supported, processor will enter shutdown upon one anyway */
