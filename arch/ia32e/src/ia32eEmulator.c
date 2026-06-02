@@ -35,6 +35,9 @@
 #define ia32eEmulatorHandleVcpuFailure() \
     kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0)
 
+#define ia32eEmulatorRunningTaskMode() \
+    (kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode)
+
 #define ia32eEmulatorQueueUd() \
     ia32eEmulatorQueueEventSynthetic(false, IA32E_INVALID_OPCODE, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, false, 0)
 
@@ -84,7 +87,7 @@ uint64_t ia32eEmulatorModeApplyIpMask(uint64_t val)
 {
     ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
 
-    mode = kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode;
+    mode = ia32eEmulatorRunningTaskMode();
 
     switch (mode) {
 
@@ -300,7 +303,7 @@ bool ia32eEmulatorCpl0(void)
     ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
     uint32_t guestAr = 0;
 
-    mode = kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode;
+    mode = ia32eEmulatorRunningTaskMode();
 
     K_DYNAMIC_ASSERT(mode != IA32E_EMULATOR_INVALID);
 
@@ -457,6 +460,50 @@ void ia32eEmulatorSelfIpi(uint8_t vector)
     cpuWriteStatus(status);
 }
 
+static
+inline 
+bool ia32eEmulatorValidateCr0(uint64_t cr0)
+{
+    /** cr0 invariants
+     *
+     *  mode <> IA32E_EMULATOR_V8086
+     * ¬cr0.upper32
+     *  ¬cr0.inval
+     *  cr0.pg -> cr0.pe
+     *  oldCr0.pg -> cr0.pe
+     *  cr0.nw -> cr0.cd
+     *  mode = IA32E_EMULATOR_64 -> (cr0.pg /\ cr0.pe)
+     *  cr4.pcide -> cr0.pg
+     */
+
+    ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
+    bool pcide = false;
+    bool oldPg = false;
+
+    bool pg = false;
+    bool pe = false;
+    bool nw = false;
+    bool cd = false;
+
+    mode = ia32eEmulatorRunningTaskMode();
+    pcide = (ia32eVmread(IA32E_VTX_VMCS_GUEST_CR4) & IA32E_CR4_PCIDE_MASK) != 0;
+    oldPg = (ia32eVmread(IA32E_VTX_VMCS_GUEST_CR0) & IA32E_CR0_PG_MASK) != 0;
+
+    pg = (cr0 & IA32E_CR0_PG_MASK) != 0;
+    pe = (cr0 & IA32E_CR0_PE_MASK) != 0;
+    nw = (cr0 & IA32E_CR0_NW_MASK) != 0;
+    cd = (cr0 & IA32E_CR0_CD_MASK) != 0;
+
+    return (mode != IA32E_EMULATOR_V8086 &&
+            (cr0 >> 32) == 0 && 
+            (cr0 & IA32E_CR0_INVAL_MASK) == 0 &&
+            (!pg || pe) &&
+            (!oldPg || pe) &&
+            (!nw || cd) &&
+            (mode != IA32E_EMULATOR_64 || (pg && pe)) &&
+            (!pcide || pg));
+}
+
 /* General purpose events */
 
 static 
@@ -522,7 +569,7 @@ void ia32eEmulatorException(ATTR_UNUSED ia32eVmexitRegs_t *regs)
             
     if (type == IA32E_INTERRUPT_TYPE_NMI) {
         K_DYNAMIC_ASSERT(vector == IA32E_NMI);
-        
+
         ia32eEmulatorSelfIpi(vector);
         return;
     }
@@ -633,7 +680,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             case IA32E_CPUID_ESIG2:
             case IA32E_CPUID_ESIG3:
             case IA32E_CPUID_ESIG4:
-                ia32eCpuid(eax, 0, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+                ia32eCpuid(eax, ecx, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
 
                 regs->regs.rax = cpuidRegs[0];
                 regs->regs.rbx = cpuidRegs[1];
@@ -699,7 +746,7 @@ void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
 
     ia32eEmulatorQueueAdvance();
 
-    mode = kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode;
+    mode = ia32eEmulatorRunningTaskMode();
     if (mode == IA32E_EMULATOR_64) {
         ia32eSyscallHandler(&regs->regs);
         return;
@@ -719,9 +766,68 @@ void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
 }
 
 static 
-void ia32eEmulatorCrAccess(ATTR_UNUSED ia32eVmexitRegs_t *regs)
+void ia32eEmulatorCrAccess(ia32eVmexitRegs_t *regs)
 {
+    uint32_t qual = 0;
 
+    uint32_t cr = 0;
+    ia32eVtxVmcsCrAccessType_t type = IA32E_VTX_VMCS_MOV_TO_CR;
+    ia32eVtxVmcsGpr_t gpr = IA32E_VTX_VMCS_GPR_RAX;
+
+    uint64_t val = 0;
+    bool valid = true;
+
+    qual = ia32eVmread(IA32E_VTX_VMCS_RO_EXIT_QUALIFICATION);
+
+    cr = (qual & IA32E_VTX_VMCS_CR_ACCESS_QUAL_CR_MASK);
+    
+    type = ((qual & IA32E_VTX_VMCS_CR_ACCESS_QUAL_ACCESS_TYPE_MASK) >>
+            IA32E_VTX_VMCS_CR_ACCESS_QUAL_ACCESS_TYPE_SHIFT);
+
+    gpr = ((qual & IA32E_VTX_VMCS_CR_ACCESS_QUAL_GPR_MASK) >>
+            IA32E_VTX_VMCS_CR_ACCESS_QUAL_GPR_SHIFT);
+
+    switch (type) {
+
+        case IA32E_VTX_VMCS_MOV_TO_CR:
+
+            switch (cr) {
+
+                case 0:
+                    val = ia32eEmulatorReadGpr(gpr, regs);
+
+                    val &= ~(IA32E_CR0_NW_MASK | IA32E_CR0_CD_MASK);
+                    val |= IA32E_CR0_NE_MASK;
+
+                    if (ia32eEmulatorValidateCr0(val))
+                        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CR0, val);
+                    else 
+                        valid = false;
+                
+                    break;
+
+                case 4:
+                    valid = false;
+                    break;
+
+                default:
+                    K_DYNAMIC_ASSERT(false);
+                    break;
+            }
+
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }
+
+    if (!valid) {
+        ia32eEmulatorQueueGp0();
+        return;
+    }
+
+    ia32eEmulatorQueueAdvance();
 }
 
 static 

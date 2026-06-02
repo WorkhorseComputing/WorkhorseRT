@@ -51,15 +51,16 @@
 
 /* Control registers */
 
-#define IA32E_CR0_PE_MASK   (1 << 0)
-#define IA32E_CR0_MP_MASK   (1 << 1)
-#define IA32E_CR0_EM_MASK   (1 << 2)
-#define IA32E_CR0_NE_MASK   (1 << 5)
-#define IA32E_CR0_WP_MASK   (1 << 16)
-#define IA32E_CR0_AM_MASK   (1 << 18)
-#define IA32E_CR0_NW_MASK   (1 << 29)
-#define IA32E_CR0_CD_MASK   (1 << 30)
-#define IA32E_CR0_PG_MASK   (1 << 31)
+#define IA32E_CR0_PE_MASK       (1 << 0)
+#define IA32E_CR0_MP_MASK       (1 << 1)
+#define IA32E_CR0_EM_MASK       (1 << 2)
+#define IA32E_CR0_NE_MASK       (1 << 5)
+#define IA32E_CR0_WP_MASK       (1 << 16)
+#define IA32E_CR0_AM_MASK       (1 << 18)
+#define IA32E_CR0_NW_MASK       (1 << 29)
+#define IA32E_CR0_CD_MASK       (1 << 30)
+#define IA32E_CR0_PG_MASK       (1 << 31)
+#define IA32E_CR0_INVAL_MASK    0x1ffaffc0
 
 #define IA32E_CR4_VME_MASK          (1 << 0)
 #define IA32E_CR4_PVI_MASK          (1 << 1)

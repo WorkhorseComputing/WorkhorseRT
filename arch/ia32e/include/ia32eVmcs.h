@@ -611,7 +611,15 @@ typedef enum ia32eVtxVmcsWidth
 #define IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_SMI_MASK        (1 << 2)
 #define IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_NMI_MASK        (1 << 3)
 
-typedef enum a32eVtxVmcsCrAccessType
+#define IA32E_VTX_VMCS_CR_ACCESS_QUAL_CR_MASK                       0xf
+#define IA32E_VTX_VMCS_CR_ACCESS_QUAL_ACCESS_TYPE_SHIFT             4
+#define IA32E_VTX_VMCS_CR_ACCESS_QUAL_ACCESS_TYPE_MASK              (3 << 4)
+#define IA32E_VTX_VMCS_CR_ACCESS_QUAL_LMSW_OPERAND_TYPE_MASK        (1 << 6)
+#define IA32E_VTX_VMCS_CR_ACCESS_QUAL_GPR_SHIFT                     8
+#define IA32E_VTX_VMCS_CR_ACCESS_QUAL_GPR_MASK                      (3 << 8)
+#define IA32E_VTX_VMCS_CR_ACCESS_QUAL_LMSW_SOURCE_MASK              (0xffff << 16)
+
+typedef enum ia32eVtxVmcsCrAccessType
 {
     IA32E_VTX_VMCS_MOV_TO_CR =      0,
     IA32E_VTX_VMCS_MOV_FROM_CR =    1,

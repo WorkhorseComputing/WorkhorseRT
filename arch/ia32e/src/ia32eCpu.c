@@ -426,15 +426,15 @@ void ia32eCpuInit(void)
 
     ia32eCpuid(7, 0, &regs7[0], &regs7[1], &regs7[2], &regs7[3]);
 
+    if ((regs1[2] & IA32E_CPUID1_C_PCID_MASK) != 0 && (regs7[1] & IA32E_CPUID7_0_B_INVPCID_MASK) != 0) {    
+        
 #if CONFIG_IA32E_FEATURE_PCID
-
-    if ((regs1[2] & IA32E_CPUID1_C_PCID_MASK) != 0 && (regs7[1] & IA32E_CPUID7_0_B_INVPCID_MASK) != 0) {
-        cr4 |= IA32E_CR4_PCIDE_MASK;
-        cpu->cpuFlags.fields.pcid = 1;
+        cr4 |= IA32E_CR4_PCIDE_MASK; 
         cpu->global->gFlags.fields.pcidCapableExists = 1;
-    }
+#endif 
 
-#endif
+        cpu->cpuFlags.fields.pcid = 1; 
+    }
 
     if ((regs7[1] & IA32E_CPUID7_0_B_FSGSBASE) != 0) {
         cr4 |= IA32E_CR4_FSGSBASE_MASK;
@@ -459,14 +459,14 @@ void ia32eCpuInit(void)
         cpu->cpuFlags.fields.smap = 1;
     }
 
-#if CONFIG_IA32E_FEATURE_UMIP
-
     if ((regs7[2] & IA32E_CPUID7_0_C_UMIP_MASK) != 0) {
+
+#if CONFIG_IA32E_FEATURE_UMIP
         cr4 |= IA32E_CR4_UMIP_MASK;
+#endif
+
         cpu->cpuFlags.fields.umip = 1;
     }
-
-#endif
 
     ia32eCpuid(IA32E_CPUID_ESIG0, 0, &regsEsig0[0], &regsEsig0[1], &regsEsig0[2], &regsEsig0[3]);
     
