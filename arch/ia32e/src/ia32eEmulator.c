@@ -350,11 +350,12 @@ void ia32eEmulatorAdvance(void)
     uintptr_t guestIp = 0;
     uintptr_t length = 0;
     uint64_t guestFlags = 0;
-    ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
+    uint32_t interruptibilityState = 0;
 
     guestIp = ia32eVmread(IA32E_VTX_VMCS_GUEST_RIP);
     length = ia32eVmread(IA32E_VTX_VMCS_RO_VMEXIT_INSTRUCTION_LENGTH);
     guestFlags = ia32eVmread(IA32E_VTX_VMCS_GUEST_RFLAGS);
+    interruptibilityState = ia32eVmread(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE);
 
     guestIp += length;
 
@@ -362,10 +363,17 @@ void ia32eEmulatorAdvance(void)
 
     __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RIP, guestIp);
 
+    if ((interruptibilityState & IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK) != 0 ||
+        (interruptibilityState & IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK) != 0) {
+
+        interruptibilityState |= IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK;
+        interruptibilityState |= IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK;
+
+        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
+    }
+
     if ((guestFlags & IA32E_FLAGS_TF_MASK) != 0)
         ia32eEmulatorInjectEvent(IA32E_DEBUG_EXCEPTION, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, false, 0, false, 0);
-
-    K_DYNAMIC_ASSERT(mode != IA32E_EMULATOR_INVALID);
 }
 
 static 
