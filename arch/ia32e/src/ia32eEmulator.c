@@ -1157,6 +1157,8 @@ void ia32eEmulatorVcpuFailureEntry(void)
 {
     ia32eEmulatoLoadHostDrx();
 
+    cpuEnableInterrupts();
+
     ia32eEmulatorHandleVcpuFailure();
 
     UNREACHABLE();
