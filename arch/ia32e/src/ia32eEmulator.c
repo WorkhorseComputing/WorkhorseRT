@@ -617,6 +617,24 @@ void ia32eEmulatorCatchLostEvent(void)
     ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);
 }
 
+static
+inline
+void ia32eEmulatoLoadHostDrx(void)
+{
+    ia32ePerCpu_t *cpu = NULL;
+    kSchedTask_t *task = NULL;
+
+    cpu = ia32eThisCpuData();
+    task = kTickGetRunningTask();
+    
+    __ia32eWriteDr0(task->ctx.ia32eCtx.dr0);
+    __ia32eWriteDr1(cpu->vtx.hostDr1);
+    __ia32eWriteDr2(cpu->vtx.hostDr2);
+    __ia32eWriteDr3(cpu->vtx.hostDr3);
+    __ia32eWriteDr6(cpu->vtx.hostDr6);
+    __ia32eWriteDr7(cpu->vtx.hostDr7);
+}
+
 /* General purpose events */
 
 static 
@@ -1128,24 +1146,6 @@ ia32eEmulatorFn_t ia32eEmulatorDispatchTable[] = {
     [IA32E_VTX_EXIT_REASON_ENCLS] = ia32eEmulatorUd,
 };
 
-static
-inline
-void ia32eEmulatorReloadDrx(void)
-{
-    ia32ePerCpu_t *cpu = NULL;
-    kSchedTask_t *task = NULL;
-
-    cpu = ia32eThisCpuData();
-    task = kTickGetRunningTask();
-    
-    __ia32eWriteDr0(task->ctx.ia32eCtx.dr0);
-    __ia32eWriteDr1(cpu->vtx.hostDr1);
-    __ia32eWriteDr2(cpu->vtx.hostDr2);
-    __ia32eWriteDr3(cpu->vtx.hostDr3);
-    __ia32eWriteDr6(cpu->vtx.hostDr6);
-    __ia32eWriteDr7(cpu->vtx.hostDr7);
-}
-
 static 
 void ia32eEmulatorEventManager(void)
 {
@@ -1155,7 +1155,7 @@ void ia32eEmulatorEventManager(void)
 ATTR_NORETURN
 void ia32eEmulatorVcpuFailureEntry(void)
 {
-    ia32eEmulatorReloadDrx();
+    ia32eEmulatoLoadHostDrx();
 
     ia32eEmulatorHandleVcpuFailure();
 
@@ -1173,7 +1173,7 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
 
     ia32eEmulatorFn_t emulatorFn = NULL;
 
-    ia32eEmulatorReloadDrx();
+    ia32eEmulatoLoadHostDrx();
 
     exitReason = ia32eVmread(IA32E_VTX_VMCS_RO_EXIT_REASON);
     basicReason = exitReason & IA32E_VTX_VMCS_EXIT_REASON_MASK;
