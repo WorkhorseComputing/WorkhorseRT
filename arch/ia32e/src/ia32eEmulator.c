@@ -83,13 +83,15 @@
 
 #define IA32E_EMULATOR_CPUID7_1_D_TARGET_MASK                                           \
   (IA32E_CPUID7_1_D_AVX512_VNNI_FP16_MASK | IA32E_CPUID7_1_D_AVX512_VNNI_INT8_MASK |    \
-   IA32E_CPUID7_1_D_AVX512_NE_CONVERT_MASK | IA32E_CPUID7_1_D_AVX_VNNI_INT8_MASK |     \
+   IA32E_CPUID7_1_D_AVX512_NE_CONVERT_MASK | IA32E_CPUID7_1_D_AVX_VNNI_INT8_MASK |      \
    IA32E_CPUID7_1_D_AVX_NE_CONVERT_MASK | IA32E_CPUID7_1_D_AVX_VNNI_INT16_MASK |        \
    IA32E_CPUID7_1_D_AVX512_VNNI_INT16_MASK | IA32E_CPUID7_1_D_PREFETCHI_MASK |          \
    IA32E_CPUID7_1_D_AVX512_BF16_NE_MASK | IA32E_CPUID7_1_D_AVX10_MASK)
 
-#define ia32eEmulatorHandleVcpuFailure() \
-    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0)
+#define ia32eEmulatorHandleVcpuFailure() do {                                       \
+    cpuEnableInterrupts();                                                          \
+    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);     \
+} while (0)
 
 #define ia32eEmulatorRunningTaskMode() \
     (kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode)
@@ -1157,8 +1159,6 @@ void ia32eEmulatorVcpuFailureEntry(void)
 {
     ia32eEmulatoLoadHostDrx();
 
-    cpuEnableInterrupts();
-
     ia32eEmulatorHandleVcpuFailure();
 
     UNREACHABLE();
@@ -1184,13 +1184,9 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
     K_DYNAMIC_ASSERT((exitReason & IA32E_VTX_VMCS_EXIT_REASON_ENCLAVE_MASK) == 0);
 
     if (failure || basicReason >= ARRAY_LEN(ia32eEmulatorDispatchTable)) {
-        cpuEnableInterrupts();
         ia32eEmulatorHandleVcpuFailure();
         UNREACHABLE();
     }
-
-    if (basicReason != IA32E_VTX_EXIT_REASON_EXCEPTION && basicReason != IA32E_VTX_EXIT_REASON_EXT_INTR)
-        cpuEnableInterrupts();
 
     K_DYNAMIC_ASSERT(ia32eEmulatorDispatchTable[basicReason]);
 
@@ -1198,6 +1194,9 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
         ia32eEmulatorHandleVcpuFailure();
         UNREACHABLE();
     }
+    
+    if (basicReason != IA32E_VTX_EXIT_REASON_EXCEPTION && basicReason != IA32E_VTX_EXIT_REASON_EXT_INTR)
+        cpuEnableInterrupts();
 
     task = kTickGetRunningTask();
     mode = ia32eEmulatorMode();
