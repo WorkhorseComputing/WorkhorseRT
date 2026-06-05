@@ -40,7 +40,7 @@ typedef struct ia32eVtxParam
 typedef struct ia32eVtxTaskInfo 
 {
     ia32eVtxParam_t vtxParam;
-    uint32_t vcpuId;
+    uint8_t vcpuId;
     dqListNode_t vcpuVectorNode;
 } ia32eVtxTaskInfo_t;
 
@@ -158,7 +158,7 @@ typedef struct ia32eDomainInfo
     uint16_t vpid;
 #   endif
 
-    uint32_t numVcpus;
+    uint8_t numVcpus;
     dq_t vcpuVector;
 #endif
 

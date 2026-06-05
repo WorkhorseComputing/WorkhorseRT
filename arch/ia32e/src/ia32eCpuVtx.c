@@ -205,7 +205,10 @@ int ia32eCpuVtxTaskInfoInit(ia32eVtxTaskInfo_t *info, uint32_t domId , ia32eVtxP
 
     domain = kDomainUniverseGet(domId);
 
-    K_DYNAMIC_ASSERT(domain->archInfo.ia32eInfo.numVcpus < UINT32_MAX);
+    K_DYNAMIC_ASSERT(domain->archInfo.ia32eInfo.numVcpus <= UINT8_MAX);
+
+    if (domain->archInfo.ia32eInfo.numVcpus == UINT8_MAX)
+        return -EINVAL;
 
     info->vtxParam = *param;
     info->vcpuId = domain->archInfo.ia32eInfo.numVcpus;
@@ -446,11 +449,14 @@ void ia32eCpuVtxVmcsSetup(kSchedTask_t *task)
     cr0Mask = IA32E_CR0_NE_MASK | IA32E_CR0_NW_MASK | IA32E_CR0_CD_MASK;
     cr0Shadow = IA32E_CR0_NE_MASK;
 
-    cr4Mask = IA32E_CR4_TSD_MASK | IA32E_CR4_DE_MASK | IA32E_CR4_PSE_MASK | IA32E_CR4_PAE_MASK | IA32E_CR4_PGE_MASK |
+    cr4Mask = IA32E_CR4_TSD_MASK | IA32E_CR4_PSE_MASK | IA32E_CR4_PAE_MASK | IA32E_CR4_PGE_MASK |
               IA32E_CR4_OSFXSR_MASK | IA32E_CR4_OSXMMEXCPT_MASK;
 
     if (cpu->cpuFlags.fields.vme != 0)
         cr4Mask |= IA32E_CR4_VME_MASK | IA32E_CR4_PVI_MASK;
+
+    if (cpu->cpuFlags.fields.de != 0)
+        cr4Mask |= IA32E_CR4_DE_MASK;
 
     if (cpu->cpuFlags.fields.umip != 0)
         cr4Mask |= IA32E_CR4_UMIP_MASK;

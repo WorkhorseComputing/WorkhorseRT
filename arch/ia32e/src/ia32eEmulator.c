@@ -32,6 +32,24 @@
 #include <import/kSyscallHandler.h>
 #include <workhorse/kTick/kTick.h>
 
+#define IA32E_EMULATOR_CPUID1_C_TARGET_MASK                                             \
+  (IA32E_CPUID1_C_SSE3_MASK | IA32E_CPUID1_C_PCLMULQDQ_MASK |                           \
+   IA32E_CPUID1_C_SSSE3_MASK | IA32E_CPUID1_C_FMA_MASK |                                \
+   IA32E_CPUID1_C_CX16_MASK | IA32E_CPUID1_C_PCID_MASK |                                \
+   IA32E_CPUID1_C_SSE4_1_MASK | IA32E_CPUID1_C_SSE4_2_MASK |                            \
+   IA32E_CPUID1_C_MOVBE_MASK | IA32E_CPUID1_C_POPCNT_MASK |                             \
+   IA32E_CPUID1_C_AES_NI_MASK | IA32E_CPUID1_C_F16C_MASK |                              \
+   IA32E_CPUID1_C_RDRAND_MASK)
+
+#define IA32E_EMULATOR_CPUID1_D_TARGET_MASK                                             \
+  (IA32E_CPUID1_D_FPU_MASK | IA32E_CPUID1_D_VME_MASK | IA32E_CPUID1_D_DE_MASK |         \
+   IA32E_CPUID1_D_PSE_MASK | IA32E_CPUID1_D_TSC_MASK | IA32E_CPUID1_D_MSR_MASK |        \
+   IA32E_CPUID1_D_PAE_MASK | IA32E_CPUID1_D_CX8_MASK | IA32E_CPUID1_D_SEP_MASK |        \
+   IA32E_CPUID1_D_PGE_MASK | IA32E_CPUID1_D_CMOV_MASK | IA32E_CPUID1_D_PAT_MASK |       \
+   IA32E_CPUID1_D_PSE36_MASK | IA32E_CPUID1_D_CLFLUSH_MASK | IA32E_CPUID1_D_MMX_MASK |  \
+   IA32E_CPUID1_D_FXSR_MASK | IA32E_CPUID1_D_SSE_MASK | IA32E_CPUID1_D_SSE2_MASK |      \
+   IA32E_CPUID1_D_SS_MASK)
+
 #define ia32eEmulatorHandleVcpuFailure() \
     kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0)
 
@@ -504,6 +522,38 @@ bool ia32eEmulatorValidateCr0(uint64_t cr0)
             (!pcide || pg));
 }
 
+static
+inline 
+uint8_t ia32eEmulatorVcpuId(void)
+{
+    kSchedTask_t *task = NULL;
+    kSchedThread_t *thread = NULL;
+    kSchedLsr_t *lsr = NULL;
+
+    uint8_t vcpuId = 0;
+
+    task = kTickGetRunningTask();
+
+    switch (task->taggedInfo.type) {
+
+        case K_TASK_THREAD:
+            thread = &task->taggedInfo.info.thread;
+            vcpuId = thread->archInfo.ia32eInfo.vtxInfo.vcpuId;
+            break;
+
+        case K_TASK_LSR:
+            lsr = &task->taggedInfo.info.lsr;
+            vcpuId = lsr->archInfo.ia32eInfo.vtxInfo.vcpuId;
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }
+
+    return vcpuId;
+}
+
 /* General purpose events */
 
 static 
@@ -608,6 +658,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     uint32_t ecx = 0;
 
     ia32ePerCpu_t *cpu = NULL;
+    uint32_t vcpuId = 0;
 
     uint32_t cpuidRegs[4] = {0};
 
@@ -615,6 +666,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     ecx = regs->regs.rcx & 0xffffffff;
 
     cpu = ia32eThisCpuData();
+    vcpuId = ia32eEmulatorVcpuId();
 
     regs->regs.rax = 0;
     regs->regs.rbx = 0;
@@ -648,7 +700,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
         return;
     }
 
-    if (eax >= IA32E_CPUID_ESIG0 && eax <= IA32E_CPUID_ESIG8 && eax <= cpu->esigMax) {
+    if (eax >= IA32E_CPUID_ESIG0 && eax <= min(IA32E_CPUID_ESIG8, cpu->esigMax)) {
         
         switch (eax) {
 
@@ -714,6 +766,19 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             break;
 
         case 1:
+            ia32eCpuid(1, 0, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+
+            regs->regs.rax = cpuidRegs[0];
+            regs->regs.rbx = (cpuidRegs[1] & 0xffff) | (vcpuId << 24);
+
+            regs->regs.rcx |= (cpuidRegs[2] & IA32E_EMULATOR_CPUID1_C_TARGET_MASK);
+            regs->regs.rcx |= IA32E_CPUID1_C_HYPERVISOR_PRESENT_MASK;
+
+            regs->regs.rdx |= (cpuidRegs[3] & IA32E_EMULATOR_CPUID1_D_TARGET_MASK);
+
+#if CONFIG_IA32E_VTX_TSD
+            regs->regs.rdx &= ~IA32E_CPUID1_D_TSC_MASK;
+#endif
             break;
 
         case 2:
