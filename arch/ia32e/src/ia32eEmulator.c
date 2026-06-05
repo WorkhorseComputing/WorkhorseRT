@@ -483,7 +483,8 @@ void ia32eEmulatorSelfIpi(uint8_t vector)
     uint8_t ist = 0;
 
     uint64_t rsp = 0; 
-    uint64_t status = 0;
+
+    K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) == 0);
 
     cpu = ia32eThisCpuData();
     ia32eIdt64High = cpu->global->cpuDataStructures.idt;
@@ -508,12 +509,7 @@ void ia32eEmulatorSelfIpi(uint8_t vector)
             break;
     }
 
-    status = cpuReadStatus();
-    cpuDisableInterrupts();
-
     __ia32eFakeIsr(rsp, vector, 0);
-
-    cpuWriteStatus(status);
 }
 
 static
@@ -689,7 +685,6 @@ void ia32eEmulatorException(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 
         ia32eEmulatorSelfIpi(vector);
         cpuEnableInterrupts();
-
         return;
     }
 
@@ -720,7 +715,6 @@ void ia32eEmulatorExtIntr(ATTR_UNUSED ia32eVmexitRegs_t *regs)
         ia32eEmulatorUnsetNmiBlocking();
 
     ia32eEmulatorSelfIpi(vector);
-
     cpuEnableInterrupts();
 }
 
