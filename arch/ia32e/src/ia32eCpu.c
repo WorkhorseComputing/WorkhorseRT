@@ -396,7 +396,8 @@ void ia32eCpuInit(void)
     ia32ePerCpu_t *cpu = NULL;
     uint64_t cr4 = 0;
     uint32_t regs1[4] = {0};
-    uint32_t regs7[4] = {0};
+    uint32_t regs7_0[4] = {0};
+    uint32_t regs7_1[4] = {0};
     uint32_t regsEsig0[4] = {0};
     uint32_t regsEsig1[4] = {0};
     uint32_t regsEsig6[4] = {0};
@@ -424,9 +425,9 @@ void ia32eCpuInit(void)
 
     cpu->cpuFlags.fields.pat = (regs1[3] & IA32E_CPUID1_D_PAT_MASK) != 0;
 
-    ia32eCpuid(7, 0, &regs7[0], &regs7[1], &regs7[2], &regs7[3]);
+    ia32eCpuid(7, 0, &regs7_0[0], &regs7_0[1], &regs7_0[2], &regs7_0[3]);
 
-    if ((regs1[2] & IA32E_CPUID1_C_PCID_MASK) != 0 && (regs7[1] & IA32E_CPUID7_0_B_INVPCID_MASK) != 0) {    
+    if ((regs1[2] & IA32E_CPUID1_C_PCID_MASK) != 0 && (regs7_0[1] & IA32E_CPUID7_0_B_INVPCID_MASK) != 0) {    
         
 #if CONFIG_IA32E_FEATURE_PCID
         cr4 |= IA32E_CR4_PCIDE_MASK; 
@@ -436,12 +437,12 @@ void ia32eCpuInit(void)
         cpu->cpuFlags.fields.pcid = 1; 
     }
 
-    if ((regs7[1] & IA32E_CPUID7_0_B_FSGSBASE) != 0) {
+    if ((regs7_0[1] & IA32E_CPUID7_0_B_FSGSBASE_MASK) != 0) {
         cr4 |= IA32E_CR4_FSGSBASE_MASK;
         cpu->cpuFlags.fields.fsgsbase = 1;
     }
 
-    if ((regs7[1] & IA32E_CPUID7_0_B_SMEP_MASK) != 0) {
+    if ((regs7_0[1] & IA32E_CPUID7_0_B_SMEP_MASK) != 0) {
 
 #if CONFIG_IA32E_FEATURE_SMEP
         cr4 |= IA32E_CR4_SMEP_MASK;
@@ -450,7 +451,7 @@ void ia32eCpuInit(void)
         cpu->cpuFlags.fields.smep = 1;
     }
 
-    if ((regs7[1] & IA32E_CPUID7_0_B_SMAP_MASK) != 0) {
+    if ((regs7_0[1] & IA32E_CPUID7_0_B_SMAP_MASK) != 0) {
 
 #if CONFIG_IA32E_FEATURE_SMAP
         cr4 |= IA32E_CR4_SMAP_MASK;
@@ -459,13 +460,20 @@ void ia32eCpuInit(void)
         cpu->cpuFlags.fields.smap = 1;
     }
 
-    if ((regs7[2] & IA32E_CPUID7_0_C_UMIP_MASK) != 0) {
+    if ((regs7_0[2] & IA32E_CPUID7_0_C_UMIP_MASK) != 0) {
 
 #if CONFIG_IA32E_FEATURE_UMIP
         cr4 |= IA32E_CR4_UMIP_MASK;
 #endif
 
         cpu->cpuFlags.fields.umip = 1;
+    }
+
+    cpu->extFeaturesSubleafMax = regs7_0[0];
+    
+    if (regs7_0[0] >= 1) {
+        ia32eCpuid(7, 1, &regs7_1[0], &regs7_1[1], &regs7_1[2], &regs7_1[3]);
+        cpu->cpuFlags.fields.avx10 = (regs7_1[3] & IA32E_CPUID7_1_D_AVX10_MASK) != 0;   
     }
 
     ia32eCpuid(IA32E_CPUID_ESIG0, 0, &regsEsig0[0], &regsEsig0[1], &regsEsig0[2], &regsEsig0[3]);

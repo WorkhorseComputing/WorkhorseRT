@@ -165,6 +165,8 @@ typedef struct ia32ePerCpu
             uint64_t umip : 1;
             uint64_t nx : 1;
 
+            uint64_t avx10 : 1;
+
             uint64_t lahf64 : 1;
             uint64_t lzcnt : 1;
             uint64_t prefetchw : 1;
@@ -185,10 +187,11 @@ typedef struct ia32ePerCpu
             uint64_t eptUc : 1;
             uint64_t eptAd : 1;
 
-            uint64_t resvd0 : 29;
+            uint64_t resvd0 : 28;
         } fields;
     } cpuFlags;
 
+    uint32_t extFeaturesSubleafMax;
     uint32_t esigMax;
 
 #if CONFIG_IA32E_VTX

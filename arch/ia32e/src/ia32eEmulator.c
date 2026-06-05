@@ -50,6 +50,44 @@
    IA32E_CPUID1_D_FXSR_MASK | IA32E_CPUID1_D_SSE_MASK | IA32E_CPUID1_D_SSE2_MASK |      \
    IA32E_CPUID1_D_SS_MASK)
 
+#define IA32E_EMULATOR_CPUID7_0_B_TARGET_MASK                                           \
+  (IA32E_CPUID7_0_B_FSGSBASE_MASK | IA32E_CPUID7_0_B_BMI1_MASK |                        \
+   IA32E_CPUID7_0_B_FDP_EXCEPTION_ONLY_MASK | IA32E_CPUID7_0_B_SMEP_MASK |              \
+   IA32E_CPUID7_0_B_BMI2_MASK | IA32E_CPUID7_0_B_ERMS_MASK |                            \
+   IA32E_CPUID7_0_B_INVPCID_MASK | IA32E_CPUID7_0_B_FCS_FDS_DEPR_MASK |                 \
+   IA32E_CPUID7_0_B_RDSEED_MASK | IA32E_CPUID7_0_B_ADX_MASK |                           \
+   IA32E_CPUID7_0_B_SMAP_MASK | IA32E_CPUID7_0_B_PCOMMIT_MASK |                         \
+   IA32E_CPUID7_0_B_CLFLUSHOPT_MASK | IA32E_CPUID7_0_B_CLWB_MASK |                      \
+   IA32E_CPUID7_0_B_SHA_MASK)
+
+#define IA32E_EMULATOR_CPUID7_0_C_TARGET_MASK                                           \
+  (IA32E_CPUID7_0_C_REFETCHWT1_MASK | IA32E_CPUID7_0_C_UMIP_MASK |                      \
+   IA32E_CPUID7_0_C_GFNI_MASK | IA32E_CPUID7_0_C_VAES_MASK |                            \
+   IA32E_CPUID7_0_C_VPCLMULQDQ_MASK | IA32E_CPUID7_0_C_AVX512_VNNI_MASK |               \
+   IA32E_CPUID7_0_C_AVX512_BITALG_MASK | IA32E_CPUID7_0_C_AVX512_VPOPCNTDQ_MASK |       \
+   IA32E_CPUID7_0_C_CLDEMOTE_MASK | IA32E_CPUID7_0_C_MOVDIRI_MASK |                     \
+   IA32E_CPUID7_0_C_MOVDIR64B_MASK)
+
+#define IA32E_EMULATOR_CPUID7_0_D_TARGET_MASK                                           \
+  (IA32E_CPUID7_0_D_FSRM_MASK | IA32E_CPUID7_0_D_AVX512_VP2INTERSECT_MASK |             \
+   IA32E_CPUID7_0_D_SERIALIZE_MASK | IA32E_CPUID7_0_D_AVX512_FP16_MASK)
+
+#define IA32E_EMULATOR_CPUID7_1_A_TARGET_MASK                                           \
+  (IA32E_CPUID7_1_A_SM3_MASK | IA32E_CPUID7_1_A_SM4_MASK |                              \
+   IA32E_CPUID7_1_A_RAO_INT_MASK | IA32E_CPUID7_1_A_AVX_VNNI_MASK |                     \
+   IA32E_CPUID7_1_A_AVX512_BF16_MASK | IA32E_CPUID7_1_A_CMPCCXADD_MASK |                \
+   IA32E_CPUID7_1_A_FZRM_MASK | IA32E_CPUID7_1_A_FSRS_MASK |                            \
+   IA32E_CPUID7_1_A_RSRCS_MASK | IA32E_CPUID7_1_A_LKGS_MASK |                           \
+   IA32E_CPUID7_1_A_WRMSRNS_MASK | IA32E_CPUID7_1_A_AVX_IFMA_MASK |                     \
+   IA32E_CPUID7_1_A_BIOS_DONE_MASK | IA32E_CPUID7_1_A_MOVRS_MASK)
+
+#define IA32E_EMULATOR_CPUID7_1_D_TARGET_MASK                                           \
+  (IA32E_CPUID7_1_D_AVX512_VNNI_FP16_MASK | IA32E_CPUID7_1_D_AVX512_VNNI_INT8_MASK |    \
+   IA32E_CPUID7_1_D_AVX512_NE_CONVERT_MASK | IA32E_CPUID7_1_D_AVX_VNNI_INT8_MASK |     \
+   IA32E_CPUID7_1_D_AVX_NE_CONVERT_MASK | IA32E_CPUID7_1_D_AVX_VNNI_INT16_MASK |        \
+   IA32E_CPUID7_1_D_AVX512_VNNI_INT16_MASK | IA32E_CPUID7_1_D_PREFETCHI_MASK |          \
+   IA32E_CPUID7_1_D_AVX512_BF16_NE_MASK | IA32E_CPUID7_1_D_AVX10_MASK)
+
 #define ia32eEmulatorHandleVcpuFailure() \
     kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0)
 
@@ -733,7 +771,6 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             case IA32E_CPUID_ESIG3:
             case IA32E_CPUID_ESIG4:
                 ia32eCpuid(eax, ecx, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
-
                 regs->regs.rax = cpuidRegs[0];
                 regs->regs.rbx = cpuidRegs[1];
                 regs->regs.rcx = cpuidRegs[2];
@@ -759,7 +796,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     switch (eax) {
 
         case 0:
-            regs->regs.rax = 7;
+            regs->regs.rax = cpu->cpuFlags.fields.avx10 != 0 ? 36 : 7;
             regs->regs.rbx = IA32E_CPUID0_GENUINE_INTEL_EBX;
             regs->regs.rcx = IA32E_CPUID0_GENUINE_INTEL_ECX;
             regs->regs.rdx = IA32E_CPUID0_GENUINE_INTEL_EDX;
@@ -795,6 +832,48 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             break;
 
         default:
+
+            if (eax > 7 && cpu->cpuFlags.fields.avx10 != 0) {
+            
+                if (eax < 36 || ecx > 1)
+                    break;
+
+                ia32eCpuid(36, ecx, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+                regs->regs.rax = cpuidRegs[0];
+                regs->regs.rbx = cpuidRegs[1];
+                regs->regs.rcx = cpuidRegs[2];
+                regs->regs.rdx = cpuidRegs[3];
+                break;
+            }
+            
+            switch (ecx) {
+
+                case 0:
+
+                    /* QUIRK - guest may still be able to execute enqcmd/s but it should #GP rather than #UD */
+
+                    ia32eCpuid(7, 0, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+                    regs->regs.rax = 1;
+                    regs->regs.rbx |= (cpuidRegs[1] & IA32E_EMULATOR_CPUID7_0_B_TARGET_MASK);
+                    regs->regs.rcx |= (cpuidRegs[2] & IA32E_EMULATOR_CPUID7_0_C_TARGET_MASK);
+                    regs->regs.rdx |= (cpuidRegs[3] & IA32E_EMULATOR_CPUID7_0_D_TARGET_MASK);
+                    break;
+
+                case 1:
+
+                    regs->regs.rax |= IA32E_CPUID7_1_A_BIOS_DONE_MASK;
+                    if (cpu->extFeaturesSubleafMax < 1)
+                        break;
+
+                    ia32eCpuid(7, 1, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+                    regs->regs.rax |= (cpuidRegs[0] & IA32E_EMULATOR_CPUID7_1_A_TARGET_MASK);
+                    regs->regs.rdx |= (cpuidRegs[3] & IA32E_EMULATOR_CPUID7_1_D_TARGET_MASK);
+                    break;
+
+                default:
+                    break;
+            }
+
             break;
     }
 }
