@@ -25,14 +25,6 @@ config IA32E_VTX_FEATURE_VPID
     ---help---
         Enable vpids if supported
 
-config IA32E_VTX_VTIMER_COUNT
-    int "Vtx vtimer count"
-    depends on IA32E_VTX
-    default 2
-    range 2 32
-    ---help---
-        Number of virtual timers assigned to each vcpu
-
 config IA32E_VTX_TSC_CALIBRATION_TIME_MS
     int "Tsc calibration time ms"
     depends on IA32E_VTX

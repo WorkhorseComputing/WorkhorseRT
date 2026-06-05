@@ -592,6 +592,35 @@ uint8_t ia32eEmulatorVcpuId(void)
     return vcpuId;
 }
 
+static 
+inline
+void ia32eEmulatorCatchLostEvent(void)
+{
+    uint32_t info = 0;
+    
+    uint8_t vector = 0;
+    ia32eInterruptType_t type = IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION;
+    
+    bool deliverErrcode = false;
+    uint64_t errcode = 0;
+
+    info = ia32eVmread(IA32E_VTX_VMCS_RO_IDT_VECTORING_INFO_FIELD);
+
+    if ((info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_VALID_MASK) == 0)
+        return;
+
+    vector = info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_VECTOR_MASK;    
+
+    type = ((info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_EVENT_TYPE_MASK) >> 
+             IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_EVENT_TYPE_SHIFT);
+
+    deliverErrcode = (info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_ERRCODE_MASK) != 0;
+    if (deliverErrcode)
+        errcode = ia32eVmread(IA32E_VTX_VMCS_RO_IDT_VECTORING_ERROR_CODE);
+
+    ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);
+}
+
 /* General purpose events */
 
 static 
@@ -666,7 +695,7 @@ void ia32eEmulatorException(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 
     deliverErrcode = (info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_ERRCODE_MASK) != 0;
     if (deliverErrcode)
-        errcode = ia32eVmread(IA32E_VTX_VMCS_RO_IDT_VECTORING_ERROR_CODE);
+        errcode = ia32eVmread(IA32E_VTX_VMCS_RO_VMEXIT_INTERRUPT_ERROR_CODE);
 
     ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);
 }
@@ -1132,12 +1161,6 @@ void ia32eEmulatorEventManager(void)
 
 }
 
-static 
-bool ia32eEmulatorLostEventSaved(void)
-{
-    return true;
-}
-
 ATTR_NORETURN
 void ia32eEmulatorVcpuFailureEntry(void)
 {
@@ -1176,10 +1199,10 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
         UNREACHABLE();
     }
 
-    if (ia32eEmulatorLostEventSaved()) {
-        emulatorFn = ia32eEmulatorDispatchTable[basicReason];
-        emulatorFn(regs);
-    }
+    ia32eEmulatorCatchLostEvent();
+    
+    emulatorFn = ia32eEmulatorDispatchTable[basicReason];
+    emulatorFn(regs);
 
     ia32eEmulatorEventManager();
 }
