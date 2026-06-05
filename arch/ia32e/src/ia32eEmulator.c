@@ -688,8 +688,12 @@ void ia32eEmulatorException(ATTR_UNUSED ia32eVmexitRegs_t *regs)
         K_DYNAMIC_ASSERT(vector == IA32E_NMI);
 
         ia32eEmulatorSelfIpi(vector);
+        cpuEnableInterrupts();
+
         return;
     }
+
+    cpuEnableInterrupts();
 
     K_DYNAMIC_ASSERT(vector == IA32E_DEBUG_EXCEPTION || vector == IA32E_ALIGNMENT_CHECK);
 
@@ -716,6 +720,8 @@ void ia32eEmulatorExtIntr(ATTR_UNUSED ia32eVmexitRegs_t *regs)
         ia32eEmulatorUnsetNmiBlocking();
 
     ia32eEmulatorSelfIpi(vector);
+
+    cpuEnableInterrupts();
 }
 
 static 
@@ -1129,12 +1135,11 @@ ia32eEmulatorFn_t ia32eEmulatorDispatchTable[] = {
 };
 
 static
-void ia32eEmulatorEntryHandler(void)
+inline
+void ia32eEmulatorReloadDrx(void)
 {
     ia32ePerCpu_t *cpu = NULL;
     kSchedTask_t *task = NULL;
-
-    ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
 
     cpu = ia32eThisCpuData();
     task = kTickGetRunningTask();
@@ -1145,14 +1150,6 @@ void ia32eEmulatorEntryHandler(void)
     __ia32eWriteDr3(cpu->vtx.hostDr3);
     __ia32eWriteDr6(cpu->vtx.hostDr6);
     __ia32eWriteDr7(cpu->vtx.hostDr7);
-
-    cpuEnableInterrupts();
-
-    mode = ia32eEmulatorMode();
-
-    K_DYNAMIC_ASSERT(mode != IA32E_EMULATOR_INVALID);
-
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode = mode;
 }
 
 static 
@@ -1164,7 +1161,7 @@ void ia32eEmulatorEventManager(void)
 ATTR_NORETURN
 void ia32eEmulatorVcpuFailureEntry(void)
 {
-    ia32eEmulatorEntryHandler();
+    ia32eEmulatorReloadDrx();
 
     ia32eEmulatorHandleVcpuFailure();
 
@@ -1177,9 +1174,12 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
     uint32_t basicReason = 0;
     bool failure = 0;
 
+    kSchedTask_t *task = NULL;
+    ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
+
     ia32eEmulatorFn_t emulatorFn = NULL;
 
-    ia32eEmulatorEntryHandler();
+    ia32eEmulatorReloadDrx();
 
     exitReason = ia32eVmread(IA32E_VTX_VMCS_RO_EXIT_REASON);
     basicReason = exitReason & IA32E_VTX_VMCS_EXIT_REASON_MASK;
@@ -1188,9 +1188,13 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
     K_DYNAMIC_ASSERT((exitReason & IA32E_VTX_VMCS_EXIT_REASON_ENCLAVE_MASK) == 0);
 
     if (failure || basicReason >= ARRAY_LEN(ia32eEmulatorDispatchTable)) {
+        cpuEnableInterrupts();
         ia32eEmulatorHandleVcpuFailure();
         UNREACHABLE();
     }
+
+    if (basicReason != IA32E_VTX_EXIT_REASON_EXCEPTION && basicReason != IA32E_VTX_EXIT_REASON_EXT_INTR)
+        cpuEnableInterrupts();
 
     K_DYNAMIC_ASSERT(ia32eEmulatorDispatchTable[basicReason]);
 
@@ -1199,10 +1203,19 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
         UNREACHABLE();
     }
 
+    task = kTickGetRunningTask();
+    mode = ia32eEmulatorMode();
+
+    K_DYNAMIC_ASSERT(mode != IA32E_EMULATOR_INVALID);
+
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode = mode;
+
     ia32eEmulatorCatchLostEvent();
-    
+
     emulatorFn = ia32eEmulatorDispatchTable[basicReason];
     emulatorFn(regs);
+
+    K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
 
     ia32eEmulatorEventManager();
 }
