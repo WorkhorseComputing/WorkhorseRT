@@ -496,11 +496,13 @@ void ia32eApicWakeup(uint32_t apicId, uint8_t vector)
     uint64_t dest = 0;
     uint64_t icr = 0;
 
-    icrLow = (IA32E_DM_INIT << 8) | (IA32E_XAPIC_ASSERT << 14) | (IA32E_XAPIC_TRIGGER_LEVEL << 15);
+    icrLow = (IA32E_DM_INIT << 8);
     dest = apicId;
 
-    if (!x2apic)
+    if (!x2apic) {
+        icrLow |= (IA32E_XAPIC_ASSERT << 14) | (IA32E_XAPIC_TRIGGER_LEVEL << 15);
         dest <<= 24;
+    } 
 
     icr = icrLow | (dest << 32);
 

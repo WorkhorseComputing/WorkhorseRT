@@ -30,6 +30,7 @@
 #include <ia32eVmcs.h>
 #include <lib/dsa/stackq.h>
 #include <lib/dsa/dq.h>
+#include <lib/mcsLock.h>
 
 typedef struct ia32eVtxParam
 {
@@ -101,6 +102,24 @@ typedef struct ia32eSchedCtx
         uint64_t vmexitStoreVmentryLoadAreaData[5];
 
         ia32eVtxVectoredEvent_t syntheticEvent;
+
+        struct
+        {
+            mcsLock_t lock;
+
+            union
+            {
+                uint8_t val;
+                struct
+                {
+                    uint8_t bsp : 1;
+                    uint8_t nmiPending : 1;
+                    uint8_t reserved0 : 6;
+                } fields;
+            } latch;
+
+            
+        } x2apic;
     } vtx;
 #endif
 
