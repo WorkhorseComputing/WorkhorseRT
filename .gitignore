@@ -18,3 +18,5 @@ verif/**/*.vos
 .vscode
 .clangd
 .cache
+
+todo
