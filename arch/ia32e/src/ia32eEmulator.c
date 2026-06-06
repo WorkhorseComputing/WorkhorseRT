@@ -52,9 +52,10 @@
 
 #define IA32E_EMULATOR_CPUID7_0_B_TARGET_MASK                                           \
   (IA32E_CPUID7_0_B_FSGSBASE_MASK | IA32E_CPUID7_0_B_BMI1_MASK |                        \
-   IA32E_CPUID7_0_B_FDP_EXCEPTION_ONLY_MASK | IA32E_CPUID7_0_B_SMEP_MASK |              \
-   IA32E_CPUID7_0_B_BMI2_MASK | IA32E_CPUID7_0_B_ERMS_MASK |                            \
-   IA32E_CPUID7_0_B_INVPCID_MASK | IA32E_CPUID7_0_B_FCS_FDS_DEPR_MASK |                 \
+   IA32E_CPUID7_0_B_HLE_MASK | IA32E_CPUID7_0_B_FDP_EXCEPTION_ONLY_MASK |               \
+   IA32E_CPUID7_0_B_SMEP_MASK | IA32E_CPUID7_0_B_BMI2_MASK |                            \
+   IA32E_CPUID7_0_B_ERMS_MASK | IA32E_CPUID7_0_B_INVPCID_MASK |                         \
+   IA32E_CPUID7_0_B_RTM_MASK | IA32E_CPUID7_0_B_FCS_FDS_DEPR_MASK |                     \
    IA32E_CPUID7_0_B_RDSEED_MASK | IA32E_CPUID7_0_B_ADX_MASK |                           \
    IA32E_CPUID7_0_B_SMAP_MASK | IA32E_CPUID7_0_B_PCOMMIT_MASK |                         \
    IA32E_CPUID7_0_B_CLFLUSHOPT_MASK | IA32E_CPUID7_0_B_CLWB_MASK |                      \
@@ -70,7 +71,9 @@
 
 #define IA32E_EMULATOR_CPUID7_0_D_TARGET_MASK                                           \
   (IA32E_CPUID7_0_D_FSRM_MASK | IA32E_CPUID7_0_D_AVX512_VP2INTERSECT_MASK |             \
-   IA32E_CPUID7_0_D_SERIALIZE_MASK | IA32E_CPUID7_0_D_AVX512_FP16_MASK)
+    IA32E_CPUID7_0_D_RTM_ABORT_MASK | IA32E_CPUID7_0_D_SERIALIZE_MASK |                 \
+    IA32E_CPUID7_0_D_AVX512_FP16_MASK)
+
 
 #define IA32E_EMULATOR_CPUID7_1_A_TARGET_MASK                                           \
   (IA32E_CPUID7_1_A_SM3_MASK | IA32E_CPUID7_1_A_SM4_MASK |                              \
@@ -729,11 +732,6 @@ void ia32eEmulatorException(ia32eVmexitRegs_t *regs)
 
         regs->dr6 |= (qual & IA32E_EMULATOR_DB_DR6_TARGET_MASK);
         regs->dr6 &= ~(qual & IA32E_DR6_BLD_MASK);
-
-        if ((qual & IA32E_DR6_RTM_MASK) != 0)
-            regs->dr6 &= ~IA32E_DR6_RTM_MASK;
-        else
-            regs->dr6 |= IA32E_DR6_RTM_MASK;
     }
 
     ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);

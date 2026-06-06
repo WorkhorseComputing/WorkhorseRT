@@ -529,6 +529,7 @@ void ia32eCpuVtxInit(void)
     /* validate that we are vcpu capable */
 
     ia32ePerCpu_t *cpu = NULL;
+
     ia32eGlobal_t *global = NULL;
 
     uint64_t featureCtrl = 0;
@@ -560,6 +561,12 @@ void ia32eCpuVtxInit(void)
     uint64_t cr4 = 0;
 
     cpu = ia32eThisCpuData();
+
+    /* We currently cannot emulate rtm properly, so we will not support cpus with rtm */
+
+    if (cpu->cpuFlags.fields.rtm != 0 && cpu->cpuFlags.fields.rtmAbort == 0)
+        return;
+
     global = cpu->global;
 
     featureCtrl = __ia32eRdmsr(IA32E_FEATURE_CONTROL);

@@ -165,6 +165,9 @@ typedef struct ia32ePerCpu
             uint64_t umip : 1;
             uint64_t nx : 1;
 
+            uint64_t rtm : 1;
+            uint64_t rtmAbort : 1;
+
             uint64_t avx10 : 1;
 
             uint64_t lahf64 : 1;
@@ -187,7 +190,7 @@ typedef struct ia32ePerCpu
             uint64_t eptUc : 1;
             uint64_t eptAd : 1;
 
-            uint64_t resvd0 : 28;
+            uint64_t resvd0 : 26;
         } fields;
     } cpuFlags;
 

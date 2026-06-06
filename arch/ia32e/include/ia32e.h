@@ -207,11 +207,13 @@
 
 #define IA32E_CPUID7_0_B_FSGSBASE_MASK              (1 << 0)
 #define IA32E_CPUID7_0_B_BMI1_MASK                  (1 << 3)
+#define IA32E_CPUID7_0_B_HLE_MASK                   (1 << 4)
 #define IA32E_CPUID7_0_B_FDP_EXCEPTION_ONLY_MASK    (1 << 6)
 #define IA32E_CPUID7_0_B_SMEP_MASK                  (1 << 7)
 #define IA32E_CPUID7_0_B_BMI2_MASK                  (1 << 8)
 #define IA32E_CPUID7_0_B_ERMS_MASK                  (1 << 9)
 #define IA32E_CPUID7_0_B_INVPCID_MASK               (1 << 10)
+#define IA32E_CPUID7_0_B_RTM_MASK                   (1 << 11)
 #define IA32E_CPUID7_0_B_FCS_FDS_DEPR_MASK          (1 << 13)
 #define IA32E_CPUID7_0_B_RDSEED_MASK                (1 << 18)
 #define IA32E_CPUID7_0_B_ADX_MASK                   (1 << 19)
@@ -235,6 +237,7 @@
 
 #define IA32E_CPUID7_0_D_FSRM_MASK                  (1 << 4)
 #define IA32E_CPUID7_0_D_AVX512_VP2INTERSECT_MASK   (1 << 8)
+#define IA32E_CPUID7_0_D_RTM_ABORT_MASK             (1 << 11)
 #define IA32E_CPUID7_0_D_SERIALIZE_MASK             (1 << 14)
 #define IA32E_CPUID7_0_D_AVX512_FP16_MASK           (1 << 8)
 #define IA32E_CPUID7_0_D_ARCH_CAP_MASK              (1 << 29)
