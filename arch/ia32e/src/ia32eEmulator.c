@@ -409,7 +409,7 @@ void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool de
 
 static
 inline
-void ia32eEmulatorAdvance(void)
+void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
 {
     uintptr_t guestIp = 0;
     uintptr_t length = 0;
@@ -436,8 +436,10 @@ void ia32eEmulatorAdvance(void)
         __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
     }
 
-    if ((guestFlags & IA32E_FLAGS_TF_MASK) != 0)
+    if ((guestFlags & IA32E_FLAGS_TF_MASK) != 0) {
+        regs->dr6 |= IA32E_DR6_BS_MASK;
         ia32eEmulatorInjectEvent(IA32E_DEBUG_EXCEPTION, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, false, 0, false, 0);
+    }
 }
 
 static 

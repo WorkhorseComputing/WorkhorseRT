@@ -30,6 +30,7 @@
 #include <ia32eVmcs.h>
 #include <lib/dsa/stackq.h>
 #include <lib/dsa/dq.h>
+#include <lib/dsa/bitmap.h>
 #include <lib/mcsLock.h>
 
 typedef struct ia32eVtxParam
@@ -113,12 +114,40 @@ typedef struct ia32eSchedCtx
                 struct
                 {
                     uint8_t bsp : 1;
+                    uint8_t waitForInit : 1;
+                    uint8_t waitForSipi : 1;
                     uint8_t nmiPending : 1;
-                    uint8_t reserved0 : 6;
+                    uint8_t initPending : 1;
+                    uint8_t sipiPending : 1;
+                    uint8_t reserved0 : 2;
                 } fields;
             } latch;
 
+            uint64_t base;
+            uint32_t tpr;
+            uint32_t ppr;
+            uint32_t sivr;
+
+            uint32_t isr[8];
+            uint32_t tmr[8];
+            uint32_t irr[8];
+
+            uint32_t esr;
+
+            uint32_t lvtCmci;
+
+            uint64_t icr;
+
+            uint32_t lvtTImer;
+            uint32_t lvtTsr;
+            uint32_t lvtPmcr;
+            uint32_t lvtLint0;
+            uint32_t lvtLint1;
+            uint32_t lvtError;
             
+            uint32_t initCount;
+            uint32_t divConf;
+            uint32_t selfIpi;
         } x2apic;
     } vtx;
 #endif
