@@ -730,10 +730,13 @@ void ia32eEmulatorException(ia32eVmexitRegs_t *regs)
     if (vector == IA32E_DEBUG_EXCEPTION) {
         qual = ia32eVmread(IA32E_VTX_VMCS_RO_EXIT_QUALIFICATION);
 
-        K_DYNAMIC_ASSERT((qual & IA32E_DR6_RTM_MASK) == 0);
-
         regs->dr6 |= (qual & IA32E_EMULATOR_DB_DR6_TARGET_MASK);
         regs->dr6 &= ~(qual & IA32E_DR6_BLD_MASK);
+
+        if ((qual & IA32E_DR6_RTM_MASK) != 0)
+            regs->dr6 &= ~IA32E_DR6_RTM_MASK;
+        else
+            regs->dr6 |= IA32E_DR6_RTM_MASK;
     }
 
     ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);
