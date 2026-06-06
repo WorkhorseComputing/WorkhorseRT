@@ -88,8 +88,6 @@
    IA32E_CPUID7_1_D_AVX512_VNNI_INT16_MASK | IA32E_CPUID7_1_D_PREFETCHI_MASK |          \
    IA32E_CPUID7_1_D_AVX512_BF16_NE_MASK | IA32E_CPUID7_1_D_AVX10_MASK)
 
-/* BLD nor RTM is currently supported */
-
 #define IA32E_EMULATOR_DB_DR6_TARGET_MASK                                               \
     (IA32E_DR6_BP0_MASK | IA32E_DR6_BP1_MASK | IA32E_DR6_BP2_MASK |                     \
      IA32E_DR6_BP3_MASK | IA32E_DR6_BD_MASK | IA32E_DR6_BS_MASK) 
@@ -728,7 +726,14 @@ void ia32eEmulatorException(ia32eVmexitRegs_t *regs)
 
     if (vector == IA32E_DEBUG_EXCEPTION) {
         qual = ia32eVmread(IA32E_VTX_VMCS_RO_EXIT_QUALIFICATION);
+
         regs->dr6 |= (qual & IA32E_EMULATOR_DB_DR6_TARGET_MASK);
+        regs->dr6 &= ~(qual & IA32E_DR6_BLD_MASK);
+
+        if ((qual & IA32E_DR6_RTM_MASK) != 0)
+            regs->dr6 &= ~IA32E_DR6_RTM_MASK;
+        else
+            regs->dr6 |= IA32E_DR6_RTM_MASK;
     }
 
     ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);
