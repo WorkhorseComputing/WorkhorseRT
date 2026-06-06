@@ -239,6 +239,7 @@
 #define IA32E_CPUID7_0_D_AVX512_VP2INTERSECT_MASK   (1 << 8)
 #define IA32E_CPUID7_0_D_RTM_ABORT_MASK             (1 << 11)
 #define IA32E_CPUID7_0_D_SERIALIZE_MASK             (1 << 14)
+#define IA32E_CPUID7_0_D_TSXLDTRK_MASK              (1 << 16)
 #define IA32E_CPUID7_0_D_AVX512_FP16_MASK           (1 << 8)
 #define IA32E_CPUID7_0_D_ARCH_CAP_MASK              (1 << 29)
 
