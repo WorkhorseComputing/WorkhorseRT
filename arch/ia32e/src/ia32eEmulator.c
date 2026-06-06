@@ -88,6 +88,12 @@
    IA32E_CPUID7_1_D_AVX512_VNNI_INT16_MASK | IA32E_CPUID7_1_D_PREFETCHI_MASK |          \
    IA32E_CPUID7_1_D_AVX512_BF16_NE_MASK | IA32E_CPUID7_1_D_AVX10_MASK)
 
+/* BLD nor RTM is currently supported */
+
+#define IA32E_EMULATOR_DB_DR6_TARGET_MASK                                               \
+    (IA32E_VTX_VMCS_DB_QUAL_BR_MASK | IA32E_VTX_VMCS_DB_QUAL_BD_MASK |                  \
+     IA32E_VTX_VMCS_DB_QUAL_BS_MASK)
+
 #define ia32eEmulatorHandleVcpuFailure() do {                                       \
     cpuEnableInterrupts();                                                          \
     kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);     \
@@ -680,7 +686,7 @@ void ia32eEmulatorAccessDenied(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 /* Specific events */
 
 static 
-void ia32eEmulatorException(ATTR_UNUSED ia32eVmexitRegs_t *regs)
+void ia32eEmulatorException(ia32eVmexitRegs_t *regs)
 {
     uint32_t info = 0;
 
@@ -689,6 +695,8 @@ void ia32eEmulatorException(ATTR_UNUSED ia32eVmexitRegs_t *regs)
     
     bool deliverErrcode = false;
     uint64_t errcode = 0;
+
+    uint64_t qual = 0;
 
     info = ia32eVmread(IA32E_VTX_VMCS_RO_VMEXIT_INTERRUPT_INFO);
 
@@ -717,6 +725,11 @@ void ia32eEmulatorException(ATTR_UNUSED ia32eVmexitRegs_t *regs)
     deliverErrcode = (info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_ERRCODE_MASK) != 0;
     if (deliverErrcode)
         errcode = ia32eVmread(IA32E_VTX_VMCS_RO_VMEXIT_INTERRUPT_ERROR_CODE);
+
+    if (vector == IA32E_DEBUG_EXCEPTION) {
+        qual = ia32eVmread(IA32E_VTX_VMCS_RO_EXIT_QUALIFICATION);
+        regs->dr6 |= (qual & IA32E_EMULATOR_DB_DR6_TARGET_MASK);
+    }
 
     ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);
 }

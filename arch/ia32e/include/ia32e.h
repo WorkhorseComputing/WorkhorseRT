@@ -93,9 +93,11 @@
 #define IA32E_DR6_BP1_MASK          (1 << 1ULL)
 #define IA32E_DR6_BP2_MASK          (1 << 2ULL)
 #define IA32E_DR6_BP3_MASK          (1 << 3ULL)
+#define IA32E_DR6_BLD_MASK          (1 << 11ULL)
 #define IA32E_DR6_BD_MASK           (1 << 13ULL)
 #define IA32E_DR6_BS_MASK           (1 << 14ULL)
 #define IA32E_DR6_BT_MASK           (1 << 15ULL)
+#define IA32E_DR6_RTM_MASK          (1 << 16ULL)
 
 #define IA32E_DR6_STICKY_MASK       (IA32E_KERNEL_STACK_OF_DR6_MASK | IA32E_INT_STACK_OF_DR6_MASK | \
                                      IA32E_NMI_STACK_OF_DR6_MASK | IA32E_DOUBLE_FAULT_STACK_OF_DR6_MASK | \
