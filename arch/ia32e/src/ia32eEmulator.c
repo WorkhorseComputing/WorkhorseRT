@@ -91,8 +91,8 @@
 /* BLD nor RTM is currently supported */
 
 #define IA32E_EMULATOR_DB_DR6_TARGET_MASK                                               \
-    (IA32E_VTX_VMCS_DB_QUAL_BR_MASK | IA32E_VTX_VMCS_DB_QUAL_BD_MASK |                  \
-     IA32E_VTX_VMCS_DB_QUAL_BS_MASK)
+    (IA32E_DR6_BP0_MASK | IA32E_DR6_BP1_MASK | IA32E_DR6_BP2_MASK |                     \
+     IA32E_DR6_BP3_MASK | IA32E_DR6_BD_MASK | IA32E_DR6_BS_MASK) 
 
 #define ia32eEmulatorHandleVcpuFailure() do {                                       \
     cpuEnableInterrupts();                                                          \
