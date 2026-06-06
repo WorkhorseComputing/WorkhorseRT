@@ -99,7 +99,6 @@ typedef struct ia32eSchedCtx
 #if CONFIG_IA32E_VTX
     struct 
     { 
-        bool vmcsInitialized;
         uint64_t vmexitStoreVmentryLoadAreaData[5];
 
         ia32eVtxVectoredEvent_t syntheticEvent;
@@ -113,12 +112,12 @@ typedef struct ia32eSchedCtx
                 uint8_t val;
                 struct
                 {
+                    uint8_t vmcsInitialized : 1;
                     uint8_t bsp : 1;
-                    uint8_t waitForInit : 1;
                     uint8_t waitForSipi : 1;
-                    uint8_t nmiPending : 1;
                     uint8_t initPending : 1;
                     uint8_t sipiPending : 1;
+                    uint8_t nmiPending : 1;
                     uint8_t reserved0 : 2;
                 } fields;
             } latch;

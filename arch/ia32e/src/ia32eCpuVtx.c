@@ -866,9 +866,9 @@ void ia32eCpuVtxTaskRestoreCtx(kSchedTask_t *task)
     for (i = 0; i < ARRAY_LEN(cpu->vtx.areas.vmexitStoreVmentryLoadArea); i++) 
         cpu->vtx.areas.vmexitStoreVmentryLoadArea[i].msrData = task->ctx.ia32eCtx.vtx.vmexitStoreVmentryLoadAreaData[i];
 
-    if (!task->ctx.ia32eCtx.vtx.vmcsInitialized) {
+    if (task->ctx.ia32eCtx.vtx.x2apic.latch.fields.vmcsInitialized == 0) {
         ia32eCpuVtxVmcsSetup(task);
-        task->ctx.ia32eCtx.vtx.vmcsInitialized = true;
+        task->ctx.ia32eCtx.vtx.x2apic.latch.fields.vmcsInitialized = 1;
         return;
     }
 
