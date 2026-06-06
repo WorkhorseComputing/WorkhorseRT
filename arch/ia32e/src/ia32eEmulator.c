@@ -919,7 +919,13 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
 
                 case 0:
 
-                    /* QUIRK - guest may still be able to execute enqcmd/s but it should #GP rather than #UD */
+                    /** QUIRKS:
+                     *
+                     *  Guest may still be able to execute enqcmd/s but it should #GP rather than #UD 
+                     *
+                     *  Guest may still be able to enter tsx transactions but will not have access to associated TSX 
+                     *  MSR's
+                     */
 
                     ia32eCpuid(7, 0, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
                     regs->regs.rax = 1;
