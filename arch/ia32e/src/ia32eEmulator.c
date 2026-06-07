@@ -467,11 +467,8 @@ void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterru
 
     task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.vector = vector;
     task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.type = type;
-
-    if (deliverErrcode) {
-        task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode = 1;
-        task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = errcode;
-    }
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode = deliverErrcode ? 1 : 0;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = errcode;
 }
 
 static
@@ -611,6 +608,8 @@ void ia32eEmulatorCatchLostEvent(void)
     bool deliverErrcode = false;
     uint64_t errcode = 0;
 
+    kSchedTask_t *task = NULL;
+
     info = ia32eVmread(IA32E_VTX_VMCS_RO_IDT_VECTORING_INFO_FIELD);
 
     if ((info & IA32E_VTX_VMCS_VECTORED_EVENTS_INFO_VALID_MASK) == 0)
@@ -625,7 +624,13 @@ void ia32eEmulatorCatchLostEvent(void)
     if (deliverErrcode)
         errcode = ia32eVmread(IA32E_VTX_VMCS_RO_IDT_VECTORING_ERROR_CODE);
 
-    ia32eEmulatorQueueEventSynthetic(false, vector, type, deliverErrcode, errcode);
+    task = kTickGetRunningTask();    
+
+    task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.valid = 1;
+    task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.vector = vector;
+    task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.type = type;
+    task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.deliverErrcode = deliverErrcode ? 1 : 0;
+    task->ctx.ia32eCtx.vtx.lostEvent.errcode = errcode;
 }
 
 static

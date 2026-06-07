@@ -101,6 +101,7 @@ typedef struct ia32eSchedCtx
     { 
         uint64_t vmexitStoreVmentryLoadAreaData[5];
 
+        ia32eVtxVectoredEvent_t lostEvent;
         ia32eVtxVectoredEvent_t syntheticEvent;
 
         struct
