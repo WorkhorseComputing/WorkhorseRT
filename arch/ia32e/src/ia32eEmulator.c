@@ -690,7 +690,7 @@ uint64_t ia32eEmulatorGetIsrv(void)
     kSchedTask_t *task = NULL;
 
     int32_t i = 0;
-    int32_t idx = -1;
+    int idx = -1;
 
     task = kTickGetRunningTask();
 
@@ -702,6 +702,27 @@ uint64_t ia32eEmulatorGetIsrv(void)
     } 
 
     return 0;
+}
+
+static
+inline
+void ia32eEmulatorUnsetIsrv(void)
+{
+    kSchedTask_t *task = NULL;
+
+    int32_t i = 0;
+    int idx = -1;
+
+    task = kTickGetRunningTask();
+
+    for (i = (ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.isr) - 1); i >= 0; i--) {
+        
+        idx = fls32(task->ctx.ia32eCtx.vtx.x2apic.isr[i]);
+        if (idx >= 0) {
+            task->ctx.ia32eCtx.vtx.x2apic.isr[i] &= ~(1 << idx);
+            break;
+        }
+    } 
 }
 
 /* General purpose events */
@@ -1340,77 +1361,66 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr = val & ~0xfffULL;
             break;
 
-        case IA32E_X2APIC_ID:
+        /*case IA32E_X2APIC_ID:
             break;
 
         case IA32E_X2APIC_VERSION:
-            break;
+            break;*/
 
         case IA32E_X2APIC_TPR:
+
+            if (val <= 15)
+                ia32eEmulatorSetTpr(val);
+            else
+                inval = true;
+
             break;
 
-        case IA32E_X2APIC_PPR:
-            break;
+        /*case IA32E_X2APIC_PPR:
+            break;*/
 
         case IA32E_X2APIC_EOI:
+
+            if (val <= UINT32_MAX)
+                ia32eEmulatorUnsetIsrv();
+            else
+                inval = true;
+
             break;
 
-        case IA32E_X2APIC_LDR:
-            break;
+        /*case IA32E_X2APIC_LDR:
+            break;*/
 
         case IA32E_X2APIC_SIVR:
             break;
 
-        case IA32E_X2APIC_ISR0:
-            break;
+        /*case IA32E_X2APIC_ISR:
         case IA32E_X2APIC_ISR1:
-            break;
         case IA32E_X2APIC_ISR2:
-            break;
         case IA32E_X2APIC_ISR3:
-            break;
         case IA32E_X2APIC_ISR4:
-            break;
         case IA32E_X2APIC_ISR5:
-            break;
         case IA32E_X2APIC_ISR6:
-            break;
         case IA32E_X2APIC_ISR7:
-            break;
 
         case IA32E_X2APIC_TMR0:
-            break;
         case IA32E_X2APIC_TMR1:
-            break;
         case IA32E_X2APIC_TMR2:
-            break;
         case IA32E_X2APIC_TMR3:
-            break;
         case IA32E_X2APIC_TMR4:
-            break;
         case IA32E_X2APIC_TMR5:
-            break;
         case IA32E_X2APIC_TMR6:
-            break;
         case IA32E_X2APIC_TMR7:
-            break;
 
         case IA32E_X2APIC_IRR0:
-            break;
         case IA32E_X2APIC_IRR1:
-            break;
         case IA32E_X2APIC_IRR2:
-            break;
         case IA32E_X2APIC_IRR3:
-            break;
         case IA32E_X2APIC_IRR4:
-            break;
         case IA32E_X2APIC_IRR5:
-            break;
         case IA32E_X2APIC_IRR6:
-            break;
         case IA32E_X2APIC_IRR7:
-            break;
+            break;*/
 
         case IA32E_X2APIC_ESR:
             break;
@@ -1423,11 +1433,13 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
       
         case IA32E_X2APIC_TIMER_INIT_COUNT:
             break;
-        case IA32E_X2APIC_TIMER_CUR_COUNT:
-            break;
+
+        /*case IA32E_X2APIC_TIMER_CUR_COUNT:
+            break;*/
 
         case IA32E_X2APIC_DIV_CONF:
             break;
+
         case IA32E_X2APIC_SELF_IPI:
             break;
 
