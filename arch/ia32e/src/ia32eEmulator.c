@@ -1079,10 +1079,6 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             val = 0x3;
             break;
 
-        case IA32E_ARCH_CAP:
-            val = IA32E_ARCH_CAP_XAPIC_DISABLE_STATUS_MASK;
-            break;
-
         case IA32E_APIC_BASE:
 
             val = IA32E_APIC_BASE_ENABLE_X2APIC_MASK;
@@ -1093,6 +1089,10 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             if (task->ctx.ia32eCtx.vtx.x2apic.latch.fields.apicBaseGlobalEn != 0)
                 val |= IA32E_APIC_BASE_GLOBAL_EN_MASK;
 
+            break;
+
+        case IA32E_ARCH_CAP:
+            val = IA32E_ARCH_CAP_XAPIC_DISABLE_STATUS_MASK;
             break;
 
         case IA32E_XAPIC_DISABLE_STATUS:
@@ -1142,11 +1142,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             inval = ((val | 1) != 0x3);
             break;
 
-        case IA32E_ARCH_CAP:
-        case IA32E_XAPIC_DISABLE_STATUS:
-            inval = true;
-            break;
-
         case IA32E_APIC_BASE:
             
             if ((val & ((0xffULL << 48) | 0xffULL | (1ULL << 9))) != 0 || (val & (1 << 10)) == 0) {
@@ -1156,6 +1151,11 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
             task->ctx.ia32eCtx.vtx.x2apic.latch.fields.apicBaseBsp = (val & IA32E_APIC_BASE_BSP_MASK) != 0;
             task->ctx.ia32eCtx.vtx.x2apic.latch.fields.apicBaseGlobalEn = (val & IA32E_APIC_BASE_GLOBAL_EN_MASK) != 0;
+            break;
+
+        case IA32E_ARCH_CAP:
+        case IA32E_XAPIC_DISABLE_STATUS:
+            inval = true;
             break;
 
         default:
