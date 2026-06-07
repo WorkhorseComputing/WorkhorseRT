@@ -1156,7 +1156,7 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
     uint64_t vcpuId = 0;
 
     uint64_t val = 0;
-    bool inval = false; 
+    bool valid = true; 
 
     task = kTickGetRunningTask();
 
@@ -1311,11 +1311,11 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         default:
-            inval = true;
+            valid = false;
             break;
     }
 
-    if (inval) {
+    if (!valid) {
         ia32eEmulatorQueueGp0();
         return;
     }
@@ -1337,7 +1337,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
     uint64_t val = 0;
     
-    bool inval = false;
+    bool valid = true;
 
     task = kTickGetRunningTask();
 
@@ -1352,7 +1352,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         case IA32E_APIC_BASE:
             
             if ((val & ((0xffULL << 48) | 0xffULL | (1ULL << 9))) != 0 || (val & (1 << 10)) == 0) {
-                inval = true;
+                valid = false;
                 break;
             }
 
@@ -1372,7 +1372,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             if (val <= 15)
                 ia32eEmulatorSetTpr(val);
             else
-                inval = true;
+                valid = false;
 
             break;
 
@@ -1384,7 +1384,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             if (val <= UINT32_MAX)
                 ia32eEmulatorUnsetIsrv();
             else
-                inval = true;
+                valid = false;
 
             break;
 
@@ -1447,16 +1447,16 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         case IA32E_ARCH_CAP:
         case IA32E_XAPIC_DISABLE_STATUS:
         case IA32E_BIOS_DONE:
-            inval = true;
+            valid = false;
             break;
         */
 
         default:
-            inval = true;
+            valid = false;
             break;
     }
 
-    if (inval) {
+    if (!valid) {
         ia32eEmulatorQueueGp0();
         return;
     }
