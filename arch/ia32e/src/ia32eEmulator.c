@@ -1374,7 +1374,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_X2APIC_TPR:
             
-            if ((val & ~0xff) == 0)
+            if ((val & ~0xffULL) == 0)
                 ia32eEmulatorSetTpr(val >> 4);
             else
                 valid = false;
@@ -1434,6 +1434,14 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         */
 
         case IA32E_X2APIC_ESR:
+            
+            if (val != 0) {
+                valid = false;
+                break;
+            }
+
+            task->ctx.ia32eCtx.vtx.x2apic.esr = task->ctx.ia32eCtx.vtx.x2apic.shadowEsr;
+            task->ctx.ia32eCtx.vtx.x2apic.shadowEsr = 0;
             break;
 
         case IA32E_X2APIC_ICR:
