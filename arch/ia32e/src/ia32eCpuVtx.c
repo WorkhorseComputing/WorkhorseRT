@@ -200,7 +200,10 @@ int ia32eCpuVtxTaskInfoInit(kSchedTaskType_t type, ia32eVtxTaskInfo_t *info, uin
 {
     kDomain_t *domain = NULL;
 
+    uint8_t apicId = 0;
     kSchedTask_t *task = NULL;
+
+    K_DYNAMIC_ASSERT(type == K_TASK_THREAD || type == K_TASK_LSR);
 
     if ((param->vmcsPhys & 0xfff) != 0 || ((uintptr_t)param->vmcsVirt & 0xfff) != 0)
         return -EINVAL;
@@ -212,14 +215,13 @@ int ia32eCpuVtxTaskInfoInit(kSchedTaskType_t type, ia32eVtxTaskInfo_t *info, uin
     if (domain->archInfo.ia32eInfo.numVcpus == UINT8_MAX)
         return -EINVAL;
 
-    info->vtxParam = *param;
-    info->vcpuId = domain->archInfo.ia32eInfo.numVcpus;
-
-    K_DYNAMIC_ASSERT(type == K_TASK_THREAD || type == K_TASK_LSR);
-
+    apicId = domain->archInfo.ia32eInfo.numVcpus;
     task = type == K_TASK_THREAD ? kSchedTaskFromThreadArchInfo(info) : kSchedTaskFromLsrArchInfo(info);
 
-    domain->archInfo.ia32eInfo.apicBus[info->vcpuId] = &task->ctx.ia32eCtx.vtx.x2apic;
+    info->vtxParam = *param;
+    info->vcpuId = apicId;
+
+    domain->archInfo.ia32eInfo.apicBus[apicId] = &task->ctx.ia32eCtx.vtx.x2apic;
     domain->archInfo.ia32eInfo.numVcpus++;
     
     return 0;
