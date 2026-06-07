@@ -1149,7 +1149,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_APIC_BASE:
             
-            if ((val & ((0xffULL << 48) | 0xff | (1 << 9))) != 0 || (val & (1 << 10)) == 0) {
+            if ((val & ((0xffULL << 48) | 0xffULL | (1ULL << 9))) != 0 || (val & (1 << 10)) == 0) {
                 inval = true;
                 break;
             }
