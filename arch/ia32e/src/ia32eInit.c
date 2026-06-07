@@ -538,9 +538,9 @@ void ia32eApicConfig(void)
 
     if ((regs[2] & IA32E_CPUID1_C_X2APIC_MASK) != 0) {
 
-        if ((base & IA32E_APIC_BASE_GLOBAL_ENABLE_MASK) == 0 || (base & IA32E_APIC_BASE_ENABLE_X2APIC_MASK) == 0) {
+        if ((base & IA32E_APIC_BASE_GLOBAL_EN_MASK) == 0 || (base & IA32E_APIC_BASE_ENABLE_X2APIC_MASK) == 0) {
 
-            base |= IA32E_APIC_BASE_GLOBAL_ENABLE_MASK;
+            base |= IA32E_APIC_BASE_GLOBAL_EN_MASK;
             base |= IA32E_APIC_BASE_ENABLE_X2APIC_MASK;
 
             __ia32eWrmsr(IA32E_APIC_BASE, base);
@@ -573,7 +573,7 @@ void ia32eApicConfig(void)
             UNREACHABLE();
         }
 
-        newBase = apicMmioPhys | IA32E_APIC_BASE_GLOBAL_ENABLE_MASK;
+        newBase = apicMmioPhys | IA32E_APIC_BASE_GLOBAL_EN_MASK;
         if (base != newBase)
             __ia32eWrmsr(IA32E_APIC_BASE, newBase);
         

@@ -164,6 +164,7 @@
 #define IA32E_CPUID1_D_MSR_MASK     (1 << 5)
 #define IA32E_CPUID1_D_PAE_MASK     (1 << 6)
 #define IA32E_CPUID1_D_CX8_MASK     (1 << 8)
+#define IA32E_CPUID1_D_APIC_MASK    (1 << 9)
 #define IA32E_CPUID1_D_SEP_MASK     (1 << 11)
 #define IA32E_CPUID1_D_MTRR_MASK    (1 << 12)
 #define IA32E_CPUID1_D_PGE_MASK     (1 << 13)
@@ -406,7 +407,7 @@
 #define IA32E_APIC_BASE                     0x1b
 #define IA32E_APIC_BASE_BSP_MASK            (1 << 8)
 #define IA32E_APIC_BASE_ENABLE_X2APIC_MASK  (1 << 10)
-#define IA32E_APIC_BASE_GLOBAL_ENABLE_MASK  (1 << 11)
+#define IA32E_APIC_BASE_GLOBAL_EN_MASK  (1 << 11)
 
 #define IA32E_X2APIC_BASE           0x800
 #define IA32E_X2APIC_ID             0x802

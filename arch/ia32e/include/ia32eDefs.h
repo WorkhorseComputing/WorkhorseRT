@@ -115,7 +115,7 @@ typedef struct ia32eSchedCtx
                 {
                     uint8_t vmcsInitialized : 1;
                     uint8_t apicBaseBsp : 1;
-                    uint8_t apicBaseGlobalEnable : 1;
+                    uint8_t apicBaseGlobalEn : 1;
                     uint8_t waitForSipi : 1;
                     uint8_t initPending : 1;
                     uint8_t sipiPending : 1;
@@ -123,7 +123,7 @@ typedef struct ia32eSchedCtx
                     uint8_t reserved0 : 1;
                 } fields;
             } latch;
-            
+
             uint32_t tpr;
             uint32_t ppr;
             uint32_t sivr;

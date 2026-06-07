@@ -329,9 +329,9 @@ void ia32eApApicSync(void)
 
     if (x2apic) {
 
-        if ((base & IA32E_APIC_BASE_GLOBAL_ENABLE_MASK) == 0 || (base & IA32E_APIC_BASE_ENABLE_X2APIC_MASK) == 0) {
+        if ((base & IA32E_APIC_BASE_GLOBAL_EN_MASK) == 0 || (base & IA32E_APIC_BASE_ENABLE_X2APIC_MASK) == 0) {
 
-            base |= IA32E_APIC_BASE_GLOBAL_ENABLE_MASK;
+            base |= IA32E_APIC_BASE_GLOBAL_EN_MASK;
             base |= IA32E_APIC_BASE_ENABLE_X2APIC_MASK;
 
             __ia32eWrmsr(IA32E_APIC_BASE, base);
@@ -360,7 +360,7 @@ void ia32eApApicSync(void)
     global = ia32eThisCpuData()->global;
 
     apicMmioPhys = global->apic.apicMmioPhys;
-    newBase = apicMmioPhys | IA32E_APIC_BASE_GLOBAL_ENABLE_MASK;
+    newBase = apicMmioPhys | IA32E_APIC_BASE_GLOBAL_EN_MASK;
     if (base != newBase)
         __ia32eWrmsr(IA32E_APIC_BASE, newBase);
 }
