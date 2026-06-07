@@ -365,18 +365,23 @@ static
 inline
 bool ia32eEmulatorCpl0(void)
 {
-    ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
+    uint64_t guestCr0 = 0;
+    uint64_t guestEfer = 0;
+    uint64_t guestFlags = 0;
+
     uint32_t guestAr = 0;
 
-    mode = ia32eEmulatorRunningTaskMode();
-
-    K_DYNAMIC_ASSERT(mode != IA32E_EMULATOR_INVALID);
-
-    if (mode == IA32E_EMULATOR_16)
+    guestCr0 = ia32eVmread(IA32E_VTX_VMCS_GUEST_CR0);
+    if ((guestCr0 & IA32E_CR0_PE_MASK) == 0)
         return true;
 
-    if (mode == IA32E_EMULATOR_V8086)
-        return false;
+    guestEfer = ia32eVmread(IA32E_VTX_VMCS_GUEST_IA32E_EFER);
+    if ((guestEfer & IA32E_EFER_LONGMODE_ACTIVE_MASK) == 0) {
+
+        guestFlags = ia32eVmread(IA32E_VTX_VMCS_GUEST_RFLAGS);
+        if ((guestFlags & IA32E_FLAGS_VM_MASK) != 0)
+            return false;
+    }
 
     guestAr = ia32eVmread(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS);
     return (guestAr & IA32E_ACCESS_RIGHTS_DPL_MASK) == 0;
