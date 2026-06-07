@@ -142,16 +142,9 @@ typedef struct ia32eSchedCtx
 
             uint32_t esr;
 
-            uint32_t lvtCmci;
-
             uint64_t icr;
 
             uint32_t lvtTImer;
-            uint32_t lvtTsr;
-            uint32_t lvtPmcr;
-            uint32_t lvtLint0;
-            uint32_t lvtLint1;
-            uint32_t lvtError;
             
             uint32_t initCount;
             uint32_t divConf;

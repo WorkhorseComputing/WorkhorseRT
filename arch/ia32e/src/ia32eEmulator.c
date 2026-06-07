@@ -1108,6 +1108,8 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
     kSchedTask_t *task = NULL;
     uint32_t ecx = 0;
 
+    uint64_t vcpuId = 0;
+
     uint64_t val = 0;
     bool inval = false; 
 
@@ -1134,9 +1136,12 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_ID:
+            vcpuId = ia32eEmulatorVcpuId();
+            val = ((vcpuId / 16) << 16) | (vcpuId % 16);
             break;
 
         case IA32E_X2APIC_VERSION:
+            val = 0x15;
             break;
 
         case IA32E_X2APIC_TPR:
@@ -1208,26 +1213,15 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_ESR:
             break;
 
-        case IA32E_X2APIC_LVT_CMCI:
-            break;
         case IA32E_X2APIC_ICR:
             break;
 
         case IA32E_X2APIC_LVT_TIMER:
             break;
-        case IA32E_X2APIC_LVT_TSR:
+
+        case IA32E_X2APIC_TIMER_INIT_COUNT:
             break;
-        case IA32E_X2APIC_LVT_PMCR:
-            break;
-        case IA32E_X2APIC_LVT_LINT0:
-            break;
-        case IA32E_X2APIC_LVT_LINT1:
-            break;
-        case IA32E_X2APIC_LVT_ERROR:
-            break;
-        case IA32E_X2APIC_LVT_INIT_COUNT:
-            break;
-        case IA32E_X2APIC_LVT_CUR_COUNT:
+        case IA32E_X2APIC_TIMER_CUR_COUNT:
             break;
 
         case IA32E_X2APIC_DIV_CONF:
@@ -1372,26 +1366,15 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_ESR:
             break;
 
-        case IA32E_X2APIC_LVT_CMCI:
-            break;
         case IA32E_X2APIC_ICR:
             break;
 
         case IA32E_X2APIC_LVT_TIMER:
             break;
-        case IA32E_X2APIC_LVT_TSR:
+      
+        case IA32E_X2APIC_TIMER_INIT_COUNT:
             break;
-        case IA32E_X2APIC_LVT_PMCR:
-            break;
-        case IA32E_X2APIC_LVT_LINT0:
-            break;
-        case IA32E_X2APIC_LVT_LINT1:
-            break;
-        case IA32E_X2APIC_LVT_ERROR:
-            break;
-        case IA32E_X2APIC_LVT_INIT_COUNT:
-            break;
-        case IA32E_X2APIC_LVT_CUR_COUNT:
+        case IA32E_X2APIC_TIMER_CUR_COUNT:
             break;
 
         case IA32E_X2APIC_DIV_CONF:
