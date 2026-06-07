@@ -939,6 +939,8 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
                     regs->regs.rbx |= (cpuidRegs[1] & IA32E_EMULATOR_CPUID7_0_B_TARGET_MASK);
                     regs->regs.rcx |= (cpuidRegs[2] & IA32E_EMULATOR_CPUID7_0_C_TARGET_MASK);
                     regs->regs.rdx |= (cpuidRegs[3] & IA32E_EMULATOR_CPUID7_0_D_TARGET_MASK);
+
+                    regs->regs.rdx |= IA32E_CPUID7_0_D_ARCH_CAP_MASK;
                     break;
 
                 case 1:
@@ -1069,6 +1071,14 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
     switch (ecx) {
 
         case IA32E_BIOS_DONE:
+            val = 0x3;
+            break;
+
+        case IA32E_ARCH_CAP:
+            val = IA32E_ARCH_CAP_XAPIC_DISABLE_STATUS_MASK;
+            break;
+
+        case IA32E_XAPIC_DISABLE_STATUS:
             val = 1;
             break;
 
@@ -1092,8 +1102,10 @@ static
 void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 {
     uint32_t ecx = 0;
-    uint32_t eax = 0;
-    uint32_t edx = 0;
+    uint64_t eax = 0;
+    uint64_t edx = 0;
+
+    uint64_t val = 0;
 
     bool inval = false;
 
@@ -1101,13 +1113,17 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
     eax = regs->regs.rax & 0xffffffff;
     edx = regs->regs.rdx & 0xffffffff;
 
+    val = (edx << 32) | eax;
+
     switch (ecx) {
 
         case IA32E_BIOS_DONE:
+            inval = ((val | 1) != 0x3);
+            break;
 
-            if (eax != 1 || edx != 0)
-                inval = true;
-
+        case IA32E_ARCH_CAP:
+        case IA32E_XAPIC_DISABLE_STATUS:
+            inval = true;
             break;
 
         default:
