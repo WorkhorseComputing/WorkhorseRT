@@ -1196,8 +1196,10 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             val = max(ia32eEmulatorGetTpr(), ia32eEmulatorGetIsrv() / 16) << 4;
             break;
 
-        /*case IA32E_X2APIC_EOI:
-            break;*/
+        /*
+        case IA32E_X2APIC_EOI:
+            break;
+        */
 
         case IA32E_X2APIC_LDR:
             vcpuId = ia32eEmulatorVcpuId();
@@ -1295,8 +1297,10 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             val = task->ctx.ia32eCtx.vtx.x2apic.divConf;
             break;
             
-        /*case IA32E_X2APIC_SELF_IPI:
-            break;*/
+        /*
+        case IA32E_X2APIC_SELF_IPI:
+            break;
+        */
 
         case IA32E_ARCH_CAP:
             val = IA32E_ARCH_CAP_XAPIC_DISABLE_STATUS_MASK;
@@ -1361,11 +1365,13 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr = val & ~0xfffULL;
             break;
 
-        /*case IA32E_X2APIC_ID:
+        /*
+        case IA32E_X2APIC_ID:
             break;
 
         case IA32E_X2APIC_VERSION:
-            break;*/
+            break;
+        */
 
         case IA32E_X2APIC_TPR:
 
@@ -1376,8 +1382,10 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
             break;
 
-        /*case IA32E_X2APIC_PPR:
-            break;*/
+        /*
+        case IA32E_X2APIC_PPR:
+            break;
+        */
 
         case IA32E_X2APIC_EOI:
 
@@ -1388,13 +1396,16 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
             break;
 
-        /*case IA32E_X2APIC_LDR:
-            break;*/
+        /*
+        case IA32E_X2APIC_LDR:
+            break;
+        */
 
         case IA32E_X2APIC_SIVR:
             break;
 
-        /*case IA32E_X2APIC_ISR:
+        /*
+        case IA32E_X2APIC_ISR:
         case IA32E_X2APIC_ISR1:
         case IA32E_X2APIC_ISR2:
         case IA32E_X2APIC_ISR3:
@@ -1420,7 +1431,8 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_IRR5:
         case IA32E_X2APIC_IRR6:
         case IA32E_X2APIC_IRR7:
-            break;*/
+            break;
+        */
 
         case IA32E_X2APIC_ESR:
             break;
@@ -1434,8 +1446,10 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_TIMER_INIT_COUNT:
             break;
 
-        /*case IA32E_X2APIC_TIMER_CUR_COUNT:
-            break;*/
+        /*
+        case IA32E_X2APIC_TIMER_CUR_COUNT:
+            break;
+        */
 
         case IA32E_X2APIC_DIV_CONF:
             break;
@@ -1456,12 +1470,11 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             break;
     }
 
-    if (!valid) {
+    if (valid)
+        ia32eEmulatorQueueAdvance();
+    else
         ia32eEmulatorQueueGp0();
-        return;
-    }
-
-    ia32eEmulatorQueueAdvance();
+        
 }
 
 /* MCE's currently not supported, processor will enter shutdown upon one anyway */
