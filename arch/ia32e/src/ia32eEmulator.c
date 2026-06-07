@@ -1087,7 +1087,7 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 }
 
 static 
-void ia32eEmulatorWrmsr(ATTR_UNUSED ia32eVmexitRegs_t *regs)
+void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 {
     uint32_t ecx = 0;
     uint32_t eax = 0;
