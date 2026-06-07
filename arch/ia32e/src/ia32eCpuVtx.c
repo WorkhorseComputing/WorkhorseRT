@@ -221,6 +221,8 @@ int ia32eCpuVtxTaskInfoInit(kSchedTaskType_t type, ia32eVtxTaskInfo_t *info, uin
     info->vtxParam = *param;
     info->vcpuId = apicId;
 
+    STATIC_ASSERT(ARRAY_LEN(domain->archInfo.ia32eInfo.apicBus) == (UINT8_MAX + 1));
+
     domain->archInfo.ia32eInfo.apicBus[apicId] = &task->ctx.ia32eCtx.vtx.x2apic;
     domain->archInfo.ia32eInfo.numVcpus++;
     
