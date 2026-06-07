@@ -449,28 +449,6 @@ void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
     }
 }
 
-static 
-inline 
-void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
-                                      bool deliverErrcode, uint64_t errcode)
-{
-    kSchedTask_t *task = NULL;
-
-    task = kTickGetRunningTask();
-
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.valid = 1;
-
-    if (advance) {
-        task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.advance = 1;
-        return;
-    }
-
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.vector = vector;
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.type = type;
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode = deliverErrcode ? 1 : 0;
-    task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = errcode;
-}
-
 static
 inline
 void ia32eEmulatorUnsetNmiBlocking(void)
@@ -594,6 +572,28 @@ uint8_t ia32eEmulatorVcpuId(void)
     }
 
     return vcpuId;
+}
+
+static 
+inline 
+void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
+                                      bool deliverErrcode, uint64_t errcode)
+{
+    kSchedTask_t *task = NULL;
+
+    task = kTickGetRunningTask();
+
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.valid = 1;
+
+    if (advance) {
+        task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.advance = 1;
+        return;
+    }
+
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.vector = vector;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.type = type;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode = deliverErrcode ? 1 : 0;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = errcode;
 }
 
 static 
