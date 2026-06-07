@@ -596,7 +596,7 @@ void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterru
 
     task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.vector = vector;
     task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.type = type;
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode = deliverErrcode ? 1 : 0;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode = deliverErrcode;
     task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = errcode;
 }
 
@@ -633,7 +633,7 @@ void ia32eEmulatorCatchLostEvent(void)
     task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.valid = 1;
     task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.vector = vector;
     task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.type = type;
-    task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.deliverErrcode = deliverErrcode ? 1 : 0;
+    task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.deliverErrcode = deliverErrcode;
     task->ctx.ia32eCtx.vtx.lostEvent.errcode = errcode;
 }
 
