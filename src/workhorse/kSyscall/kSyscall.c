@@ -274,7 +274,7 @@ intptr_t kSysInvocationCtrl(uintptr_t ctrl, uintptr_t val)
             break;
 
         case WORKHORSE_INVOCATION_CTRL_GET_RETURN_ADDRESS:
-            ret = kCpuSyscallGetReturnAddress();
+            ret = kInvocationCtrlGetReturnAddress();
             break;
 
         case WORKHORSE_INVOCATION_CTRL_GET_VMEM_FAULT_ADDRESS:
