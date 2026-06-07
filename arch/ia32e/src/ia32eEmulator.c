@@ -658,7 +658,7 @@ void ia32eEmulatoLoadHostDrx(void)
 
 static
 inline 
-void ia32eEmulatorSetTpr(uint64_t val)
+void ia32eEmulatorSetTpr(uint8_t val)
 {
     kSchedTask_t *task = NULL;
 
