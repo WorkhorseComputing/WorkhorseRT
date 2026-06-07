@@ -33,6 +33,52 @@
 #include <lib/dsa/bitmap.h>
 #include <lib/mcsLock.h>
 
+typedef struct ia32eVtxX2apic 
+{
+    mcsLock_t latchLock;
+    union 
+    {
+        uint32_t val;
+        struct 
+        {
+            uint32_t initPending : 1;
+            uint32_t sipiPending : 1;
+            uint32_t sipiVector : 8;
+            uint32_t nmiPending : 1;
+            uint32_t reserved0 : 21;
+        } fields;
+    } latch;
+
+    union 
+    {
+        uint32_t val;
+        struct 
+        {
+            uint32_t vmcsInitialized : 1;
+            uint32_t apicBaseBsp : 1;
+            uint32_t apicBaseGlobalEn : 1;
+            uint32_t waitForSipi : 1;
+            uint32_t tpr : 4;
+            uint32_t reserved0 : 24;
+        } fields;
+    } local;
+
+    uint64_t apicBaseAddr;
+    uint32_t sivr;
+
+    uint32_t isr[8];
+    atomic_uint_fast32_t irr[8];
+
+    uint32_t esr;
+
+    uint64_t icr;
+
+    uint32_t lvtTImer;
+
+    uint32_t initCount;
+    uint32_t divConf;
+} ia32eVtxX2apic_t;
+
 typedef struct ia32eVtxParam
 {
     ia32eVtxVmcsRegion_t *vmcsVirt;
@@ -43,7 +89,6 @@ typedef struct ia32eVtxTaskInfo
 {
     ia32eVtxParam_t vtxParam;
     uint8_t vcpuId;
-    dqListNode_t vcpuVectorNode;
 } ia32eVtxTaskInfo_t;
 
 typedef struct ia32eVtxVectoredEvent
@@ -104,51 +149,7 @@ typedef struct ia32eSchedCtx
         ia32eVtxVectoredEvent_t lostEvent;
         ia32eVtxVectoredEvent_t syntheticEvent;
 
-        struct
-        {
-            mcsLock_t latchLock;
-            union
-            {
-                uint32_t val;
-                struct
-                {
-                    uint32_t initPending : 1;
-                    uint32_t sipiPending : 1;
-                    uint32_t sipiVector : 8;
-                    uint32_t nmiPending : 1;
-                    uint32_t reserved0 : 21;
-                } fields;
-            } latch;
-            
-            union
-            {
-                uint32_t val;
-                struct
-                {
-                    uint32_t vmcsInitialized : 1;
-                    uint32_t apicBaseBsp : 1;
-                    uint32_t apicBaseGlobalEn : 1;
-                    uint32_t waitForSipi : 1;
-                    uint32_t tpr : 4;
-                    uint32_t reserved0 : 24;
-                } fields;
-            } local;
-
-            uint64_t apicBaseAddr;
-            uint32_t sivr;
-
-            uint32_t isr[8];
-            atomic_uint_fast32_t irr[8];
-
-            uint32_t esr;
-
-            uint64_t icr;
-
-            uint32_t lvtTImer;
-            
-            uint32_t initCount;
-            uint32_t divConf;
-        } x2apic;
+        ia32eVtxX2apic_t x2apic;
     } vtx;
 #endif
 
@@ -207,7 +208,7 @@ typedef struct ia32eDomainInfo
 #   endif
 
     uint8_t numVcpus;
-    dq_t vcpuVector;
+    ia32eVtxX2apic_t *apicBus[256];
 #endif
 
 } ia32eDomainInfo_t;

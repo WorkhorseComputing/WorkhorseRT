@@ -146,6 +146,20 @@ typedef struct kSchedTask
 } kSchedTask_t;
 
 inline 
+kSchedTask_t *kSchedTaskFromThread(kSchedThread_t *threadPtr)
+{
+    kSchedTaskInfo_t *infoPtr = NULL;
+    kSchedTaskTaggedInfo_t *taggedInfoPtr = NULL;
+    kSchedTask_t *taskPtr = NULL;
+
+    infoPtr = containerOf(threadPtr, kSchedTaskInfo_t, thread);
+    taggedInfoPtr = containerOf(infoPtr, kSchedTaskTaggedInfo_t, info);
+    taskPtr = containerOf(taggedInfoPtr, kSchedTask_t, taggedInfo);
+
+    return taskPtr;
+}
+
+inline 
 kSchedTask_t *kSchedTaskFromLsr(kSchedLsr_t *lsrPtr)
 {
     kSchedTaskInfo_t *infoPtr = NULL;
@@ -155,6 +169,30 @@ kSchedTask_t *kSchedTaskFromLsr(kSchedLsr_t *lsrPtr)
     infoPtr = containerOf(lsrPtr, kSchedTaskInfo_t, lsr);
     taggedInfoPtr = containerOf(infoPtr, kSchedTaskTaggedInfo_t, info);
     taskPtr = containerOf(taggedInfoPtr, kSchedTask_t, taggedInfo);
+
+    return taskPtr;
+}
+
+inline
+kSchedTask_t *kSchedTaskFromThreadArchInfo(ia32eVtxTaskInfo_t *infoPtr)
+{
+    kSchedThread_t *threadPtr = NULL;
+    kSchedTask_t *taskPtr = NULL;
+
+    threadPtr = containerOf(infoPtr, kSchedThread_t, archInfo);
+    taskPtr = kSchedTaskFromThread(threadPtr);
+
+    return taskPtr;
+}
+
+inline
+kSchedTask_t *kSchedTaskFromLsrArchInfo(ia32eVtxTaskInfo_t *infoPtr)
+{
+    kSchedLsr_t *lsrPtr = NULL;
+    kSchedTask_t *taskPtr = NULL;
+
+    lsrPtr = containerOf(infoPtr, kSchedLsr_t, archInfo);
+    taskPtr = kSchedTaskFromLsr(lsrPtr);
 
     return taskPtr;
 }

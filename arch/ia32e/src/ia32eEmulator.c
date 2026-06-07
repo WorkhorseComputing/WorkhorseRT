@@ -1180,8 +1180,7 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_ID:
-            vcpuId = ia32eEmulatorVcpuId();
-            val = ((vcpuId / 16) << 16) | (vcpuId % 16);
+            val = ia32eEmulatorVcpuId();
             break;
 
         case IA32E_X2APIC_VERSION:

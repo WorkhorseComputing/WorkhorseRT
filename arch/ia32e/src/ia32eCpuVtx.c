@@ -196,9 +196,11 @@ bool ia32eCpuVtxIsVcpuCapable(uint32_t cpuId)
 
 static
 inline
-int ia32eCpuVtxTaskInfoInit(ia32eVtxTaskInfo_t *info, uint32_t domId , ia32eVtxParam_t *param)
+int ia32eCpuVtxTaskInfoInit(kSchedTaskType_t type, ia32eVtxTaskInfo_t *info, uint32_t domId, ia32eVtxParam_t *param)
 {
     kDomain_t *domain = NULL;
+
+    kSchedTask_t *task = NULL;
 
     if ((param->vmcsPhys & 0xfff) != 0 || ((uintptr_t)param->vmcsVirt & 0xfff) != 0)
         return -EINVAL;
@@ -213,7 +215,11 @@ int ia32eCpuVtxTaskInfoInit(ia32eVtxTaskInfo_t *info, uint32_t domId , ia32eVtxP
     info->vtxParam = *param;
     info->vcpuId = domain->archInfo.ia32eInfo.numVcpus;
 
-    dqPushBack(&domain->archInfo.ia32eInfo.vcpuVector, &info->vcpuVectorNode);
+    K_DYNAMIC_ASSERT(type == K_TASK_THREAD || type == K_TASK_LSR);
+
+    task = type == K_TASK_THREAD ? kSchedTaskFromThreadArchInfo(info) : kSchedTaskFromLsrArchInfo(info);
+
+    domain->archInfo.ia32eInfo.apicBus[info->vcpuId] = &task->ctx.ia32eCtx.vtx.x2apic;
     domain->archInfo.ia32eInfo.numVcpus++;
     
     return 0;
@@ -933,7 +939,8 @@ int ia32eCpuVtxThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_
     if (!ia32eCpuVtxIsVcpuCapable(threadParam->cpuId))
         return -EINVAL;
 
-    return ia32eCpuVtxTaskInfoInit(&info->ia32eInfo.vtxInfo, threadParam->domId, &param->ia32eParam.vtxParam);
+    return ia32eCpuVtxTaskInfoInit(K_TASK_THREAD, &info->ia32eInfo.vtxInfo, threadParam->domId, 
+                                   &param->ia32eParam.vtxParam);
 }
 
 int ia32eCpuVtxLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
@@ -945,7 +952,8 @@ int ia32eCpuVtxLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
     if (!ia32eCpuVtxIsVcpuCapable(lsrParam->cpuId))
         return -EINVAL;    
 
-    return ia32eCpuVtxTaskInfoInit(&info->ia32eInfo.vtxInfo, lsrParam->domId, &param->ia32eParam.vtxParam);    
+    return ia32eCpuVtxTaskInfoInit(K_TASK_LSR, &info->ia32eInfo.vtxInfo, lsrParam->domId, 
+                                   &param->ia32eParam.vtxParam);    
 }
 
 int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
@@ -1000,7 +1008,6 @@ int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
 #endif
 
     info->ia32eInfo.numVcpus = 0;
-    dqInit(&info->ia32eInfo.vcpuVector);
 
     return 0;
 }
