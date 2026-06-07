@@ -1083,12 +1083,114 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 
             val = IA32E_APIC_BASE_ENABLE_X2APIC_MASK;
 
-            if (task->ctx.ia32eCtx.vtx.x2apic.latch.fields.apicBaseBsp != 0)
+            if (task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseBsp != 0)
                 val |= IA32E_APIC_BASE_BSP_MASK;
 
-            if (task->ctx.ia32eCtx.vtx.x2apic.latch.fields.apicBaseGlobalEn != 0)
+            if (task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseGlobalEn != 0)
                 val |= IA32E_APIC_BASE_GLOBAL_EN_MASK;
 
+            break;
+
+        case IA32E_X2APIC_ID:
+            break;
+
+        case IA32E_X2APIC_VERSION:
+            break;
+
+        case IA32E_X2APIC_TPR:
+            break;
+
+        case IA32E_X2APIC_PPR:
+            break;
+
+        case IA32E_X2APIC_EOI:
+            break;
+
+        case IA32E_X2APIC_LDR:
+            break;
+
+        case IA32E_X2APIC_SIVR:
+            break;
+
+        case IA32E_X2APIC_ISR0:
+            break;
+        case IA32E_X2APIC_ISR1:
+            break;
+        case IA32E_X2APIC_ISR2:
+            break;
+        case IA32E_X2APIC_ISR3:
+            break;
+        case IA32E_X2APIC_ISR4:
+            break;
+        case IA32E_X2APIC_ISR5:
+            break;
+        case IA32E_X2APIC_ISR6:
+            break;
+        case IA32E_X2APIC_ISR7:
+            break;
+
+        case IA32E_X2APIC_TMR0:
+            break;
+        case IA32E_X2APIC_TMR1:
+            break;
+        case IA32E_X2APIC_TMR2:
+            break;
+        case IA32E_X2APIC_TMR3:
+            break;
+        case IA32E_X2APIC_TMR4:
+            break;
+        case IA32E_X2APIC_TMR5:
+            break;
+        case IA32E_X2APIC_TMR6:
+            break;
+        case IA32E_X2APIC_TMR7:
+            break;
+
+        case IA32E_X2APIC_IRR0:
+            break;
+        case IA32E_X2APIC_IRR1:
+            break;
+        case IA32E_X2APIC_IRR2:
+            break;
+        case IA32E_X2APIC_IRR3:
+            break;
+        case IA32E_X2APIC_IRR4:
+            break;
+        case IA32E_X2APIC_IRR5:
+            break;
+        case IA32E_X2APIC_IRR6:
+            break;
+        case IA32E_X2APIC_IRR7:
+            break;
+
+        case IA32E_X2APIC_ESR:
+            break;
+
+        case IA32E_X2APIC_LVT_CMCI:
+            break;
+        case IA32E_X2APIC_ICR:
+            break;
+
+        case IA32E_X2APIC_LVT_TIMER:
+            break;
+        case IA32E_X2APIC_LVT_TSR:
+            break;
+        case IA32E_X2APIC_LVT_PMCR:
+            break;
+        case IA32E_X2APIC_LVT_LINT0:
+            break;
+        case IA32E_X2APIC_LVT_LINT1:
+            break;
+        case IA32E_X2APIC_LVT_ERROR:
+            break;
+        case IA32E_X2APIC_LVT_INIT_COUNT:
+            break;
+        case IA32E_X2APIC_LVT_CUR_COUNT:
+            break;
+
+        case IA32E_X2APIC_DIV_CONF:
+            break;
+        case IA32E_X2APIC_SELF_IPI:
             break;
 
         case IA32E_ARCH_CAP:
@@ -1149,8 +1251,110 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 break;
             }
 
-            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.apicBaseBsp = (val & IA32E_APIC_BASE_BSP_MASK) != 0;
-            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.apicBaseGlobalEn = (val & IA32E_APIC_BASE_GLOBAL_EN_MASK) != 0;
+            task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseBsp = (val & IA32E_APIC_BASE_BSP_MASK) != 0;
+            task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseGlobalEn = (val & IA32E_APIC_BASE_GLOBAL_EN_MASK) != 0;
+            break;
+
+        case IA32E_X2APIC_ID:
+            break;
+
+        case IA32E_X2APIC_VERSION:
+            break;
+
+        case IA32E_X2APIC_TPR:
+            break;
+
+        case IA32E_X2APIC_PPR:
+            break;
+
+        case IA32E_X2APIC_EOI:
+            break;
+
+        case IA32E_X2APIC_LDR:
+            break;
+
+        case IA32E_X2APIC_SIVR:
+            break;
+
+        case IA32E_X2APIC_ISR0:
+            break;
+        case IA32E_X2APIC_ISR1:
+            break;
+        case IA32E_X2APIC_ISR2:
+            break;
+        case IA32E_X2APIC_ISR3:
+            break;
+        case IA32E_X2APIC_ISR4:
+            break;
+        case IA32E_X2APIC_ISR5:
+            break;
+        case IA32E_X2APIC_ISR6:
+            break;
+        case IA32E_X2APIC_ISR7:
+            break;
+
+        case IA32E_X2APIC_TMR0:
+            break;
+        case IA32E_X2APIC_TMR1:
+            break;
+        case IA32E_X2APIC_TMR2:
+            break;
+        case IA32E_X2APIC_TMR3:
+            break;
+        case IA32E_X2APIC_TMR4:
+            break;
+        case IA32E_X2APIC_TMR5:
+            break;
+        case IA32E_X2APIC_TMR6:
+            break;
+        case IA32E_X2APIC_TMR7:
+            break;
+
+        case IA32E_X2APIC_IRR0:
+            break;
+        case IA32E_X2APIC_IRR1:
+            break;
+        case IA32E_X2APIC_IRR2:
+            break;
+        case IA32E_X2APIC_IRR3:
+            break;
+        case IA32E_X2APIC_IRR4:
+            break;
+        case IA32E_X2APIC_IRR5:
+            break;
+        case IA32E_X2APIC_IRR6:
+            break;
+        case IA32E_X2APIC_IRR7:
+            break;
+
+        case IA32E_X2APIC_ESR:
+            break;
+
+        case IA32E_X2APIC_LVT_CMCI:
+            break;
+        case IA32E_X2APIC_ICR:
+            break;
+
+        case IA32E_X2APIC_LVT_TIMER:
+            break;
+        case IA32E_X2APIC_LVT_TSR:
+            break;
+        case IA32E_X2APIC_LVT_PMCR:
+            break;
+        case IA32E_X2APIC_LVT_LINT0:
+            break;
+        case IA32E_X2APIC_LVT_LINT1:
+            break;
+        case IA32E_X2APIC_LVT_ERROR:
+            break;
+        case IA32E_X2APIC_LVT_INIT_COUNT:
+            break;
+        case IA32E_X2APIC_LVT_CUR_COUNT:
+            break;
+
+        case IA32E_X2APIC_DIV_CONF:
+            break;
+        case IA32E_X2APIC_SELF_IPI:
             break;
 
         case IA32E_ARCH_CAP:

@@ -110,22 +110,30 @@ typedef struct ia32eSchedCtx
 
             union
             {
+                uint32_t val;
+                struct
+                {
+                    uint32_t vmcsInitialized : 1;
+                    uint32_t apicBaseBsp : 1;
+                    uint32_t apicBaseGlobalEn : 1;
+                    uint32_t waitForSipi : 1;
+                    uint32_t tpr : 4;
+                    uint32_t reserved0 : 24;
+                } fields;
+            } local;
+
+            union
+            {
                 uint8_t val;
                 struct
                 {
-                    uint8_t vmcsInitialized : 1;
-                    uint8_t apicBaseBsp : 1;
-                    uint8_t apicBaseGlobalEn : 1;
-                    uint8_t waitForSipi : 1;
                     uint8_t initPending : 1;
                     uint8_t sipiPending : 1;
                     uint8_t nmiPending : 1;
-                    uint8_t reserved0 : 1;
+                    uint8_t reserved0 : 5;
                 } fields;
             } latch;
 
-            uint32_t tpr;
-            uint32_t ppr;
             uint32_t sivr;
 
             uint32_t isr[8];
