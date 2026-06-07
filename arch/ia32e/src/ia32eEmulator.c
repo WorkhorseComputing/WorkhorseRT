@@ -368,7 +368,6 @@ bool ia32eEmulatorCpl0(void)
     uint64_t guestCr0 = 0;
     uint64_t guestEfer = 0;
     uint64_t guestFlags = 0;
-
     uint32_t guestAr = 0;
 
     guestCr0 = ia32eVmread(IA32E_VTX_VMCS_GUEST_CR0);
