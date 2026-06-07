@@ -1102,11 +1102,9 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     ia32ePml4e_t pml4e = 0;
 
 #if CONFIG_IA32E_FEATURE_PCID
-    ia32ePerCpu_t *cpu = ia32eThisCpuData();
+    ia32ePerCpu_t *cpu = NULL;
     ia32eGlobal_t *global = NULL; 
     int32_t pcid = 0;
-
-    global = cpu->global;
 #endif
 
 #if CONFIG_IA32E_VTX
@@ -1138,6 +1136,9 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     info->ia32eInfo.cr3 = pml4Phys;
 
 #if CONFIG_IA32E_FEATURE_PCID
+
+    cpu = ia32eThisCpuData();
+    global = cpu->global;
 
     if (global->gFlags.fields.pcidCapableExists != 0) {
 

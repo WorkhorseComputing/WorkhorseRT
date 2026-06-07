@@ -106,8 +106,20 @@ typedef struct ia32eSchedCtx
 
         struct
         {
-            mcsLock_t lock;
-
+            mcsLock_t latchLock;
+            union
+            {
+                uint32_t val;
+                struct
+                {
+                    uint32_t initPending : 1;
+                    uint32_t sipiPending : 1;
+                    uint32_t sipiVector : 8;
+                    uint32_t nmiPending : 1;
+                    uint32_t reserved0 : 21;
+                } fields;
+            } latch;
+            
             union
             {
                 uint32_t val;
@@ -122,23 +134,11 @@ typedef struct ia32eSchedCtx
                 } fields;
             } local;
 
-            union
-            {
-                uint8_t val;
-                struct
-                {
-                    uint8_t initPending : 1;
-                    uint8_t sipiPending : 1;
-                    uint8_t nmiPending : 1;
-                    uint8_t reserved0 : 5;
-                } fields;
-            } latch;
-
+            uint64_t apicBaseAddr;
             uint32_t sivr;
 
             uint32_t isr[8];
-            uint32_t tmr[8];
-            uint32_t irr[8];
+            atomic_uint_fast32_t irr[8];
 
             uint32_t esr;
 
@@ -148,7 +148,6 @@ typedef struct ia32eSchedCtx
             
             uint32_t initCount;
             uint32_t divConf;
-            uint32_t selfIpi;
         } x2apic;
     } vtx;
 #endif

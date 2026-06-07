@@ -89,4 +89,38 @@ void __writeOnceSize(volatile void *p, void *res, int size)
 	}
 }
 
+inline 
+int fls32(uint32_t val)
+{
+    if (val == 0)
+        return -1;
+
+    int bit = 31;
+
+    if (!(val & 0xffff0000)) {
+        val <<= 16;
+        bit -= 16;
+    }
+
+    if (!(val & 0xff000000)) {
+        val <<= 8;
+        bit -= 8;
+    }
+
+    if (!(val & 0xf0000000)) {
+        val <<= 4;
+        bit -= 4;
+    }
+
+    if (!(val & 0xc0000000)) {
+        val <<= 2;
+        bit -= 2;
+    }
+
+    if (!(val & 0x80000000))
+        bit -= 1;
+
+    return bit;
+}
+
 #endif
