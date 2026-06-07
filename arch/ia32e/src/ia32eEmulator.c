@@ -1169,13 +1169,12 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_APIC_BASE:
 
-            val = (task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr | IA32E_APIC_BASE_ENABLE_X2APIC_MASK);
+            val = (task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr | 
+                   IA32E_APIC_BASE_ENABLE_X2APIC_MASK |
+                   IA32E_APIC_BASE_GLOBAL_EN_MASK);
 
             if (task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseBsp != 0)
                 val |= IA32E_APIC_BASE_BSP_MASK;
-
-            if (task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseGlobalEn != 0)
-                val |= IA32E_APIC_BASE_GLOBAL_EN_MASK;
 
             break;
 
@@ -1354,13 +1353,14 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_APIC_BASE:
             
-            if ((val & ((0xffULL << 48) | 0xffULL | (1ULL << 9))) != 0 || (val & (1 << 10)) == 0) {
+            if ((val & ((0xffULL << 48) | 0xffULL | (1ULL << 9))) != 0 || 
+                ((~val) & (IA32E_APIC_BASE_ENABLE_X2APIC_MASK | IA32E_APIC_BASE_GLOBAL_EN_MASK)) != 0) {
+
                 valid = false;
                 break;
             }
 
             task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseBsp = (val & IA32E_APIC_BASE_BSP_MASK) != 0;
-            task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseGlobalEn = (val & IA32E_APIC_BASE_GLOBAL_EN_MASK) != 0;
             task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr = val & ~0xfffULL;
             break;
 
@@ -1373,9 +1373,9 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         */
 
         case IA32E_X2APIC_TPR:
-
-            if (val <= 15)
-                ia32eEmulatorSetTpr(val);
+            
+            if ((val & ~0xff) == 0)
+                ia32eEmulatorSetTpr(val >> 4);
             else
                 valid = false;
 
@@ -1388,7 +1388,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_X2APIC_EOI:
 
-            if (val <= UINT32_MAX)
+            if (val == 0)
                 ia32eEmulatorUnsetIsrv();
             else
                 valid = false;
