@@ -670,10 +670,10 @@ void ia32eEmulatorSetTpr(uint64_t val)
 
 static
 inline 
-uint64_t ia32eEmulatorGetTpr(void)
+uint8_t ia32eEmulatorGetTpr(void)
 {
     kSchedTask_t *task = NULL;
-    uint64_t val = 0;
+    uint8_t val = 0;
 
     task = kTickGetRunningTask();
     val = task->ctx.ia32eCtx.vtx.x2apic.local.fields.tpr;
@@ -685,7 +685,7 @@ uint64_t ia32eEmulatorGetTpr(void)
 
 static
 inline
-uint64_t ia32eEmulatorGetIsrv(void)
+uint8_t ia32eEmulatorGetIsrv(void)
 {
     kSchedTask_t *task = NULL;
 
