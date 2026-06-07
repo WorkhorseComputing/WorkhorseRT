@@ -653,6 +653,33 @@ void ia32eEmulatoLoadHostDrx(void)
     __ia32eWriteDr7(cpu->vtx.hostDr7);
 }
 
+static
+inline 
+void ia32eEmulatorSetTpr(uint64_t val)
+{
+    kSchedTask_t *task = NULL;
+
+    K_DYNAMIC_ASSERT(val <= 15);
+
+    task = kTickGetRunningTask();
+    task->ctx.ia32eCtx.vtx.x2apic.local.fields.tpr = val;
+}
+
+static
+inline 
+uint64_t ia32eEmulatorGetTpr(void)
+{
+    kSchedTask_t *task = NULL;
+    uint64_t val = 0;
+
+    task = kTickGetRunningTask();
+    val = task->ctx.ia32eCtx.vtx.x2apic.local.fields.tpr;
+
+    K_DYNAMIC_ASSERT(val <= 15);
+
+    return val;
+}
+
 /* General purpose events */
 
 static 
@@ -1040,11 +1067,26 @@ void ia32eEmulatorCrAccess(ia32eVmexitRegs_t *regs)
                     valid = false;
                     break;
 
+                case 8:
+                    val = ia32eEmulatorReadGpr(gpr, regs);
+                    if (val <= 15)
+                        ia32eEmulatorSetTpr(val);
+                    else
+                        valid = false;
+
+                    break;
+
                 default:
                     K_DYNAMIC_ASSERT(false);
                     break;
             }
 
+            break;
+
+        case IA32E_VTX_VMCS_MOV_FROM_CR:
+            K_DYNAMIC_ASSERT(cr == 8);
+
+            ia32eEmulatorWriteGpr(gpr, regs, ia32eEmulatorGetTpr());
             break;
 
         default:

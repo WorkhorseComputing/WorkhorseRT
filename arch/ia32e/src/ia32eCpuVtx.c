@@ -356,7 +356,8 @@ void ia32eCpuVtxVmcsSetup(kSchedTask_t *task)
 #if CONFIG_IA32E_VTX_TSD
             (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT) |
 #endif
-
+            (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_LOAD_EXITING_BIT) |
+            (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_STORE_EXITING_BIT) |
             (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_IO_BITMAPS_BIT) |
             (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_MSR_BITMAPS_BIT) |
             (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_MONITOR_EXITING_BIT) |
@@ -632,6 +633,9 @@ void ia32eCpuVtxInit(void)
 
         (!testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT + 32) && 
           CONFIG_IA32E_VTX_TSD) ||
+
+        !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_LOAD_EXITING_BIT + 32) ||
+        !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_STORE_EXITING_BIT + 32) || 
 
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_NMI_WINDOW_EXITING_BIT  + 32) || 
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_IO_BITMAPS_BIT + 32) || 
