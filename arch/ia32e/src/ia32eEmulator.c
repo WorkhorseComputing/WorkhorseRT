@@ -434,9 +434,7 @@ void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
 
     guestIp += length;
 
-    guestIp = ia32eEmulatorModeApplyIpMask(guestIp);
-
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RIP, guestIp);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RIP, ia32eEmulatorModeApplyIpMask(guestIp));
 
     if ((interruptibilityState & IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK) != 0 ||
         (interruptibilityState & IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK) != 0) {
