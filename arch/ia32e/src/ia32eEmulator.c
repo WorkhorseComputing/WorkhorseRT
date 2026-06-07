@@ -1353,7 +1353,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_APIC_BASE:
             
-            if ((val & ((0xffULL << 48) | 0xffULL | (1ULL << 9))) != 0 || 
+            if ((val & ((0xffffULL << 48) | 0xffULL | (1ULL << 9))) != 0 || 
                 ((~val) & (IA32E_APIC_BASE_ENABLE_X2APIC_MASK | IA32E_APIC_BASE_GLOBAL_EN_MASK)) != 0) {
 
                 valid = false;
