@@ -353,7 +353,14 @@
 #define IA32E_XAPIC_ALL_TARGETS             2
 #define IA32E_XAPIC_OTHER_TARGETS           3
 
+#define IA32E_XAPIC_DIV_2                   0x0
+#define IA32E_XAPIC_DIV_4                   0x1 
+#define IA32E_XAPIC_DIV_8                   0x2
 #define IA32E_XAPIC_DIV_16                  0x3
+#define IA32E_XAPIC_DIV_32                  0x8
+#define IA32E_XAPIC_DIV_64                  0x9
+#define IA32E_XAPIC_DIV_128                 0xA
+#define IA32E_XAPIC_DIV_1                   0xB
 
 #define IA32E_XAPIC_ONESHOT                 0
 #define IA32E_XAPIC_PERIODIC                1

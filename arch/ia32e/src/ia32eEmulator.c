@@ -108,8 +108,9 @@
 #define ia32eEmulatorQueueAdvance() \
     ia32eEmulatorQueueEventSynthetic(true, 0, IA32E_INTERRUPT_TYPE_OTHER_EVENT, false, 0)
 
-#define ia32eEmulatorVmxPreemptionTimerIsEnabled() \
-    ((ia32eVmread(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS) & IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT) != 0)
+#define ia32eEmulatorVmxPreemptionTimerIsEnabled()                                  \
+    (testBitLe(ia32eVmread(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS),                  \
+                           IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT))
 
 char *ia32eEmulatorErrorTable[] = {
     [0] = "UNKNOWN, ERRCODE 0",
@@ -653,7 +654,26 @@ void ia32eEmulatoLoadHostDrx(void)
 
 static
 inline 
-void ia32eEmulatorSetTpr(uint8_t val)
+void ia32eEmulatorHandleVcpuFailure(void)
+{
+    kSchedTask_t *task = NULL;
+    kDomain_t *domain = NULL;
+
+    cpuEnableInterrupts();
+
+    task = kTickGetRunningTask();
+    domain = task->domain.curDomain;
+
+    K_DYNAMIC_ASSERT(domain);
+
+    atomic_store(&domain->archInfo.ia32eInfo.tripleFault, 1);
+
+    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);
+}
+
+static
+inline 
+void ia32eEmulatorX2apicSetTpr(uint8_t val)
 {
     kSchedTask_t *task = NULL;
 
@@ -665,7 +685,7 @@ void ia32eEmulatorSetTpr(uint8_t val)
 
 static
 inline 
-uint8_t ia32eEmulatorGetTpr(void)
+uint8_t ia32eEmulatorX2apicGetTpr(void)
 {
     kSchedTask_t *task = NULL;
     uint8_t val = 0;
@@ -680,7 +700,7 @@ uint8_t ia32eEmulatorGetTpr(void)
 
 static
 inline
-uint8_t ia32eEmulatorGetIsrv(void)
+uint8_t ia32eEmulatorX2apicGetIsrv(void)
 {
     kSchedTask_t *task = NULL;
 
@@ -701,7 +721,7 @@ uint8_t ia32eEmulatorGetIsrv(void)
 
 static
 inline
-void ia32eEmulatorUnsetIsrv(void)
+void ia32eEmulatorX2apicUnsetIsrv(void)
 {
     kSchedTask_t *task = NULL;
 
@@ -721,24 +741,186 @@ void ia32eEmulatorUnsetIsrv(void)
 }
 
 static
-inline 
-void ia32eEmulatorHandleVcpuFailure(void)
+inline
+uint32_t ia32eEmulatorX2apicCompressCounter(uint32_t count, uint32_t dcr)
 {
-    kSchedTask_t *task = NULL;
-    kDomain_t *domain = NULL;
+    switch (dcr) {
+        
+        case IA32E_XAPIC_DIV_2:
+            count /= 2;
+            break;
 
-    cpuEnableInterrupts();
+        case IA32E_XAPIC_DIV_4:
+            count /= 4;
+            break;
 
-    task = kTickGetRunningTask();
-    domain = task->domain.curDomain;
+        case IA32E_XAPIC_DIV_8:
+            count /= 8;
+            break;
 
-    K_DYNAMIC_ASSERT(domain);
+        case IA32E_XAPIC_DIV_16:
+            count /= 16;
+            break;
 
-    atomic_store(&domain->archInfo.ia32eInfo.tripleFault, 1);
+        case IA32E_XAPIC_DIV_32:
+            count /= 32;
+            break;
 
-    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);
+        case IA32E_XAPIC_DIV_64:
+            count /= 64;
+            break;
+
+        case IA32E_XAPIC_DIV_128:
+            count /= 128;
+            break;
+
+        case IA32E_XAPIC_DIV_1:
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }
+    
+    return count;
 }
 
+static
+inline
+uint32_t ia32eEmulatorX2apicInflateCounter(uint32_t count, uint32_t dcr)
+{
+    switch (dcr) {
+        
+        case IA32E_XAPIC_DIV_2:
+            count *= 2;
+            break;
+
+        case IA32E_XAPIC_DIV_4:
+            count *= 4;
+            break;
+
+        case IA32E_XAPIC_DIV_8:
+            count *= 8;
+            break;
+
+        case IA32E_XAPIC_DIV_16:
+            count *= 16;
+            break;
+
+        case IA32E_XAPIC_DIV_32:
+            count *= 32;
+            break;
+
+        case IA32E_XAPIC_DIV_64:
+            count *= 64;
+            break;
+
+        case IA32E_XAPIC_DIV_128:
+            count *= 128;
+            break;
+
+        case IA32E_XAPIC_DIV_1:
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }
+
+    return count;    
+}
+
+static
+inline
+void ia32eEmulatorX2apicResetCounter(void)
+{
+    kSchedTask_t *task = NULL;
+    uint32_t dcr = 0;
+    uint32_t count = 0;
+
+    uint32_t pin = 0;    
+    uint32_t exit = 0;
+
+    task = kTickGetRunningTask();
+    dcr = task->ctx.ia32eCtx.vtx.x2apic.dcr;
+    count = task->ctx.ia32eCtx.vtx.x2apic.initCount;
+
+    pin = ia32eVmread(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS);
+    exit = ia32eVmread(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS);
+
+    if (count == 0) {
+
+        if (ia32eEmulatorVmxPreemptionTimerIsEnabled()) {
+
+            __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, 0);
+
+            pin &= ~(1 << IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT);
+            exit &= ~(1 << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT);
+
+            __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
+            __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
+        }
+
+        return;
+    }
+
+    count = ia32eEmulatorX2apicCompressCounter(count, dcr);
+
+    if (!ia32eEmulatorVmxPreemptionTimerIsEnabled()) {
+
+        pin |= (1 << IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT);
+        exit |= (1 << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT);
+
+        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
+        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
+    }
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, count);
+}
+
+static
+inline
+uint32_t ia32eEmulatorX2apicReadCounter(void)
+{
+    kSchedTask_t *task = NULL;
+    uint32_t dcr = 0;
+    
+    uint32_t count = 0;
+
+    if (!ia32eEmulatorVmxPreemptionTimerIsEnabled())
+        return 0;
+
+    task = kTickGetRunningTask();
+    dcr = task->ctx.ia32eCtx.vtx.x2apic.dcr;
+
+    count = ia32eVmread(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE);
+    count = ia32eEmulatorX2apicInflateCounter(count, dcr);
+
+    return count;
+}
+
+static
+inline
+void ia32eEmulatorX2apicSetDcr(uint8_t dcr)
+{
+    kSchedTask_t *task = NULL;
+    uint8_t oldDcr = 0;
+
+    uint32_t count = 0;
+
+    task = kTickGetRunningTask();
+
+    oldDcr = task->ctx.ia32eCtx.vtx.x2apic.dcr;
+    task->ctx.ia32eCtx.vtx.x2apic.dcr = dcr;
+
+    if (dcr != oldDcr && ia32eEmulatorVmxPreemptionTimerIsEnabled()) {
+
+        count = ia32eVmread(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE);
+        count = ia32eEmulatorX2apicInflateCounter(count, oldDcr);
+        count = ia32eEmulatorX2apicCompressCounter(count, dcr);
+        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, count);
+    }
+}
 
 /* General purpose events */
 
@@ -1130,7 +1312,7 @@ void ia32eEmulatorCrAccess(ia32eVmexitRegs_t *regs)
                 case 8:
                     val = ia32eEmulatorReadGpr(gpr, regs);
                     if (val <= 15)
-                        ia32eEmulatorSetTpr(val);
+                        ia32eEmulatorX2apicSetTpr(val);
                     else
                         valid = false;
 
@@ -1146,7 +1328,7 @@ void ia32eEmulatorCrAccess(ia32eVmexitRegs_t *regs)
         case IA32E_VTX_VMCS_MOV_FROM_CR:
             K_DYNAMIC_ASSERT(cr == 8);
 
-            ia32eEmulatorWriteGpr(gpr, regs, ia32eEmulatorGetTpr());
+            ia32eEmulatorWriteGpr(gpr, regs, ia32eEmulatorX2apicGetTpr());
             break;
 
         default:
@@ -1202,11 +1384,11 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_TPR:
-            val = ia32eEmulatorGetTpr() << 4;
+            val = ia32eEmulatorX2apicGetTpr() << 4;
             break;
 
         case IA32E_X2APIC_PPR:
-            val = max(ia32eEmulatorGetTpr(), ia32eEmulatorGetIsrv() / 16) << 4;
+            val = max(ia32eEmulatorX2apicGetTpr(), ia32eEmulatorX2apicGetIsrv() / 16) << 4;
             break;
 
         /*
@@ -1300,14 +1482,11 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_TIMER_CUR_COUNT:
-            
-            if (ia32eEmulatorVmxPreemptionTimerIsEnabled())
-                val = ia32eVmread(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE);
-
+            val = ia32eEmulatorX2apicReadCounter();
             break;
 
         case IA32E_X2APIC_DIV_CONF:
-            val = task->ctx.ia32eCtx.vtx.x2apic.divConf;
+            val = task->ctx.ia32eCtx.vtx.x2apic.dcr;
             break;
             
         /*
@@ -1353,7 +1532,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
     uint64_t edx = 0;
 
     uint64_t val = 0;
-    
+
     bool valid = true;
 
     task = kTickGetRunningTask();
@@ -1390,7 +1569,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_TPR:
             
             if ((val & ~0xffULL) == 0)
-                ia32eEmulatorSetTpr(val >> 4);
+                ia32eEmulatorX2apicSetTpr(val >> 4);
             else
                 valid = false;
 
@@ -1404,7 +1583,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_EOI:
 
             if (val == 0)
-                ia32eEmulatorUnsetIsrv();
+                ia32eEmulatorX2apicUnsetIsrv();
             else
                 valid = false;
 
@@ -1416,6 +1595,12 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         */
 
         case IA32E_X2APIC_SIVR:
+
+            if ((val & ~0xffULL) == 0)
+                task->ctx.ia32eCtx.vtx.x2apic.sivr = val;
+            else
+                valid = false;
+
             break;
 
         /*
@@ -1466,6 +1651,14 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             break;
       
         case IA32E_X2APIC_TIMER_INIT_COUNT:
+
+            if ((val & ~0xffffffffULL) != 0) {
+                valid = false;
+                break;
+            }
+
+            task->ctx.ia32eCtx.vtx.x2apic.initCount = val;
+            ia32eEmulatorX2apicResetCounter();
             break;
 
         /*
@@ -1474,6 +1667,12 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
         */
 
         case IA32E_X2APIC_DIV_CONF:
+
+            if ((val & ((~0xfULL) | (1ULL << 2))) == 0)
+                ia32eEmulatorX2apicSetDcr(val);
+            else 
+                valid = false;
+
             break;
 
         case IA32E_X2APIC_SELF_IPI:

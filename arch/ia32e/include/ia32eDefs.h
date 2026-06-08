@@ -63,7 +63,7 @@ typedef struct ia32eVtxX2apic
     } local;
 
     uint64_t apicBaseAddr;
-    uint32_t sivr;
+    uint8_t sivr;
 
     uint32_t isr[8];
     atomic_uint_fast32_t irr[8];
@@ -76,7 +76,7 @@ typedef struct ia32eVtxX2apic
     uint32_t lvtTImer;
 
     uint32_t initCount;
-    uint32_t divConf;
+    uint8_t dcr;
 } ia32eVtxX2apic_t;
 
 typedef struct ia32eVtxParam
