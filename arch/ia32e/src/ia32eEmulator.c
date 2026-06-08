@@ -1752,6 +1752,9 @@ void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
         ia32eEmulatorQueueEventSynthetic(false, vector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0);
     }
 
+    pin = ia32eVmread(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS);
+    exit = ia32eVmread(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS);
+
     if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_PERIODIC_MASK) != 0) {
     
         K_DYNAMIC_ASSERT(testBitLe(pin, IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT));
