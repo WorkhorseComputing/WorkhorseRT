@@ -1599,7 +1599,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_X2APIC_SIVR:
 
-            if ((val & ~0xffULL) == 0)
+            if ((val & ~0x1ffULL) == 0)
                 task->ctx.ia32eCtx.vtx.x2apic.sivr = val;
             else
                 valid = false;
@@ -1692,11 +1692,10 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 break;
             }
 
-            if (val > 15)
-                atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.irr[val / 32], (1 << (val % 32)));
-            else
+            if (val <= 15)
                 task->ctx.ia32eCtx.vtx.x2apic.shadowEsr |= IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK;
-
+            
+            atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.irr[val / 32], (1 << (val % 32)));
             break;
 
         /*
