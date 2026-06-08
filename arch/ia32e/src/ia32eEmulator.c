@@ -1314,6 +1314,8 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
                 regs->regs.rcx &= 0xff;
                 break;
         }
+        
+        break;
     }
 }
 
