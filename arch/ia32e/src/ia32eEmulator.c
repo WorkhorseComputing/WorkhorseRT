@@ -839,19 +839,19 @@ void ia32eEmulatorX2apicResetCounter(void)
 {
     kSchedTask_t *task = NULL;
     uint32_t dcr = 0;
-    uint32_t count = 0;
+    uint32_t initCount = 0;
 
-    uint32_t pin = 0;    
-    uint32_t exit = 0;
+    uint64_t pin = 0;    
+    uint64_t exit = 0;
 
     task = kTickGetRunningTask();
     dcr = task->ctx.ia32eCtx.vtx.x2apic.dcr;
-    count = task->ctx.ia32eCtx.vtx.x2apic.initCount;
+    initCount = task->ctx.ia32eCtx.vtx.x2apic.initCount;
 
     pin = ia32eVmread(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS);
     exit = ia32eVmread(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS);
 
-    if (count == 0) {
+    if (initCount == 0) {
 
         if (ia32eEmulatorVmxPreemptionTimerIsEnabled()) {
 
@@ -867,7 +867,7 @@ void ia32eEmulatorX2apicResetCounter(void)
         return;
     }
 
-    count = ia32eEmulatorX2apicCompressCounter(count, dcr);
+    initCount = ia32eEmulatorX2apicCompressCounter(initCount, dcr);
 
     if (!ia32eEmulatorVmxPreemptionTimerIsEnabled()) {
 
@@ -878,7 +878,7 @@ void ia32eEmulatorX2apicResetCounter(void)
         __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
     }
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, count);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, initCount);
 }
 
 static
@@ -1648,6 +1648,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_ICR:
+            
             break;
 
         case IA32E_X2APIC_LVT_TIMER:
@@ -1692,7 +1693,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             }
 
             if (val > 15)
-                atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.irr[val/32], (1 << (val % 32)));
+                atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.irr[val / 32], (1 << (val % 32)));
             else
                 task->ctx.ia32eCtx.vtx.x2apic.shadowEsr |= IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK;
 
@@ -1729,7 +1730,44 @@ void ia32eEmulatorMceDuringVmentry(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 static 
 void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
+    kSchedTask_t *task = NULL;
+    uint32_t lvtTImer = 0;
 
+    uint32_t initCount = 0;
+    uint32_t dcr = 0;
+
+    uint8_t vector = 0;
+
+    uint64_t pin = 0;
+    uint64_t exit = 0;
+
+    task = kTickGetRunningTask();
+    lvtTImer = task->ctx.ia32eCtx.vtx.x2apic.lvtTImer;
+
+    initCount = task->ctx.ia32eCtx.vtx.x2apic.initCount;
+    dcr = task->ctx.ia32eCtx.vtx.x2apic.dcr;
+
+    if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_ENABLE_MASK) != 0) {
+        vector = lvtTImer & IA32E_XAPIC_LVT_TIMER_VECTOR_MASK;
+        ia32eEmulatorQueueEventSynthetic(false, vector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0);
+    }
+
+    if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_PERIODIC_MASK) != 0) {
+    
+        K_DYNAMIC_ASSERT(ia32eEmulatorVmxPreemptionTimerIsEnabled());
+
+        initCount = ia32eEmulatorX2apicCompressCounter(initCount, dcr);
+        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, lvtTImer);
+        return;
+    }
+
+    K_DYNAMIC_ASSERT(ia32eVmread(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE) == 0);
+
+    pin &= ~(1 << IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT);
+    exit &= ~(1 << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
 }
 
 /* Emulator entry */

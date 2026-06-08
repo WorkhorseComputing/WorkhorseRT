@@ -362,6 +362,10 @@
 #define IA32E_XAPIC_DIV_128                 0xA
 #define IA32E_XAPIC_DIV_1                   0xB
 
+#define IA32E_XAPIC_LVT_TIMER_VECTOR_MASK   0xff
+#define IA32E_XAPIC_LVT_TIMER_ENABLE_MASK   (1 << 16)
+#define IA32E_XAPIC_LVT_TIMER_PERIODIC_MASK (1 << 17)
+
 #define IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK   (1 << 5)
 #define IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK   (1 << 6)
 
@@ -419,58 +423,58 @@
 #define IA32E_APIC_BASE_ENABLE_X2APIC_MASK  (1 << 10)
 #define IA32E_APIC_BASE_GLOBAL_EN_MASK  (1 << 11)
 
-#define IA32E_X2APIC_BASE           0x800
-#define IA32E_X2APIC_ID             0x802
-#define IA32E_X2APIC_VERSION        0x803
-#define IA32E_X2APIC_TPR            0x808
-#define IA32E_X2APIC_PPR            0x80a
-#define IA32E_X2APIC_EOI            0x80b
-#define IA32E_X2APIC_LDR            0x80d
-#define IA32E_X2APIC_SIVR           0x80f
+#define IA32E_X2APIC_BASE               0x800
+#define IA32E_X2APIC_ID                 0x802
+#define IA32E_X2APIC_VERSION            0x803
+#define IA32E_X2APIC_TPR                0x808
+#define IA32E_X2APIC_PPR                0x80a
+#define IA32E_X2APIC_EOI                0x80b
+#define IA32E_X2APIC_LDR                0x80d
+#define IA32E_X2APIC_SIVR               0x80f
 
-#define IA32E_X2APIC_ISR0           0x810
-#define IA32E_X2APIC_ISR1           0x811
-#define IA32E_X2APIC_ISR2           0x812
-#define IA32E_X2APIC_ISR3           0x813
-#define IA32E_X2APIC_ISR4           0x814
-#define IA32E_X2APIC_ISR5           0x815
-#define IA32E_X2APIC_ISR6           0x816
-#define IA32E_X2APIC_ISR7           0x817
+#define IA32E_X2APIC_ISR0               0x810
+#define IA32E_X2APIC_ISR1               0x811
+#define IA32E_X2APIC_ISR2               0x812
+#define IA32E_X2APIC_ISR3               0x813
+#define IA32E_X2APIC_ISR4               0x814
+#define IA32E_X2APIC_ISR5               0x815
+#define IA32E_X2APIC_ISR6               0x816
+#define IA32E_X2APIC_ISR7               0x817
 
-#define IA32E_X2APIC_TMR0           0x818
-#define IA32E_X2APIC_TMR1           0x819
-#define IA32E_X2APIC_TMR2           0x81a
-#define IA32E_X2APIC_TMR3           0x81b
-#define IA32E_X2APIC_TMR4           0x81c
-#define IA32E_X2APIC_TMR5           0x81d
-#define IA32E_X2APIC_TMR6           0x81e
-#define IA32E_X2APIC_TMR7           0x81f
+#define IA32E_X2APIC_TMR0               0x818
+#define IA32E_X2APIC_TMR1               0x819
+#define IA32E_X2APIC_TMR2               0x81a
+#define IA32E_X2APIC_TMR3               0x81b
+#define IA32E_X2APIC_TMR4               0x81c
+#define IA32E_X2APIC_TMR5               0x81d
+#define IA32E_X2APIC_TMR6               0x81e
+#define IA32E_X2APIC_TMR7               0x81f
 
-#define IA32E_X2APIC_IRR0           0x820
-#define IA32E_X2APIC_IRR1           0x821
-#define IA32E_X2APIC_IRR2           0x822
-#define IA32E_X2APIC_IRR3           0x823
-#define IA32E_X2APIC_IRR4           0x824
-#define IA32E_X2APIC_IRR5           0x825
-#define IA32E_X2APIC_IRR6           0x826
-#define IA32E_X2APIC_IRR7           0x827
+#define IA32E_X2APIC_IRR0               0x820
+#define IA32E_X2APIC_IRR1               0x821
+#define IA32E_X2APIC_IRR2               0x822
+#define IA32E_X2APIC_IRR3               0x823
+#define IA32E_X2APIC_IRR4               0x824
+#define IA32E_X2APIC_IRR5               0x825
+#define IA32E_X2APIC_IRR6               0x826
+#define IA32E_X2APIC_IRR7               0x827
 
-#define IA32E_X2APIC_ESR            0x828
+#define IA32E_X2APIC_ESR                0x828
 
-#define IA32E_X2APIC_LVT_CMCI       0x82f
-#define IA32E_X2APIC_ICR            0x830
+#define IA32E_X2APIC_LVT_CMCI           0x82f
+#define IA32E_X2APIC_ICR                0x830
 
-#define IA32E_X2APIC_LVT_TIMER      0x832
-#define IA32E_X2APIC_LVT_TSR        0x833
-#define IA32E_X2APIC_LVT_PMCR       0x834
-#define IA32E_X2APIC_LVT_LINT0      0x835
-#define IA32E_X2APIC_LVT_LINT1      0x836
-#define IA32E_X2APIC_LVT_ERROR      0x837
-#define IA32E_X2APIC_TIMER_INIT_COUNT 0x838
-#define IA32E_X2APIC_TIMER_CUR_COUNT  0x839
+#define IA32E_X2APIC_LVT_TIMER          0x832
+#define IA32E_X2APIC_LVT_TSR            0x833
+#define IA32E_X2APIC_LVT_PMCR           0x834
+#define IA32E_X2APIC_LVT_LINT0          0x835
+#define IA32E_X2APIC_LVT_LINT1          0x836
+#define IA32E_X2APIC_LVT_ERROR          0x837
+#define IA32E_X2APIC_TIMER_INIT_COUNT   0x838
+#define IA32E_X2APIC_TIMER_CUR_COUNT    0x839
 
-#define IA32E_X2APIC_DIV_CONF       2110
-#define IA32E_X2APIC_SELF_IPI       2111
+#define IA32E_X2APIC_DIV_CONF           2110
+#define IA32E_X2APIC_SELF_IPI           2111
 
 #define IA32E_XAPIC_DISABLE_STATUS                  0xbd
 #define IA32E_XAPIC_DISABLE_STATUS_DISABLED_MASK    (1 << 0)
