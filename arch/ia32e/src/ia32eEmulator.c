@@ -675,6 +675,21 @@ void ia32eEmulatorHandleVcpuFailure(void)
 }
 
 static
+inline
+uint8_t ia32eEmulatorDomainVcpuCount(void)
+{
+    kSchedTask_t *task = NULL;
+    kDomain_t *domain = NULL;
+
+    task = kTickGetRunningTask();
+    domain = task->domain.curDomain;
+
+    K_DYNAMIC_ASSERT(domain);
+
+    return domain->archInfo.ia32eInfo.numVcpus;
+}
+
+static
 inline 
 void ia32eEmulatorX2apicSetTpr(uint8_t val)
 {
@@ -925,6 +940,46 @@ void ia32eEmulatorX2apicSetDcr(uint8_t dcr)
     }
 }
 
+static
+inline
+bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
+{
+    kSchedTask_t *task = NULL;
+    uint32_t x2apicId = 0;
+
+    uint8_t vector = 0;
+    uint8_t deliveryMode = 0;
+    uint8_t destinationMode = 0;
+    uint8_t level = 0;
+    uint8_t triggerMode = 0;
+    uint8_t destShorthand = 0;
+    uint32_t dest = 0;
+
+    if ((val & 0xfff32000ULL) != 0)
+        return false;
+
+    task = kTickGetRunningTask();
+    x2apicId = ia32eEmulatorVcpuId();
+
+    vector = val & 0xff;
+    deliveryMode = (val >> 8) & 0x7;
+    destinationMode = (val >> 11) & 1; 
+    level = (val >> 14) & 1;
+    triggerMode = (val >> 15) & 1;
+    destShorthand = (val >> 18) & 0x3; 
+    dest = val >> 32;
+
+    if (deliveryMode == IA32E_DM_LOW_PRIORITY || deliveryMode == IA32E_DM_SMI || 
+        deliveryMode == IA32E_DM_RESERVED0 || deliveryMode == IA32E_DM_EXTERNAL) {
+
+        return false;
+    }
+
+
+
+    return true;
+}
+
 /* General purpose events */
 
 static 
@@ -1147,7 +1202,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     switch (eax) {
 
         case 0:
-            regs->regs.rax = cpu->cpuFlags.fields.avx10 != 0 ? 36 : 7;
+            regs->regs.rax = cpu->cpuFlags.fields.avx10 != 0 ? 36 : 11;
             regs->regs.rbx = IA32E_CPUID0_GENUINE_INTEL_EBX;
             regs->regs.rcx = IA32E_CPUID0_GENUINE_INTEL_ECX;
             regs->regs.rdx = IA32E_CPUID0_GENUINE_INTEL_EDX;
@@ -1184,20 +1239,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
         case 6:
             break;
 
-        default:
-
-            if (eax > 7 && cpu->cpuFlags.fields.avx10 != 0) {
-            
-                if (eax < 36 || ecx > 1)
-                    break;
-
-                ia32eCpuid(36, ecx, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
-                regs->regs.rax = cpuidRegs[0];
-                regs->regs.rbx = cpuidRegs[1];
-                regs->regs.rcx = cpuidRegs[2];
-                regs->regs.rdx = cpuidRegs[3];
-                break;
-            }
+        case 7:
             
             switch (ecx) {
 
@@ -1233,6 +1275,45 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             }
 
             break;
+
+    case 8:
+    case 9:
+    case 10:
+        break;
+
+    default:
+
+        if (eax > 11 && cpu->cpuFlags.fields.avx10 != 0) {
+            
+            if (eax < 36 || ecx > 1)
+                break;
+
+            ia32eCpuid(36, ecx, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+            regs->regs.rax = cpuidRegs[0];
+            regs->regs.rbx = cpuidRegs[1];
+            regs->regs.rcx = cpuidRegs[2];
+            regs->regs.rdx = cpuidRegs[3];
+            break;
+        }
+
+        regs->regs.rdx = ia32eEmulatorVcpuId();
+        switch (ecx) {
+
+            case 0:
+                regs->regs.rbx = 1;
+                regs->regs.rcx |= (IA32E_SMT << 8);
+                break;
+                
+            case 1:
+                regs->regs.rax = 8;
+                regs->regs.rbx = ia32eEmulatorDomainVcpuCount();
+                regs->regs.rcx |= (IA32E_CORE << 8);
+                break;
+
+            default:
+                regs->regs.rcx &= 0xff;
+                break;
+        }
     }
 }
 
@@ -1394,11 +1475,6 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             val = max(ia32eEmulatorX2apicGetTpr(), ia32eEmulatorX2apicGetIsrv() / 16) << 4;
             break;
 
-        /*
-        case IA32E_X2APIC_EOI:
-            break;
-        */
-
         case IA32E_X2APIC_LDR:
             vcpuId = ia32eEmulatorVcpuId();
             val = ((vcpuId / 16) << 16) | (1 << (vcpuId % 16));
@@ -1491,11 +1567,6 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_DIV_CONF:
             val = task->ctx.ia32eCtx.vtx.x2apic.dcr;
             break;
-            
-        /*
-        case IA32E_X2APIC_SELF_IPI:
-            break;
-        */
 
         case IA32E_ARCH_CAP:
             val = IA32E_ARCH_CAP_XAPIC_DISABLE_STATUS_MASK;
@@ -1561,14 +1632,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr = val & ~0xfffULL;
             break;
 
-        /*
-        case IA32E_X2APIC_ID:
-            break;
-
-        case IA32E_X2APIC_VERSION:
-            break;
-        */
-
         case IA32E_X2APIC_TPR:
             
             if ((val & ~0xffULL) == 0)
@@ -1577,11 +1640,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 valid = false;
 
             break;
-
-        /*
-        case IA32E_X2APIC_PPR:
-            break;
-        */
 
         case IA32E_X2APIC_EOI:
 
@@ -1592,11 +1650,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
             break;
 
-        /*
-        case IA32E_X2APIC_LDR:
-            break;
-        */
-
         case IA32E_X2APIC_SIVR:
 
             if ((val & ~0x1ffULL) == 0)
@@ -1605,36 +1658,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 valid = false;
 
             break;
-
-        /*
-        case IA32E_X2APIC_ISR:
-        case IA32E_X2APIC_ISR1:
-        case IA32E_X2APIC_ISR2:
-        case IA32E_X2APIC_ISR3:
-        case IA32E_X2APIC_ISR4:
-        case IA32E_X2APIC_ISR5:
-        case IA32E_X2APIC_ISR6:
-        case IA32E_X2APIC_ISR7:
-
-        case IA32E_X2APIC_TMR0:
-        case IA32E_X2APIC_TMR1:
-        case IA32E_X2APIC_TMR2:
-        case IA32E_X2APIC_TMR3:
-        case IA32E_X2APIC_TMR4:
-        case IA32E_X2APIC_TMR5:
-        case IA32E_X2APIC_TMR6:
-        case IA32E_X2APIC_TMR7:
-
-        case IA32E_X2APIC_IRR0:
-        case IA32E_X2APIC_IRR1:
-        case IA32E_X2APIC_IRR2:
-        case IA32E_X2APIC_IRR3:
-        case IA32E_X2APIC_IRR4:
-        case IA32E_X2APIC_IRR5:
-        case IA32E_X2APIC_IRR6:
-        case IA32E_X2APIC_IRR7:
-            break;
-        */
 
         case IA32E_X2APIC_ESR:
             
@@ -1648,7 +1671,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_ICR:
-            
+            valid = ia32eEmulatorX2apicHandleIcrWrite(val);
             break;
 
         case IA32E_X2APIC_LVT_TIMER:
@@ -1670,11 +1693,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             task->ctx.ia32eCtx.vtx.x2apic.initCount = val;
             ia32eEmulatorX2apicResetCounter();
             break;
-
-        /*
-        case IA32E_X2APIC_TIMER_CUR_COUNT:
-            break;
-        */
 
         case IA32E_X2APIC_DIV_CONF:
 
@@ -1698,14 +1716,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 task->ctx.ia32eCtx.vtx.x2apic.shadowEsr |= IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK;
 
             break;
-
-        /*
-        case IA32E_ARCH_CAP:
-        case IA32E_XAPIC_DISABLE_STATUS:
-        case IA32E_BIOS_DONE:
-            valid = false;
-            break;
-        */
 
         default:
             valid = false;

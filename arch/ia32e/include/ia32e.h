@@ -657,10 +657,11 @@ typedef enum
     IA32E_DM_NORMAL =           0,
     IA32E_DM_LOW_PRIORITY =     1,
     IA32E_DM_SMI =              2,
+    IA32E_DM_RESERVED0 =        3,
     IA32E_DM_NMI =              4,
     IA32E_DM_INIT =             5,
     IA32E_DM_STARTUP =          6,
-    IA32E_DM_EXTERNAL =         7
+    IA32E_DM_EXTERNAL =         7,
 } ia32eDeliveryMode_t;
 
 typedef enum
