@@ -545,6 +545,10 @@ void ia32eCpuInit(void)
         ia32eCpuVtxInit();
 
 #endif
+
+#if CONFIG_IA32E_APPLY_MADT_NMI_OVERRIDES
+    ia32eApicConfigMadtNmiOverrides();
+#endif
 }
 
 ia32eGlobal_t *ia32eGetGlobalPtr(void)

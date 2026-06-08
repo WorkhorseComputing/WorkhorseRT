@@ -724,13 +724,10 @@ K_REGISTER_INITCALL(ia32eApicConfig, ia32eApicConfig,                           
 K_REGISTER_INITCALL(ia32eIoapicConfig, ia32eIoapicConfig,                                   009);
 
 #if CONFIG_IA32E_APPLY_MADT_NMI_OVERRIDES
-
-K_REGISTER_INITCALL(ia32eApicConfigMadtNmiOverrides, ia32eApicConfigMadtNmiOverrides,       010);
-K_REGISTER_INITCALL(ia32eIoapicConfigMadtNmiOverrides, ia32eIoapicConfigMadtNmiOverrides,   011);
-
+K_REGISTER_INITCALL(ia32eIoapicConfigMadtNmiOverrides, ia32eIoapicConfigMadtNmiOverrides,   010);
 #endif
 
-K_REGISTER_INITCALL(ia32eApWakeup, ia32eApWakeup,                                           012);
-K_REGISTER_INITCALL(ia32eBspConfig, ia32eBspConfig,                                         013);
-K_REGISTER_INITCALL(ia32eFinalizeHighMap, ia32eFinalizeHighMap,                             014);
-K_REGISTER_INITCALL(ia32eInterfacesInit, ia32eInterfacesInit,                               015);
+K_REGISTER_INITCALL(ia32eApWakeup, ia32eApWakeup,                                           011);
+K_REGISTER_INITCALL(ia32eBspConfig, ia32eBspConfig,                                         012);
+K_REGISTER_INITCALL(ia32eFinalizeHighMap, ia32eFinalizeHighMap,                             013);
+K_REGISTER_INITCALL(ia32eInterfacesInit, ia32eInterfacesInit,                               014);
