@@ -1011,6 +1011,8 @@ int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     
 #endif
 
+    atomic_store(&info->ia32eInfo.tripleFault, 0);
+
     info->ia32eInfo.numVcpus = 0;
     memset(info->ia32eInfo.apicBus, 0, sizeof(info->ia32eInfo.apicBus));
 

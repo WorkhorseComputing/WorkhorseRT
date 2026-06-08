@@ -207,6 +207,8 @@ typedef struct ia32eDomainInfo
     uint16_t vpid;
 #   endif
 
+    atomic_uint_fast32_t tripleFault;
+
     uint8_t numVcpus;
     ia32eVtxX2apic_t *apicBus[256];
 #endif

@@ -95,11 +95,6 @@
     (IA32E_DR6_BP0_MASK | IA32E_DR6_BP1_MASK | IA32E_DR6_BP2_MASK |                     \
      IA32E_DR6_BP3_MASK | IA32E_DR6_BD_MASK | IA32E_DR6_BS_MASK) 
 
-#define ia32eEmulatorHandleVcpuFailure() do {                                       \
-    cpuEnableInterrupts();                                                          \
-    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);     \
-} while (0)
-
 #define ia32eEmulatorRunningTaskMode() \
     (kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode)
 
@@ -724,6 +719,26 @@ void ia32eEmulatorUnsetIsrv(void)
         }
     } 
 }
+
+static
+inline 
+void ia32eEmulatorHandleVcpuFailure(void)
+{
+    kSchedTask_t *task = NULL;
+    kDomain_t *domain = NULL;
+
+    cpuEnableInterrupts();
+
+    task = kTickGetRunningTask();
+    domain = task->domain.curDomain;
+
+    K_DYNAMIC_ASSERT(domain);
+
+    atomic_store(&domain->archInfo.ia32eInfo.tripleFault, 1);
+
+    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);
+}
+
 
 /* General purpose events */
 
