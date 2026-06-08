@@ -362,6 +362,9 @@
 #define IA32E_XAPIC_DIV_128                 0xA
 #define IA32E_XAPIC_DIV_1                   0xB
 
+#define IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK   (1 << 5)
+#define IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK   (1 << 6)
+
 #define IA32E_XAPIC_ONESHOT                 0
 #define IA32E_XAPIC_PERIODIC                1
 #define IA32E_XAPIC_TSC_DEADLINE            2
