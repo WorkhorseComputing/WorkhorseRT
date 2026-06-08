@@ -853,7 +853,7 @@ void ia32eEmulatorX2apicResetCounter(void)
 
     if (initCount == 0) {
 
-        if (ia32eEmulatorVmxPreemptionTimerIsEnabled()) {
+        if (testBitLe(pin, IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT)) {
 
             __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, 0);
 
@@ -869,7 +869,7 @@ void ia32eEmulatorX2apicResetCounter(void)
 
     initCount = ia32eEmulatorX2apicCompressCounter(initCount, dcr);
 
-    if (!ia32eEmulatorVmxPreemptionTimerIsEnabled()) {
+    if (!testBitLe(pin, IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT)) {
 
         pin |= (1 << IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT);
         exit |= (1 << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT);
@@ -1754,7 +1754,7 @@ void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 
     if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_PERIODIC_MASK) != 0) {
     
-        K_DYNAMIC_ASSERT(ia32eEmulatorVmxPreemptionTimerIsEnabled());
+        K_DYNAMIC_ASSERT(testBitLe(pin, IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT));
 
         initCount = ia32eEmulatorX2apicCompressCounter(initCount, dcr);
         __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, lvtTImer);
