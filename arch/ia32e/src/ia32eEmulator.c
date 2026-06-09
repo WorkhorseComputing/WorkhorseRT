@@ -982,7 +982,7 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
             if (x2apicId == vcpuId)
                 break;
 
-            x2apic->latch.fields.initPending = 1;
+            x2apic->latch.fields.initPending = x2apic->latch.fields.waitForSipi == 0;
             x2apic->latch.fields.sipiPending = 0;
             break;
 
