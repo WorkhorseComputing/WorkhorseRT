@@ -41,6 +41,7 @@
 
 #if CONFIG_IA32E_VTX
 
+.extern ia32eEmulatorBootManager
 .extern ia32eEmulatorVcpuFailureEntry
 .extern ia32eEmulatorDispatcher
 
@@ -199,6 +200,8 @@ __ia32eFakeIsr:
 .balign 64
 __ia32eVmlaunchStub:
  
+    call ia32eEmulatorBootManager
+
     xorl %eax, %eax
     xorl %ebx, %ebx
     xorl %ecx, %ecx

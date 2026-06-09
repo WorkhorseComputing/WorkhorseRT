@@ -739,6 +739,7 @@ void ia32eCpuVtxTaskInit(kSchedTask_t *task)
     task->ctx.ia32eCtx.fpCtx.mxcsr = IA32E_DEFAULT_MXCSR;
     task->ctx.ia32eCtx.fpCtx.mxcsrMask = ia32eThisCpuData()->mxcsrMask;
 
+    task->ctx.ia32eCtx.rflags |= IA32E_FLAGS_ALWAYS1_MASK;
     task->ctx.ia32eCtx.rflags |= IA32E_FLAGS_IF_MASK;
 
     task->ctx.ia32eCtx.rip = (uintptr_t)__ia32eVmlaunchStub;
