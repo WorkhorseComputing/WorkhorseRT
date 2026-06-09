@@ -989,8 +989,12 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
             cpuDisableInterrupts();
             __mcsAcquire(&x2apic->latchLock, &node);
 
-            if (x2apic->latch.fields.waitForSipi != 0 || x2apic->latch.fields.initPending != 0)
+            if ((x2apic->latch.fields.waitForSipi != 0 || x2apic->latch.fields.initPending != 0) && 
+                x2apic->latch.fields.sipiPending == 0) {
+
+                x2apic->latch.fields.sipiVector = vector;
                 x2apic->latch.fields.sipiPending = 1;
+            }
 
             __mcsRelease(&x2apic->latchLock, &node);
             cpuEnableInterrupts();
