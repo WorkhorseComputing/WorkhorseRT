@@ -1975,12 +1975,12 @@ ia32eEmulatorFn_t ia32eEmulatorDispatchTable[] = {
 static
 void ia32eEmulatorVmcsReset(void)
 {
-    uintptr_t vmcsPhys = 0;
-
     kSchedTask_t *task = NULL;
 
     kSchedThread_t *thread = NULL;
     kSchedLsr_t *lsr = NULL;
+
+    uintptr_t vmcsPhys = 0;
 
     K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
 
