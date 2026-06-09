@@ -2236,7 +2236,7 @@ void ia32eEmulatorVmcsSetupGuest(void)
 }
 
 static
-void ia32eEmulatorX2apicGuestReset(void)
+void ia32eEmulatorX2apicReset(void)
 {
     kSchedTask_t *task = NULL;
 
@@ -2331,12 +2331,14 @@ void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
     /* setup vmcs */
 
     ia32eEmulatorVmcsSetupBase();
-    ia32eEmulatorX2apicGuestReset();
+    ia32eEmulatorX2apicReset();
 
     if (task->ctx.ia32eCtx.vtx.x2apic.local.fields.bsp != 0) {
 
         K_DYNAMIC_ASSERT(task->domain.curDomain->invocationInfo._start <= UINT16_MAX);
         
+        ia32eEmulatorRegsReset(regs);
+
         ia32eEmulatorVmcsSetupGuest();
         __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RIP, task->domain.curDomain->invocationInfo._start);
 
@@ -2344,7 +2346,7 @@ void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
         return;
     }
 
-    
+    ia32eEmulatorEventManager(regs);
 }
 
 ATTR_NORETURN
