@@ -1575,6 +1575,8 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
     uint64_t val = 0;
     bool valid = true; 
 
+    K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
+
     task = kTickGetRunningTask();
 
     ecx = regs->regs.rcx & 0xffffffff;
