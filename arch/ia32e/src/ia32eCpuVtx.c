@@ -230,66 +230,6 @@ int ia32eCpuVtxTaskInfoInit(kSchedTaskType_t type, ia32eVtxTaskInfo_t *info, uin
 }
 
 static
-uint32_t ia32eVtxCalibrateTscManual(void)
-{
-    ia32eGlobal_t *global = NULL;    
-
-    volatile uint32_t *acpiPmMmio = NULL;
-    uint16_t acpiPmPort = 0;
-
-    uint32_t counterFrequencyHz = 0;
-    uint64_t calibrationTicks = 0;
-    uint64_t startTicks = 0;
-
-    uint32_t tscCur = 0;
-    uint32_t tscTicksElapsed = 0;
-    uint32_t tscFrequencyHz = 0;
-
-    global = ia32eThisCpuData()->global;
-
-    if (ia32eHpetIsInitialized()) {
-
-        counterFrequencyHz = ia32eHpetFrequencyHz();
-        calibrationTicks = msToTicks(CONFIG_IA32E_VTX_TSC_CALIBRATION_TIME_MS, counterFrequencyHz);
-
-        tscCur = __ia32eRdtsc();
-        startTicks = ia32eHpetReadCounter();
-        spinUntil(ia32eHpetReadCounter() - startTicks >= calibrationTicks);
-
-    } else {
-
-        counterFrequencyHz = ACPI_PM_TMR_HZ;
-        calibrationTicks = msToTicks(CONFIG_IA32E_VTX_TSC_CALIBRATION_TIME_MS, counterFrequencyHz);
-
-        if (global->acpiPm.mmio) {
-
-            acpiPmMmio = (void *)global->acpiPm.acpiPmMmio;
-
-            tscCur = __ia32eRdtsc();
-            startTicks = READ_ONCE(*acpiPmMmio);
-            spinUntil(READ_ONCE(*acpiPmMmio) - startTicks >= calibrationTicks);
-
-        } else {
-            acpiPmPort = (uint16_t)global->acpiPm.acpiPmPort;
-
-            tscCur = __ia32eRdtsc();
-            startTicks = __ia32eInl(acpiPmPort);
-            spinUntil( __ia32eInl(acpiPmPort) - startTicks >= calibrationTicks);
-        }
-    }
-
-    tscTicksElapsed = __ia32eRdtsc() - tscCur;
-    tscFrequencyHz = (tscTicksElapsed * counterFrequencyHz) / calibrationTicks;   
-    
-    if (tscFrequencyHz == 0) {
-        ia32eEarlyKpanic("failed to calibrate tsc, ended up with a frequency of 0 after manual calibration\n");
-        UNREACHABLE();
-    }
-
-    return tscFrequencyHz;
-}
-
-static
 void ia32eCpuVtxVmcsSetup(kSchedTask_t *task)
 {
     ia32ePerCpu_t *cpu = NULL;
@@ -565,11 +505,6 @@ void ia32eCpuVtxInit(void)
 
     uint64_t vpidCap = 0;
 
-    uint32_t regs21[4] = {0};
-    uint32_t regs22[4] = {0};
-
-    uint64_t vmxMisc;
-
     uint32_t i = 0;
 
     uint64_t cr0 = 0;
@@ -691,24 +626,6 @@ void ia32eCpuVtxInit(void)
     cpu->vtx.ia32eVmxProcbasedCtls = ia32eVmxProcbasedCtls;
 
     /* setup per host cpu state */
-
-    ia32eCpuid(21, 0, &regs21[0], &regs21[1], &regs21[2], &regs21[3]);
-
-    if (regs21[0] == 0 || regs21[1] == 0 || regs21[2] == 0) {
-
-        ia32eCpuid(22, 0, &regs22[0], &regs22[1], &regs22[2], &regs22[3]);
-
-        if ((regs22[0] & 0xffff) == 0)
-            cpu->vtx.tscFrequencyHz = ia32eVtxCalibrateTscManual();
-        else
-            cpu->vtx.tscFrequencyHz = (regs22[0] & 0xffff) * 1000000;
-
-    } else {
-        cpu->vtx.tscFrequencyHz = regs21[2] * (regs21[1] / regs21[0]);
-    }
-
-    vmxMisc = __ia32eRdmsr(IA32E_VMX_MISC);
-    cpu->vtx.vmxPreemptFrequencyHz = cpu->vtx.tscFrequencyHz / (1 << (vmxMisc & 0x1f));
 
     cpu->vtx.hostDr1 = __ia32eReadDr1();
     cpu->vtx.hostDr2 = __ia32eReadDr2();

@@ -206,9 +206,6 @@ typedef struct ia32ePerCpu
         uint32_t ia32eVmxExitCtls;
         uint32_t ia32eVmxEntryCtls;
 
-        uint32_t tscFrequencyHz;
-        uint32_t vmxPreemptFrequencyHz;
-
         uint64_t hostDr1;
         uint64_t hostDr2;
         uint64_t hostDr3;
