@@ -48,14 +48,6 @@ int kDbgStrf(const char *fmt, ...);
         kDbgStrf("[dynamic assert failed]: %s, file: %s, line: %d\n", #cond, __FILE__, __LINE__);       \
 } while (0)
 
-#else
-
-#   define K_DYNAMIC_ASSERT(cond)
-
-#endif
-
-#if CONFIG_KDYNAMIC_ASSERT
-
 #   define K_BUG_ON(cond) ({                                                                            \
     bool ret = false;                                                                                   \
                                                                                                         \
@@ -69,8 +61,9 @@ int kDbgStrf(const char *fmt, ...);
 
 #else
 
+#   define K_DYNAMIC_ASSERT(cond)
 #   define K_BUG_ON(cond) (cond)
 
-#endif 
+#endif
 
 #endif
