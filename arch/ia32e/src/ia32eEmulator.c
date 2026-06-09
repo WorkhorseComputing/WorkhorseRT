@@ -1881,7 +1881,7 @@ void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
     initCount = task->ctx.ia32eCtx.vtx.x2apic.initCount;
     dcr = task->ctx.ia32eCtx.vtx.x2apic.dcr;
 
-    if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_ENABLE_MASK) == 0) {
+    if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_DISABLE_MASK) == 0) {
         vector = lvtTImer & IA32E_XAPIC_LVT_TIMER_VECTOR_MASK;
         ia32eEmulatorQueueEventSynthetic(false, vector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0);
     }
