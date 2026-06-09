@@ -41,6 +41,7 @@ typedef struct ia32eVtxX2apic
         uint32_t val;
         struct 
         {
+            uint32_t waitForSipi : 1;
             uint32_t initPending : 1;
             uint32_t sipiPending : 1;
             uint32_t sipiVector : 8;
@@ -56,9 +57,8 @@ typedef struct ia32eVtxX2apic
         {
             uint32_t vmcsInitialized : 1;
             uint32_t apicBaseBsp : 1;
-            uint32_t waitForSipi : 1;
             uint32_t tpr : 4;
-            uint32_t reserved0 : 25;
+            uint32_t reserved0 : 26;
         } fields;
     } local;
 

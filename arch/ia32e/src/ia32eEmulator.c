@@ -148,8 +148,7 @@ char *ia32eEmulatorErrorTable[] = {
 
 /* Emulation helpers */
 
-static
-inline 
+static 
 uint64_t ia32eEmulatorModeApplyIpMask(uint64_t val)
 {
     ia32eEmulatorMode_t mode = IA32E_EMULATOR_INVALID;
@@ -179,7 +178,6 @@ uint64_t ia32eEmulatorModeApplyIpMask(uint64_t val)
 }
 
 static 
-inline 
 uint64_t ia32eEmulatorReadGpr(ia32eVtxVmcsGpr_t gpr, ia32eVmexitRegs_t *regs)
 {
     uint64_t val = 0;
@@ -259,7 +257,6 @@ uint64_t ia32eEmulatorReadGpr(ia32eVtxVmcsGpr_t gpr, ia32eVmexitRegs_t *regs)
 }
 
 static 
-inline 
 void ia32eEmulatorWriteGpr(ia32eVtxVmcsGpr_t gpr, ia32eVmexitRegs_t *regs, uint64_t val)
 {
     switch (gpr) {
@@ -334,8 +331,7 @@ void ia32eEmulatorWriteGpr(ia32eVtxVmcsGpr_t gpr, ia32eVmexitRegs_t *regs, uint6
     }
 }
 
-static 
-inline
+static
 ia32eEmulatorMode_t ia32eEmulatorMode(void)
 {
     uint64_t guestCr0 = 0;
@@ -364,7 +360,6 @@ ia32eEmulatorMode_t ia32eEmulatorMode(void)
 }
 
 static
-inline
 bool ia32eEmulatorCpl0(void)
 {
     uint64_t guestCr0 = 0;
@@ -389,7 +384,6 @@ bool ia32eEmulatorCpl0(void)
 }
 
 static
-inline
 void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool deliverErrcode, uint64_t errcode, 
                               bool deliverLength, uint64_t length)
 {
@@ -421,7 +415,6 @@ void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool de
 }
 
 static
-inline
 void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
 {
     uintptr_t guestIp = 0;
@@ -454,7 +447,6 @@ void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
 }
 
 static
-inline
 void ia32eEmulatorUnsetNmiBlocking(void)
 {
     uint32_t interruptibilityState = 0;
@@ -465,7 +457,6 @@ void ia32eEmulatorUnsetNmiBlocking(void)
 }
 
 static
-inline 
 void ia32eEmulatorSelfIpi(uint8_t vector)
 {
     ia32ePerCpu_t *cpu = NULL;
@@ -502,8 +493,7 @@ void ia32eEmulatorSelfIpi(uint8_t vector)
     __ia32eFakeIsr(rsp, vector, 0);
 }
 
-static
-inline 
+static 
 bool ia32eEmulatorValidateCr0(uint64_t cr0)
 {
     /** cr0 invariants
@@ -547,7 +537,6 @@ bool ia32eEmulatorValidateCr0(uint64_t cr0)
 }
 
 static
-inline 
 uint8_t ia32eEmulatorVcpuId(void)
 {
     kSchedTask_t *task = NULL;
@@ -578,8 +567,7 @@ uint8_t ia32eEmulatorVcpuId(void)
     return vcpuId;
 }
 
-static 
-inline 
+static
 void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
                                       bool deliverErrcode, uint64_t errcode)
 {
@@ -600,8 +588,7 @@ void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterru
     task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = errcode;
 }
 
-static 
-inline
+static
 void ia32eEmulatorCatchLostEvent(void)
 {
     uint32_t info = 0;
@@ -638,7 +625,6 @@ void ia32eEmulatorCatchLostEvent(void)
 }
 
 static
-inline
 void ia32eEmulatoLoadHostDrx(void)
 {
     ia32ePerCpu_t *cpu = NULL;
@@ -656,7 +642,6 @@ void ia32eEmulatoLoadHostDrx(void)
 }
 
 static
-inline 
 void ia32eEmulatorHandleVcpuFailure(void)
 {
     kSchedTask_t *task = NULL;
@@ -675,7 +660,6 @@ void ia32eEmulatorHandleVcpuFailure(void)
 }
 
 static
-inline
 uint8_t ia32eEmulatorDomainVcpuCount(void)
 {
     kSchedTask_t *task = NULL;
@@ -690,7 +674,6 @@ uint8_t ia32eEmulatorDomainVcpuCount(void)
 }
 
 static
-inline 
 void ia32eEmulatorX2apicSetTpr(uint8_t val)
 {
     kSchedTask_t *task = NULL;
@@ -701,8 +684,7 @@ void ia32eEmulatorX2apicSetTpr(uint8_t val)
     task->ctx.ia32eCtx.vtx.x2apic.local.fields.tpr = val;
 }
 
-static
-inline 
+static 
 uint8_t ia32eEmulatorX2apicGetTpr(void)
 {
     kSchedTask_t *task = NULL;
@@ -717,7 +699,6 @@ uint8_t ia32eEmulatorX2apicGetTpr(void)
 }
 
 static
-inline
 uint8_t ia32eEmulatorX2apicGetIsrv(void)
 {
     kSchedTask_t *task = NULL;
@@ -738,7 +719,6 @@ uint8_t ia32eEmulatorX2apicGetIsrv(void)
 }
 
 static
-inline
 void ia32eEmulatorX2apicUnsetIsrv(void)
 {
     kSchedTask_t *task = NULL;
@@ -759,7 +739,6 @@ void ia32eEmulatorX2apicUnsetIsrv(void)
 }
 
 static
-inline
 uint32_t ia32eEmulatorX2apicCompressCounter(uint32_t count, uint32_t dcr)
 {
     switch (dcr) {
@@ -804,8 +783,7 @@ uint32_t ia32eEmulatorX2apicCompressCounter(uint32_t count, uint32_t dcr)
 }
 
 static
-inline
-uint32_t ia32eEmulatorX2apicInflateCounter(uint32_t count, uint32_t dcr)
+uint32_t ia32eEmulatorX2apicDecompressCounter(uint32_t count, uint32_t dcr)
 {
     switch (dcr) {
         
@@ -849,7 +827,6 @@ uint32_t ia32eEmulatorX2apicInflateCounter(uint32_t count, uint32_t dcr)
 }
 
 static
-inline
 void ia32eEmulatorX2apicResetCounter(void)
 {
     kSchedTask_t *task = NULL;
@@ -897,7 +874,6 @@ void ia32eEmulatorX2apicResetCounter(void)
 }
 
 static
-inline
 uint32_t ia32eEmulatorX2apicReadCounter(void)
 {
     kSchedTask_t *task = NULL;
@@ -912,13 +888,12 @@ uint32_t ia32eEmulatorX2apicReadCounter(void)
     dcr = task->ctx.ia32eCtx.vtx.x2apic.dcr;
 
     count = ia32eVmread(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE);
-    count = ia32eEmulatorX2apicInflateCounter(count, dcr);
+    count = ia32eEmulatorX2apicDecompressCounter(count, dcr);
 
     return count;
 }
 
 static
-inline
 void ia32eEmulatorX2apicSetDcr(uint8_t dcr)
 {
     kSchedTask_t *task = NULL;
@@ -934,38 +909,127 @@ void ia32eEmulatorX2apicSetDcr(uint8_t dcr)
     if (dcr != oldDcr && ia32eEmulatorVmxPreemptionTimerIsEnabled()) {
 
         count = ia32eVmread(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE);
-        count = ia32eEmulatorX2apicInflateCounter(count, oldDcr);
+        count = ia32eEmulatorX2apicDecompressCounter(count, oldDcr);
         count = ia32eEmulatorX2apicCompressCounter(count, dcr);
         __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, count);
     }
 }
 
 static
-inline
+void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t deliveryMode)
+{
+    kSchedTask_t *task = NULL;
+    uint8_t vcpuId = 0;
+    kDomain_t *domain = NULL;
+    uint32_t numVcpus = 0;
+
+    ia32eVtxX2apic_t *x2apic = NULL;
+    
+    mcsNode_t node = {0};
+
+    K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
+
+    task = kTickGetRunningTask();
+    vcpuId = ia32eEmulatorVcpuId();
+    domain = task->domain.curDomain;
+    numVcpus = domain->archInfo.ia32eInfo.numVcpus;
+
+    if (x2apicId >= numVcpus)
+        return;    
+
+    x2apic = domain->archInfo.ia32eInfo.apicBus[x2apicId];
+
+    switch (deliveryMode) {
+
+        case IA32E_DM_NORMAL:
+
+            if (vector <= 15) {
+
+                task->ctx.ia32eCtx.vtx.x2apic.shadowEsr |= IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK;
+
+                if (x2apicId == vcpuId)
+                    break;
+            }
+            
+            atomic_fetch_or(&x2apic->irr[vector / 32], (1 << (vector % 32)));
+            break;
+
+        case IA32E_DM_NMI:
+
+            cpuDisableInterrupts();
+            __mcsAcquire(&x2apic->latchLock, &node);
+
+            x2apic->latch.fields.nmiPending = 1;
+            
+            __mcsRelease(&x2apic->latchLock, &node);
+            cpuEnableInterrupts();
+            break;
+
+        case IA32E_DM_INIT:
+
+            if (x2apicId == vcpuId)
+                break;
+
+            cpuDisableInterrupts();
+            __mcsAcquire(&x2apic->latchLock, &node);
+
+            x2apic->latch.fields.initPending = 1;
+            x2apic->latch.fields.sipiPending = 0;
+
+            __mcsRelease(&x2apic->latchLock, &node);
+            cpuEnableInterrupts();
+            break;
+
+        case IA32E_DM_STARTUP:
+
+            if (x2apicId == vcpuId)
+                break;
+
+            cpuDisableInterrupts();
+            __mcsAcquire(&x2apic->latchLock, &node);
+
+            if (x2apic->latch.fields.waitForSipi != 0 || x2apic->latch.fields.initPending != 0)
+                x2apic->latch.fields.sipiPending = 1;
+
+            __mcsRelease(&x2apic->latchLock, &node);
+            cpuEnableInterrupts();
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }
+}
+
+static
 bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
 {
     kSchedTask_t *task = NULL;
-    uint32_t x2apicId = 0;
+    uint8_t vcpuId = 0;
+    uint32_t numVcpus = 0;
 
     uint8_t vector = 0;
     uint8_t deliveryMode = 0;
     uint8_t destinationMode = 0;
-    uint8_t level = 0;
-    uint8_t triggerMode = 0;
     uint8_t destShorthand = 0;
     uint32_t dest = 0;
 
-    if ((val & 0xfff32000ULL) != 0)
+    uint32_t clusterId = 0;
+    int bit = 0;
+    uint32_t logicalId = 0;
+
+    uint32_t i = 0;
+
+    if ((val & 0xfff33000ULL) != 0)
         return false;
 
     task = kTickGetRunningTask();
-    x2apicId = ia32eEmulatorVcpuId();
+    vcpuId = ia32eEmulatorVcpuId();
+    numVcpus = ia32eEmulatorDomainVcpuCount();
 
     vector = val & 0xff;
     deliveryMode = (val >> 8) & 0x7;
     destinationMode = (val >> 11) & 1; 
-    level = (val >> 14) & 1;
-    triggerMode = (val >> 15) & 1;
     destShorthand = (val >> 18) & 0x3; 
     dest = val >> 32;
 
@@ -975,7 +1039,60 @@ bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
         return false;
     }
 
+    task->ctx.ia32eCtx.vtx.x2apic.icr = val;
 
+    switch (destShorthand) {
+
+        case IA32E_XAPIC_SINGLE_TARGET:
+
+            if (destinationMode == IA32E_XAPIC_DEST_LOGICAL) {
+                
+                clusterId = dest >> 16;
+                if (clusterId > ((numVcpus + 15) / 16))
+                    break;
+
+                dest &= 0xffff;
+                while ((bit = ffs32(dest)) != -1) {
+
+                    logicalId = (clusterId * 16) + bit;
+
+                    K_DYNAMIC_ASSERT(logicalId <= UINT8_MAX);
+                    
+                    ia32eEmulatorX2apicSendPacket(logicalId, vector, deliveryMode);
+                    dest &= ~(1 << bit);
+                }
+
+            } else if (dest < numVcpus) {
+                ia32eEmulatorX2apicSendPacket(dest, vector, deliveryMode);
+            }
+
+            break;
+        
+        case IA32E_XAPIC_SELF_TARGET:
+            ia32eEmulatorX2apicSendPacket(vcpuId, vector, deliveryMode);
+            break;
+
+        case IA32E_XAPIC_ALL_TARGETS:
+
+            for (i = 0; i < numVcpus; i++)
+                ia32eEmulatorX2apicSendPacket(i, vector, deliveryMode);
+
+            break;
+        
+        case IA32E_XAPIC_OTHER_TARGETS:
+
+            for (i = 0; i < numVcpus; i++) {
+
+                if (i != vcpuId)
+                    ia32eEmulatorX2apicSendPacket(i, vector, deliveryMode);
+            }
+
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }
 
     return true;
 }
@@ -1712,11 +1829,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 break;
             }
 
-            if (val > 15)
-                atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.irr[val / 32], (1 << (val % 32)));
-            else
-                task->ctx.ia32eCtx.vtx.x2apic.shadowEsr |= IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK;
-
+            ia32eEmulatorX2apicSendPacket(ia32eEmulatorVcpuId(), val, IA32E_DM_NORMAL);
             break;
 
         default:
