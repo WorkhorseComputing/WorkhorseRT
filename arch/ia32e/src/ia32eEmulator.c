@@ -1255,7 +1255,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             case IA32E_EMULATOR_CPUIDV_EMULATION:
 
 #if CONFIG_IA32E_VTX_ACCESS_DENIED_GP0
-                regs-regs.rdx |= IA32E_EMULATOR_CPUIDV_EMULATION_D_ACCESS_DENIED_GP0_MASK;
+                regs->regs.rdx |= IA32E_EMULATOR_CPUIDV_EMULATION_D_ACCESS_DENIED_GP0_MASK;
 #endif            
                 break;
 
@@ -1895,7 +1895,7 @@ void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
     if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_PERIODIC_MASK) != 0) {
 
         initCount = ia32eEmulatorX2apicCompressCounter(initCount, dcr);
-        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, lvtTImer);
+        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, initCount);
         return;
     }
 
