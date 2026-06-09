@@ -2272,7 +2272,19 @@ void ia32eEmulatorX2apicGuestReset(void)
 static
 void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
 {
-    
+    ia32ePerCpu_t *cpu = NULL;
+
+    cpu = ia32eThisCpuData();
+
+    memset(regs, 0, sizeof(*regs));
+
+    regs->dr6 = 0xffff0ff0;
+
+    regs->regs.fxsaveRegion.fcw = IA32E_DEFAULT_FCW;
+    regs->regs.fxsaveRegion.mxcsr = IA32E_DEFAULT_MXCSR;
+    regs->regs.fxsaveRegion.mxcsrMask = cpu->mxcsrMask;
+
+    regs->regs.rdx = cpu->cpuVersion;
 }
 
 static 
