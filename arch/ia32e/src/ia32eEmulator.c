@@ -278,7 +278,7 @@ void ia32eEmulatorWriteGpr(ia32eVtxVmcsGpr_t gpr, ia32eVmexitRegs_t *regs, uint6
             break;
 
         case IA32E_VTX_VMCS_GPR_RSP:
-            __ia32eVmwrite(IA32E_VTX_VMCS_GPR_RSP, val);
+            __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RSP, val);
             break;
 
         case IA32E_VTX_VMCS_GPR_RBP:
