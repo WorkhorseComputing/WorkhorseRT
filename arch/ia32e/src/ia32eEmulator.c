@@ -1425,11 +1425,11 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             case 1:
                 regs->regs.rax = 8;
                 regs->regs.rbx = ia32eEmulatorDomainVcpuCount();
-                regs->regs.rcx |= (IA32E_CORE << 8);
+                regs->regs.rcx |= (IA32E_CORE << 8) | 1;
                 break;
 
             default:
-                regs->regs.rcx &= 0xff;
+                regs->regs.rcx = (IA32E_INVAL << 8) | (ecx & 0xff);
                 break;
         }
         
