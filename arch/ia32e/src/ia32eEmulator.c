@@ -99,7 +99,7 @@ void __ia32eVmexitStub(void);
     (IA32E_DR6_BP0_MASK | IA32E_DR6_BP1_MASK | IA32E_DR6_BP2_MASK |                     \
      IA32E_DR6_BP3_MASK | IA32E_DR6_BD_MASK | IA32E_DR6_BS_MASK) 
 
-#define IA32E_EMULATOR_X2APIC_LVT_TIMER_WRITE_RESERVED_MASK                                   \
+#define IA32E_EMULATOR_X2APIC_LVT_TIMER_WRITE_RESERVED_MASK                             \
     ((0xffULL << 8) | 0xfffffffffffc0000ULL)
 
 #define ia32eEmulatorRunningTaskMode() \
