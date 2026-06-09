@@ -1956,7 +1956,6 @@ void ia32eEmulatorEventManager(void)
 
 }
 
-
 void ia32eEmulatorBootManager(void)
 {
 
