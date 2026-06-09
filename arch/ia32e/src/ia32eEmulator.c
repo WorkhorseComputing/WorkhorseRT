@@ -1991,6 +1991,7 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
     basicReason = exitReason & IA32E_VTX_VMCS_EXIT_REASON_MASK;
     failure = (exitReason & IA32E_VTX_VMCS_EXIT_REASON_VMENTRY_FAILURE_MASK) != 0;
 
+    K_DYNAMIC_ASSERT(!failure);
     if (failure) {
         ia32eEmulatorHandleVcpuFailure();
         UNREACHABLE();
