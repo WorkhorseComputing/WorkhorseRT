@@ -153,7 +153,32 @@ char *ia32eEmulatorErrorTable[] = {
 /* Emulation helpers */
 
 static
-bool ia32eVmwriteAdjusted(uint32_t msr, uint64_t field, uint64_t val)
+void ia32eEmulatorHandleVcpuFailure(void)
+{
+    kSchedTask_t *task = NULL;
+    kDomain_t *domain = NULL;
+
+    cpuEnableInterrupts();
+
+    task = kTickGetRunningTask();
+    domain = task->domain.curDomain;
+
+    K_DYNAMIC_ASSERT(domain);
+
+    atomic_store(&domain->archInfo.ia32eInfo.tripleFault, 1);
+
+    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);
+}
+
+static
+void ia32eVmwriteSafe(uint64_t field, uint64_t val)
+{
+    if (K_BUG_ON(!__ia32eVmwrite(field, val)))
+        ia32eEmulatorHandleVcpuFailure();
+}
+
+static
+void ia32eVmwriteAdjusted(uint32_t msr, uint64_t field, uint64_t val)
 {
     uint64_t cap = 0;
     
@@ -162,7 +187,7 @@ bool ia32eVmwriteAdjusted(uint32_t msr, uint64_t field, uint64_t val)
     val |= (cap & 0xffffffff);
     val &= (cap >> 32);
 
-    return __ia32eVmwrite(field, val);
+    ia32eVmwriteSafe(field, val);
 }
 
 static 
@@ -295,7 +320,7 @@ void ia32eEmulatorWriteGpr(ia32eVtxVmcsGpr_t gpr, ia32eVmexitRegs_t *regs, uint6
             break;
 
         case IA32E_VTX_VMCS_GPR_RSP:
-            __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RSP, val);
+            ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_RSP, val);
             break;
 
         case IA32E_VTX_VMCS_GPR_RBP:
@@ -408,27 +433,13 @@ void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool de
     
     info = vector | (type << 8) | (deliverErrcode ? (1 << 11) : 0) | (1 << 31);
 
-#if CONFIG_KDYNAMIC_ASSERT
-    
-    K_DYNAMIC_ASSERT(__ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_INFO, info));
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_INFO, info);
 
     if (deliverErrcode)
-        K_DYNAMIC_ASSERT(__ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_ERROR_CODE, errcode));
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_ERROR_CODE, errcode);
 
     if (deliverLength)
-        K_DYNAMIC_ASSERT(__ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INSTRUCTION_LENGTH, length));
-
-#else 
-
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_INFO, info);
-
-    if (deliverErrcode)
-        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INTERRUPT_ERROR_CODE, errcode);
-
-    if (deliverLength)
-        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_INSTRUCTION_LENGTH, length);
-
-#endif
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMENTRY_INSTRUCTION_LENGTH, length);
 }
 
 static
@@ -446,7 +457,7 @@ void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
 
     guestIp += length;
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RIP, ia32eEmulatorModeApplyIpMask(guestIp));
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_RIP, ia32eEmulatorModeApplyIpMask(guestIp));
 
     if ((interruptibilityState & IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK) != 0 ||
         (interruptibilityState & IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK) != 0) {
@@ -454,7 +465,7 @@ void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
         interruptibilityState &= ~IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK;
         interruptibilityState &= ~IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK;
 
-        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
     }
 
     if ((guestFlags & IA32E_FLAGS_TF_MASK) != 0) {
@@ -470,7 +481,7 @@ void ia32eEmulatorUnsetNmiBlocking(void)
 
     interruptibilityState = ia32eVmread(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE);
     interruptibilityState &= ~IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_NMI_MASK; 
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
 }
 
 static
@@ -656,24 +667,6 @@ void ia32eEmulatoLoadHostDrx(void)
     __ia32eWriteDr3(cpu->vtx.hostDr3);
     __ia32eWriteDr6(cpu->vtx.hostDr6);
     __ia32eWriteDr7(cpu->vtx.hostDr7);
-}
-
-static
-void ia32eEmulatorHandleVcpuFailure(void)
-{
-    kSchedTask_t *task = NULL;
-    kDomain_t *domain = NULL;
-
-    cpuEnableInterrupts();
-
-    task = kTickGetRunningTask();
-    domain = task->domain.curDomain;
-
-    K_DYNAMIC_ASSERT(domain);
-
-    atomic_store(&domain->archInfo.ia32eInfo.tripleFault, 1);
-
-    kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);
 }
 
 static
@@ -864,13 +857,13 @@ void ia32eEmulatorX2apicResetCounter(void)
 
         if (testBitLe(pin, IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT)) {
 
-            __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, 0);
+            ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, 0);
 
             pin &= ~(1 << IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT);
             exit &= ~(1 << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT);
 
-            __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
-            __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
+            ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
+            ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
         }
 
         return;
@@ -883,11 +876,11 @@ void ia32eEmulatorX2apicResetCounter(void)
         pin |= (1 << IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT);
         exit |= (1 << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT);
 
-        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
-        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
     }
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, initCount);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, initCount);
 }
 
 static
@@ -928,7 +921,7 @@ void ia32eEmulatorX2apicSetDcr(uint8_t dcr)
         count = ia32eVmread(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE);
         count = ia32eEmulatorX2apicDecompressCounter(count, oldDcr);
         count = ia32eEmulatorX2apicCompressCounter(count, dcr);
-        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, count);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, count);
     }
 }
 
@@ -1531,7 +1524,7 @@ void ia32eEmulatorCrAccess(ia32eVmexitRegs_t *regs)
                     val |= IA32E_CR0_NE_MASK;
 
                     if (ia32eEmulatorValidateCr0(val))
-                        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CR0, val);
+                        ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CR0, val);
                     else 
                         valid = false;
                 
@@ -1915,15 +1908,15 @@ void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
     if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_PERIODIC_MASK) != 0) {
 
         initCount = ia32eEmulatorX2apicCompressCounter(initCount, dcr);
-        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, initCount);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE, initCount);
         return;
     }
 
     pin &= ~(1 << IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT);
     exit &= ~(1 << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
 }
 
 /* Emulator entry */
@@ -2078,7 +2071,7 @@ void ia32eEmulatorVmcsSetupBase(void)
             (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS2_URG_BIT) |
             (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS2_ENCLS_EXITING_BIT);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_EXCEPTION_BITMAP, exceptionBitmap);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_EXCEPTION_BITMAP, exceptionBitmap);
     
     ia32eVmwriteAdjusted(cpu->vtx.ia32eVmxPinbasedCtls, IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
     ia32eVmwriteAdjusted(cpu->vtx.ia32eVmxProcbasedCtls, IA32E_VTX_VMCS_CTRL_PROCBASED_CTLS, proc);
@@ -2089,30 +2082,30 @@ void ia32eEmulatorVmcsSetupBase(void)
 
     /* host state */
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_CR0, __ia32eReadCr0());
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_CR3, __ia32eReadCr3());
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_CR4, __ia32eReadCr4());
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_CR0, __ia32eReadCr0());
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_CR3, __ia32eReadCr3());
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_CR4, __ia32eReadCr4());
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_CS_SELECTOR, IA32E_KCS_SELECTOR);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_DS_SELECTOR, IA32E_KDS_SELECTOR);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_SS_SELECTOR, IA32E_KDS_SELECTOR);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_ES_SELECTOR, IA32E_KDS_SELECTOR);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_FS_SELECTOR, IA32E_KDS_SELECTOR);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_GS_SELECTOR, IA32E_KDS_SELECTOR);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_TR_SELECTOR, IA32E_TR_SELECTOR);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_CS_SELECTOR, IA32E_KCS_SELECTOR);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_DS_SELECTOR, IA32E_KDS_SELECTOR);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_SS_SELECTOR, IA32E_KDS_SELECTOR);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_ES_SELECTOR, IA32E_KDS_SELECTOR);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_FS_SELECTOR, IA32E_KDS_SELECTOR);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_GS_SELECTOR, IA32E_KDS_SELECTOR);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_TR_SELECTOR, IA32E_TR_SELECTOR);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_GS_BASE, __ia32eRdmsr(IA32E_GS_BASE));
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_TR_BASE, (uintptr_t)&cpu->cpuDataStructures.tssFull);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_GDTR_BASE, cpu->cpuDataStructures.gdtr.base);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_IDTR_BASE, cpu->global->cpuDataStructures.idtr.base);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_GS_BASE, __ia32eRdmsr(IA32E_GS_BASE));
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_TR_BASE, (uintptr_t)&cpu->cpuDataStructures.tssFull);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_GDTR_BASE, cpu->cpuDataStructures.gdtr.base);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_IDTR_BASE, cpu->global->cpuDataStructures.idtr.base);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_RIP, (uintptr_t)__ia32eVmexitStub);
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_RSP, task->ctx.ia32eCtx.ksp);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_RIP, (uintptr_t)__ia32eVmexitStub);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_RSP, task->ctx.ia32eCtx.ksp);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_IA32E_EFER, __ia32eRdmsr(IA32E_EFER));
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_IA32E_EFER, __ia32eRdmsr(IA32E_EFER));
 
     if (cpu->cpuFlags.fields.pat != 0)
-        __ia32eVmwrite(IA32E_VTX_VMCS_HOST_IA32E_PAT, __ia32eRdmsr(IA32E_PAT));
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_IA32E_PAT, __ia32eRdmsr(IA32E_PAT));
 
     /* shadows */
 
@@ -2147,85 +2140,85 @@ void ia32eEmulatorVmcsSetupBase(void)
     if (cpu->cpuFlags.fields.smap != 0)
         cr4Mask |= IA32E_CR4_SMAP_MASK;
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_CR0_GUEST_HOST_MASK, cr0Mask);
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_CR0_READ_SHADOW, cr0Shadow);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_CR0_GUEST_HOST_MASK, cr0Mask);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_CR0_READ_SHADOW, cr0Shadow);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_CR4_GUEST_HOST_MASK, ~cr4Mask);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_CR4_GUEST_HOST_MASK, ~cr4Mask);
 
     /* bitmaps */
 
     K_DYNAMIC_ASSERT((ia32eVirtToPhysStatic(cpu->vtx.areas.ioBitmap) & 0xfff) == 0);
     K_DYNAMIC_ASSERT((ia32eVirtToPhysStatic(global->vtxGlobal.msrBitmap) & 0xfff) == 0);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_IO_BITMAP_A, ia32eVirtToPhysStatic(cpu->vtx.areas.ioBitmap));
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_IO_BITMAP_B, ia32eVirtToPhysStatic(&cpu->vtx.areas.ioBitmap[4096]));
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_MSR_BITMAPS, ia32eVirtToPhysStatic(global->vtxGlobal.msrBitmap));
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_IO_BITMAP_A, ia32eVirtToPhysStatic(cpu->vtx.areas.ioBitmap));
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_IO_BITMAP_B, ia32eVirtToPhysStatic(&cpu->vtx.areas.ioBitmap[4096]));
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_MSR_BITMAPS, ia32eVirtToPhysStatic(global->vtxGlobal.msrBitmap));
 
     /* msr ctx */
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_LOAD_COUNT, cpu->vtx.areas.msrAreaCount);
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_STORE_COUNT, cpu->vtx.areas.msrAreaCount);
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_MSR_LOAD_COUNT, cpu->vtx.areas.msrAreaCount);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_LOAD_COUNT, cpu->vtx.areas.msrAreaCount);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_STORE_COUNT, cpu->vtx.areas.msrAreaCount);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMENTRY_MSR_LOAD_COUNT, cpu->vtx.areas.msrAreaCount);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_LOAD_ADDRESS, 
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_LOAD_ADDRESS, 
                    ia32eVirtToPhysStatic(cpu->vtx.areas.vmexitLoadArea));
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_STORE_ADDRESS, 
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_STORE_ADDRESS, 
                    ia32eVirtToPhysStatic(cpu->vtx.areas.vmexitStoreVmentryLoadArea));
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_MSR_LOAD_ADDRESS, 
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VMENTRY_MSR_LOAD_ADDRESS, 
                    ia32eVirtToPhysStatic(cpu->vtx.areas.vmexitStoreVmentryLoadArea));
 
     /* sgx */
 
     if (cpu->cpuFlags.fields.sgx != 0)
-        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_ENCLS_EXITING_BITMAP, UINT64_MAX);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_ENCLS_EXITING_BITMAP, UINT64_MAX);
 
     /* epts */
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_EPTP, task->domain.curDomain->archInfo.ia32eInfo.cr3);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_EPTP, task->domain.curDomain->archInfo.ia32eInfo.cr3);
 
 #if CONFIG_IA32E_VTX_FEATURE_VPID
 
     if (cpu->cpuFlags.fields.vpid != 0)
-        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VPID, task->domain.curDomain->archInfo.ia32eInfo.vpid);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VPID, task->domain.curDomain->archInfo.ia32eInfo.vpid);
     
 #endif
 
     /* misc */
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_ACTIVITY_STATE, IA32E_VTX_VMCS_GUEST_ACTIVE);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMCS_LINK_POINTER, UINT64_MAX);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_ACTIVITY_STATE, IA32E_VTX_VMCS_GUEST_ACTIVE);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_VMCS_LINK_POINTER, UINT64_MAX);
 }
 
 static
 void ia32eEmulatorVmcsSetupGuest(void)
 {
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_DR7, (1 << 10));
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RFLAGS, 0x2);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_DR7, (1 << 10));
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_RFLAGS, 0x2);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CR0, IA32E_CR0_NE_MASK);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CR4, IA32E_CR4_VMXE_MASK);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CR0, IA32E_CR0_NE_MASK);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CR4, IA32E_CR4_VMXE_MASK);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CS_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_DS_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_SS_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_ES_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_FS_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_GS_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_TR_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_LDTR_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_GDTR_LIMIT, 0xffff);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_IDTR_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CS_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_DS_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_SS_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_ES_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_FS_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_GS_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_TR_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_LDTR_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_GDTR_LIMIT, 0xffff);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_IDTR_LIMIT, 0xffff);
 
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS, 0x9b);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_DS_ACCESS_RIGHTS, 0x93);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_SS_ACCESS_RIGHTS, 0x93);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_ES_ACCESS_RIGHTS, 0x93);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_FS_ACCESS_RIGHTS, 0x93);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_GS_ACCESS_RIGHTS, 0x93);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_TR_ACCESS_RIGHTS, 0x8b);
-    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_LDTR_ACCESS_RIGHTS, 0x10000);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS, 0x9b);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_DS_ACCESS_RIGHTS, 0x93);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_SS_ACCESS_RIGHTS, 0x93);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_ES_ACCESS_RIGHTS, 0x93);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_FS_ACCESS_RIGHTS, 0x93);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_GS_ACCESS_RIGHTS, 0x93);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_TR_ACCESS_RIGHTS, 0x8b);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_LDTR_ACCESS_RIGHTS, 0x10000);
 }
 
 static
@@ -2339,7 +2332,7 @@ void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
         ia32eEmulatorRegsReset(regs);
 
         ia32eEmulatorVmcsSetupGuest();
-        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RIP, task->domain.curDomain->invocationInfo._start);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_RIP, task->domain.curDomain->invocationInfo._start);
 
         task->ctx.ia32eCtx.vtx.x2apic.local.fields.poweredOn = 1;
         return;
