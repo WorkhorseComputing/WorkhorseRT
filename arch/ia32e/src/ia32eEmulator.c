@@ -1295,6 +1295,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             case IA32E_CPUID_ESIG3:
             case IA32E_CPUID_ESIG4:
                 ia32eCpuid(eax, ecx, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+                
                 regs->regs.rax = cpuidRegs[0];
                 regs->regs.rbx = cpuidRegs[1];
                 regs->regs.rcx = cpuidRegs[2];
@@ -1331,12 +1332,12 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
 
             regs->regs.rax = cpuidRegs[0];
             regs->regs.rbx = (cpuidRegs[1] & 0xffff) | (vcpuId << 24);
+            regs->regs.rcx = (cpuidRegs[2] & IA32E_EMULATOR_CPUID1_C_TARGET_MASK);
+            regs->regs.rdx = (cpuidRegs[3] & IA32E_EMULATOR_CPUID1_D_TARGET_MASK);
 
-            regs->regs.rcx |= (cpuidRegs[2] & IA32E_EMULATOR_CPUID1_C_TARGET_MASK);
             regs->regs.rcx |= IA32E_CPUID1_C_X2APIC_MASK;
             regs->regs.rcx |= IA32E_CPUID1_C_HYPERVISOR_PRESENT_MASK;
 
-            regs->regs.rdx |= (cpuidRegs[3] & IA32E_EMULATOR_CPUID1_D_TARGET_MASK);
             regs->regs.rdx |= IA32E_CPUID1_D_APIC_MASK;
 
 #if CONFIG_IA32E_VTX_TSD
@@ -1369,23 +1370,25 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
                      */
 
                     ia32eCpuid(7, 0, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+
                     regs->regs.rax = 1;
-                    regs->regs.rbx |= (cpuidRegs[1] & IA32E_EMULATOR_CPUID7_0_B_TARGET_MASK);
-                    regs->regs.rcx |= (cpuidRegs[2] & IA32E_EMULATOR_CPUID7_0_C_TARGET_MASK);
-                    regs->regs.rdx |= (cpuidRegs[3] & IA32E_EMULATOR_CPUID7_0_D_TARGET_MASK);
+                    regs->regs.rbx = (cpuidRegs[1] & IA32E_EMULATOR_CPUID7_0_B_TARGET_MASK);
+                    regs->regs.rcx = (cpuidRegs[2] & IA32E_EMULATOR_CPUID7_0_C_TARGET_MASK);
+                    regs->regs.rdx = (cpuidRegs[3] & IA32E_EMULATOR_CPUID7_0_D_TARGET_MASK);
 
                     regs->regs.rdx |= IA32E_CPUID7_0_D_ARCH_CAP_MASK;
                     break;
 
                 case 1:
 
-                    regs->regs.rax |= IA32E_CPUID7_1_A_BIOS_DONE_MASK;
+                    regs->regs.rax = IA32E_CPUID7_1_A_BIOS_DONE_MASK;
                     if (cpu->extFeaturesSubleafMax < 1)
                         break;
 
                     ia32eCpuid(7, 1, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+
                     regs->regs.rax |= (cpuidRegs[0] & IA32E_EMULATOR_CPUID7_1_A_TARGET_MASK);
-                    regs->regs.rdx |= (cpuidRegs[3] & IA32E_EMULATOR_CPUID7_1_D_TARGET_MASK);
+                    regs->regs.rdx = (cpuidRegs[3] & IA32E_EMULATOR_CPUID7_1_D_TARGET_MASK);
                     break;
 
                 default:
@@ -1407,6 +1410,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
                 break;
 
             ia32eCpuid(36, ecx, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
+
             regs->regs.rax = cpuidRegs[0];
             regs->regs.rbx = cpuidRegs[1];
             regs->regs.rcx = cpuidRegs[2];
@@ -1419,13 +1423,13 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
 
             case 0:
                 regs->regs.rbx = 1;
-                regs->regs.rcx |= (IA32E_SMT << 8);
+                regs->regs.rcx = (IA32E_SMT << 8);
                 break;
                 
             case 1:
                 regs->regs.rax = 8;
                 regs->regs.rbx = ia32eEmulatorDomainVcpuCount();
-                regs->regs.rcx |= (IA32E_CORE << 8) | 1;
+                regs->regs.rcx = (IA32E_CORE << 8) | 1;
                 break;
 
             default:
