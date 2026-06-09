@@ -1049,7 +1049,7 @@ bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
             if (destinationMode == IA32E_XAPIC_DEST_LOGICAL) {
                 
                 clusterId = dest >> 16;
-                if (clusterId > ((numVcpus + 15) / 16))
+                if (clusterId > (numVcpus / 16))
                     break;
 
                 dest &= 0xffff;
