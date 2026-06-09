@@ -938,6 +938,7 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
         return;    
 
     x2apic = domain->archInfo.ia32eInfo.apicBus[x2apicId];
+    __mcsNodeInit(&node);
 
     switch (deliveryMode) {
 
