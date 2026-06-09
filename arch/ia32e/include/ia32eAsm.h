@@ -214,6 +214,50 @@
         .quad \pdpt + 0x103 
 .endm
 
+.macro IA32E_ASM_VTX_PUSH_REGS
+    IA32E_ASM_PUSH_REGS
+
+    movq %dr6, %rax 
+    pushq %rax
+
+    movq %dr3, %rax 
+    pushq %rax
+
+    movq %dr2, %rax 
+    pushq %rax
+
+    movq %dr1, %rax 
+    pushq %rax
+
+    movq %dr0, %rax 
+    pushq %rax
+
+    movq %cr2, %rax 
+    pushq %rax
+.endm
+
+.macro IA32E_ASM_VTX_POP_REGS
+    popq %rax 
+    movq %rax, %cr2
+
+    popq %rax 
+    movq %rax, %dr0
+    
+    popq %rax 
+    movq %rax, %dr1
+
+    popq %rax 
+    movq %rax, %dr2
+
+    popq %rax 
+    movq %rax, %dr3
+
+    popq %rax 
+    movq %rax, %dr6
+
+    IA32E_ASM_POP_REGS
+.endm
+
 #else
 
 #include <generated/autoconf.h>

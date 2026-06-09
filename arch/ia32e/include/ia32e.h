@@ -362,6 +362,8 @@
 #define IA32E_XAPIC_DIV_128                 0xA
 #define IA32E_XAPIC_DIV_1                   0xB
 
+#define IA32E_XAPIC_SIVR_ENABLE_MASK       (1 << 8)
+
 #define IA32E_XAPIC_LVT_TIMER_VECTOR_MASK   0xff
 #define IA32E_XAPIC_LVT_TIMER_DISABLE_MASK   (1 << 16)
 #define IA32E_XAPIC_LVT_TIMER_PERIODIC_MASK (1 << 17)
@@ -421,7 +423,7 @@
 #define IA32E_APIC_BASE                     0x1b
 #define IA32E_APIC_BASE_BSP_MASK            (1 << 8)
 #define IA32E_APIC_BASE_ENABLE_X2APIC_MASK  (1 << 10)
-#define IA32E_APIC_BASE_GLOBAL_EN_MASK  (1 << 11)
+#define IA32E_APIC_BASE_GLOBAL_EN_MASK      (1 << 11)
 
 #define IA32E_X2APIC_BASE               0x800
 #define IA32E_X2APIC_ID                 0x802

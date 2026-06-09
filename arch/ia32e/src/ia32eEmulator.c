@@ -28,10 +28,14 @@
 #if CONFIG_IA32E_VTX
 
 #include <ia32eCpu.h>
+#include <ia32eVma.h>
 #include <export/kDbgInterface.h>
 #include <import/kSyscallHandler.h>
 #include <workhorse/kTick/kTick.h>
 #include <stdatomic.h>
+
+extern 
+void __ia32eVmexitStub(void);
 
 #define IA32E_EMULATOR_CPUID1_C_TARGET_MASK                                             \
   (IA32E_CPUID1_C_SSE3_MASK | IA32E_CPUID1_C_PCLMULQDQ_MASK |                           \
@@ -147,6 +151,19 @@ char *ia32eEmulatorErrorTable[] = {
 };
 
 /* Emulation helpers */
+
+static
+bool ia32eVmwriteAdjusted(uint32_t msr, uint64_t field, uint64_t val)
+{
+    uint64_t cap = 0;
+    
+    cap = __ia32eRdmsr(msr);
+    
+    val |= (cap & 0xffffffff);
+    val &= (cap >> 32);
+
+    return __ia32eVmwrite(field, val);
+}
 
 static 
 uint64_t ia32eEmulatorModeApplyIpMask(uint64_t val)
@@ -1038,13 +1055,16 @@ bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
     destShorthand = (val >> 18) & 0x3; 
     dest = val >> 32;
 
-    if (deliveryMode == IA32E_DM_LOW_PRIORITY || deliveryMode == IA32E_DM_SMI || 
-        deliveryMode == IA32E_DM_RESERVED0 || deliveryMode == IA32E_DM_EXTERNAL) {
+    if (deliveryMode == IA32E_DM_LOW_PRIORITY || deliveryMode == IA32E_DM_RESERVED0 || 
+        deliveryMode == IA32E_DM_EXTERNAL) {
 
         return false;
     }
 
     task->ctx.ia32eCtx.vtx.x2apic.icr = val;
+
+    if (deliveryMode == IA32E_DM_SMI)
+        return true;
 
     switch (destShorthand) {
 
@@ -1950,15 +1970,369 @@ ia32eEmulatorFn_t ia32eEmulatorDispatchTable[] = {
     [IA32E_VTX_EXIT_REASON_ENCLS] = ia32eEmulatorUd,
 };
 
+/* hypervisor */
+
+static
+void ia32eEmulatorVmcsReset(void)
+{
+    uintptr_t vmcsPhys = 0;
+
+    kSchedTask_t *task = NULL;
+
+    kSchedThread_t *thread = NULL;
+    kSchedLsr_t *lsr = NULL;
+
+    K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
+
+    task = kTickGetRunningTask();
+
+    /* start vmcs */
+
+    switch (task->taggedInfo.type) {
+        
+        case K_TASK_THREAD:
+            thread = &task->taggedInfo.info.thread;
+            vmcsPhys = thread->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsPhys;
+            break;
+
+        case K_TASK_LSR:
+            lsr = &task->taggedInfo.info.lsr;
+            vmcsPhys = lsr->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsPhys;
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }   
+
+    cpuDisableInterrupts();
+
+#if CONFIG_KDYNAMIC_ASSERT
+
+    K_DYNAMIC_ASSERT(__ia32eVmclear(vmcsPhys));
+    K_DYNAMIC_ASSERT(__ia32eVmptrld(vmcsPhys));
+
+#else 
+
+    __ia32eVmclear(vmcsPhys);
+    __ia32eVmptrld(vmcsPhys);
+
+#endif
+
+    task->ctx.ia32eCtx.vtx.x2apic.local.fields.vmcsInitialized = 1;
+
+    cpuEnableInterrupts();
+}
+
+static
+void ia32eEmulatorVmcsSetupBase(void)
+{
+    kSchedTask_t *task = NULL;
+    ia32ePerCpu_t *cpu = NULL;
+    ia32eGlobal_t *global = NULL;
+
+    uint64_t exceptionBitmap = 0;
+    uint64_t pin = 0;
+    uint64_t proc = 0;
+    uint64_t exit = 0;
+    uint64_t entry = 0;
+    uint64_t proc2 = 0;
+
+    uint64_t cr0Mask = 0;
+    uint64_t cr0Shadow = 0;
+    
+    uint64_t cr4Mask = 0;
+
+    task = kTickGetRunningTask();
+    cpu = ia32eThisCpuData();
+    global = cpu->global;
+
+    /* controls */
+
+    exceptionBitmap = IA32E_VTX_VMCS_EXCEPTION_BITMAP_DEBUG_MASK | 
+                      IA32E_VTX_VMCS_EXCEPTION_BITMAP_ALIGNMENT_CHECK_MASK;
+
+    pin = (1ULL << IA32E_VTX_VMCS_PINBASED_CTLS_EXTERNAL_INTERRUPT_EXITING_BIT) |
+                (1ULL << IA32E_VTX_VMCS_PINBASED_CTLS_NMI_EXITING_BIT) |
+                (1ULL << IA32E_VTX_VMCS_PINBASED_CTLS_VIRTUAL_NMIS_BIT);
+            
+    proc = (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_MWAIT_EXITING_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_RDPMC_EXITING_BIT) |
+
+#if CONFIG_IA32E_VTX_TSD
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT) |
+#endif
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_LOAD_EXITING_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_STORE_EXITING_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_IO_BITMAPS_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_MSR_BITMAPS_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_MONITOR_EXITING_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_SECONDARY_CTLS_BIT);
+                
+    exit = (1ULL << IA32E_VTX_VMCS_EXIT_CTLS_HOST_ADDRESS_SPACE_SIZE_BIT) |
+            (1ULL << IA32E_VTX_VMCS_EXIT_CTLS_ACKNOWLEDGE_INTERRUPT_ON_EXIT_BIT) |
+            (1ULL << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_PAT_BIT) |
+            (1ULL << IA32E_VTX_VMCS_EXIT_CTLS_LOAD_PAT_BIT) |
+            (1ULL << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_EFER_BIT) |
+            (1ULL << IA32E_VTX_VMCS_EXIT_CTLS_LOAD_EFER_BIT);
+
+    entry = (1ULL << IA32E_VTX_VMCS_ENTRY_CTLS_LOAD_PAT_BIT) | 
+            (1ULL << IA32E_VTX_VMCS_ENTRY_CTLS_LOAD_EFER_BIT);
+
+    proc2 = (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS2_EPT_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS2_VPID_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS2_WBINVD_EXITING_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS2_URG_BIT) |
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS2_ENCLS_EXITING_BIT);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_EXCEPTION_BITMAP, exceptionBitmap);
+    
+    ia32eVmwriteAdjusted(cpu->vtx.ia32eVmxPinbasedCtls, IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS, pin);
+    ia32eVmwriteAdjusted(cpu->vtx.ia32eVmxProcbasedCtls, IA32E_VTX_VMCS_CTRL_PROCBASED_CTLS, proc);
+    ia32eVmwriteAdjusted(cpu->vtx.ia32eVmxExitCtls, IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS, exit);
+    ia32eVmwriteAdjusted(cpu->vtx.ia32eVmxEntryCtls, IA32E_VTX_VMCS_CTRL_VMENTRY_CONTROLS, entry);
+
+    ia32eVmwriteAdjusted(IA32E_VMX_PROCBASED_CTLS2, IA32E_VTX_VMCS_CTRL_PROCBASED_CTLS2, proc2);
+
+    /* host state */
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_CR0, __ia32eReadCr0());
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_CR3, __ia32eReadCr3());
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_CR4, __ia32eReadCr4());
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_CS_SELECTOR, IA32E_KCS_SELECTOR);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_DS_SELECTOR, IA32E_KDS_SELECTOR);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_SS_SELECTOR, IA32E_KDS_SELECTOR);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_ES_SELECTOR, IA32E_KDS_SELECTOR);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_FS_SELECTOR, IA32E_KDS_SELECTOR);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_GS_SELECTOR, IA32E_KDS_SELECTOR);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_TR_SELECTOR, IA32E_TR_SELECTOR);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_GS_BASE, __ia32eRdmsr(IA32E_GS_BASE));
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_TR_BASE, (uintptr_t)&cpu->cpuDataStructures.tssFull);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_GDTR_BASE, cpu->cpuDataStructures.gdtr.base);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_IDTR_BASE, cpu->global->cpuDataStructures.idtr.base);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_RIP, (uintptr_t)__ia32eVmexitStub);
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_RSP, task->ctx.ia32eCtx.ksp);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_HOST_IA32E_EFER, __ia32eRdmsr(IA32E_EFER));
+
+    if (cpu->cpuFlags.fields.pat != 0)
+        __ia32eVmwrite(IA32E_VTX_VMCS_HOST_IA32E_PAT, __ia32eRdmsr(IA32E_PAT));
+
+    /* shadows */
+
+    cr0Mask = IA32E_CR0_NE_MASK | IA32E_CR0_NW_MASK | IA32E_CR0_CD_MASK;
+    cr0Shadow = IA32E_CR0_NE_MASK;
+
+    cr4Mask =  IA32E_CR4_PSE_MASK | IA32E_CR4_PAE_MASK | IA32E_CR4_PGE_MASK | 
+               IA32E_CR4_OSFXSR_MASK | IA32E_CR4_OSXMMEXCPT_MASK;
+
+#if !CONFIG_IA32E_VTX_TSD
+    cr4Mask |= IA32E_CR4_TSD_MASK;
+#endif
+
+    if (cpu->cpuFlags.fields.vme != 0)
+        cr4Mask |= IA32E_CR4_VME_MASK | IA32E_CR4_PVI_MASK;
+
+    if (cpu->cpuFlags.fields.de != 0)
+        cr4Mask |= IA32E_CR4_DE_MASK;
+
+    if (cpu->cpuFlags.fields.umip != 0)
+        cr4Mask |= IA32E_CR4_UMIP_MASK;
+
+    if (cpu->cpuFlags.fields.fsgsbase != 0)
+        cr4Mask |= IA32E_CR4_FSGSBASE_MASK;
+
+    if (cpu->cpuFlags.fields.pcid != 0)
+        cr4Mask |= IA32E_CR4_PCIDE_MASK;
+
+    if (cpu->cpuFlags.fields.smep != 0)
+        cr4Mask |= IA32E_CR4_SMEP_MASK;
+
+    if (cpu->cpuFlags.fields.smap != 0)
+        cr4Mask |= IA32E_CR4_SMAP_MASK;
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_CR0_GUEST_HOST_MASK, cr0Mask);
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_CR0_READ_SHADOW, cr0Shadow);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_CR4_GUEST_HOST_MASK, ~cr4Mask);
+
+    /* bitmaps */
+
+    K_DYNAMIC_ASSERT((ia32eVirtToPhysStatic(cpu->vtx.areas.ioBitmap) & 0xfff) == 0);
+    K_DYNAMIC_ASSERT((ia32eVirtToPhysStatic(global->vtxGlobal.msrBitmap) & 0xfff) == 0);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_IO_BITMAP_A, ia32eVirtToPhysStatic(cpu->vtx.areas.ioBitmap));
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_IO_BITMAP_B, ia32eVirtToPhysStatic(&cpu->vtx.areas.ioBitmap[4096]));
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_MSR_BITMAPS, ia32eVirtToPhysStatic(global->vtxGlobal.msrBitmap));
+
+    /* msr ctx */
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_LOAD_COUNT, cpu->vtx.areas.msrAreaCount);
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_STORE_COUNT, cpu->vtx.areas.msrAreaCount);
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_MSR_LOAD_COUNT, cpu->vtx.areas.msrAreaCount);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_LOAD_ADDRESS, 
+                   ia32eVirtToPhysStatic(cpu->vtx.areas.vmexitLoadArea));
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMEXIT_MSR_STORE_ADDRESS, 
+                   ia32eVirtToPhysStatic(cpu->vtx.areas.vmexitStoreVmentryLoadArea));
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VMENTRY_MSR_LOAD_ADDRESS, 
+                   ia32eVirtToPhysStatic(cpu->vtx.areas.vmexitStoreVmentryLoadArea));
+
+    /* sgx */
+
+    if (cpu->cpuFlags.fields.sgx != 0)
+        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_ENCLS_EXITING_BITMAP, UINT64_MAX);
+
+    /* epts */
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_EPTP, task->domain.curDomain->archInfo.ia32eInfo.cr3);
+
+#if CONFIG_IA32E_VTX_FEATURE_VPID
+
+    if (cpu->cpuFlags.fields.vpid != 0)
+        __ia32eVmwrite(IA32E_VTX_VMCS_CTRL_VPID, task->domain.curDomain->archInfo.ia32eInfo.vpid);
+    
+#endif
+
+    /* misc */
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_ACTIVITY_STATE, IA32E_VTX_VMCS_GUEST_ACTIVE);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_VMCS_LINK_POINTER, UINT64_MAX);
+}
+
+static
+void ia32eEmulatorVmcsSetupGuest(void)
+{
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_DR7, (1 << 10));
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RFLAGS, 0x2);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CR0, IA32E_CR0_NE_MASK);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CR4, IA32E_CR4_VMXE_MASK);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CS_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_DS_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_SS_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_ES_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_FS_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_GS_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_TR_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_LDTR_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_GDTR_LIMIT, 0xffff);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_IDTR_LIMIT, 0xffff);
+
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS, 0x9b);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_DS_ACCESS_RIGHTS, 0x93);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_SS_ACCESS_RIGHTS, 0x93);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_ES_ACCESS_RIGHTS, 0x93);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_FS_ACCESS_RIGHTS, 0x93);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_GS_ACCESS_RIGHTS, 0x93);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_TR_ACCESS_RIGHTS, 0x8b);
+    __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_LDTR_ACCESS_RIGHTS, 0x10000);
+}
+
+static
+void ia32eEmulatorX2apicGuestReset(void)
+{
+    kSchedTask_t *task = NULL;
+
+    task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseBsp = task->ctx.ia32eCtx.vtx.x2apic.local.fields.bsp;
+    task->ctx.ia32eCtx.vtx.x2apic.local.fields.tpr = 0;
+
+    task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr = 0xfee00000;
+    task->ctx.ia32eCtx.vtx.x2apic.sivr = 0xff;
+    
+    STATIC_ASSERT(ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.irr) == 8);
+
+    memset(task->ctx.ia32eCtx.vtx.x2apic.isr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.isr));
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[0], 0);
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[1], 0);
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[2], 0);
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[3], 0);
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[4], 0);
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[5], 0);
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[6], 0);
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[7], 0);
+
+    task->ctx.ia32eCtx.vtx.x2apic.shadowEsr = 0;
+    task->ctx.ia32eCtx.vtx.x2apic.esr = 0;
+
+    task->ctx.ia32eCtx.vtx.x2apic.icr = 0;
+
+    task->ctx.ia32eCtx.vtx.x2apic.lvtTImer = IA32E_XAPIC_LVT_TIMER_DISABLE_MASK;
+
+    task->ctx.ia32eCtx.vtx.x2apic.initCount = 0;
+    task->ctx.ia32eCtx.vtx.x2apic.dcr = 0;
+}
+
+static
+void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
+{
+    
+}
+
 static 
-void ia32eEmulatorEventManager(void)
+bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 {
 
 }
 
-void ia32eEmulatorBootManager(void)
+void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
 {
+    kSchedTask_t *task = NULL;
+    ia32ePerCpu_t *cpu = NULL;
 
+    kSchedThread_t *thread = NULL;
+    kSchedLsr_t *lsr = NULL;
+
+    ia32eVtxVmcsRegion_t *vmcsVirt = NULL;
+
+    task = kTickGetRunningTask();
+    cpu = ia32eThisCpuData();
+
+    /* start vmcs */
+
+    switch (task->taggedInfo.type) {
+        
+        case K_TASK_THREAD:
+            thread = &task->taggedInfo.info.thread;
+            vmcsVirt = thread->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsVirt;
+            break;
+
+        case K_TASK_LSR:
+            lsr = &task->taggedInfo.info.lsr;
+            vmcsVirt = lsr->archInfo.ia32eInfo.vtxInfo.vtxParam.vmcsVirt;
+            break;
+
+        default:
+            K_DYNAMIC_ASSERT(false);
+            break;
+    }
+
+    vmcsVirt->header = cpu->vtx.revisionId;
+    ia32eEmulatorVmcsReset();
+
+    /* setup vmcs */
+
+    ia32eEmulatorVmcsSetupBase();
+    ia32eEmulatorX2apicGuestReset();
+
+    if (task->ctx.ia32eCtx.vtx.x2apic.local.fields.bsp != 0) {
+
+        K_DYNAMIC_ASSERT(task->domain.curDomain->invocationInfo._start <= UINT16_MAX);
+        
+        ia32eEmulatorVmcsSetupGuest();
+        __ia32eVmwrite(IA32E_VTX_VMCS_GUEST_RIP, task->domain.curDomain->invocationInfo._start);
+
+        task->ctx.ia32eCtx.vtx.x2apic.local.fields.poweredOn = 1;
+        return;
+    }
+
+    
 }
 
 ATTR_NORETURN
@@ -1971,7 +2345,7 @@ void ia32eEmulatorVcpuFailureEntry(void)
     UNREACHABLE();
 }
 
-void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
+bool ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
 {
     uint32_t exitReason = 0;
     uint32_t basicReason = 0;
@@ -2015,7 +2389,7 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
 
     K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
 
-    ia32eEmulatorEventManager();
+    return ia32eEmulatorEventManager(regs);
 }
 
 #endif
