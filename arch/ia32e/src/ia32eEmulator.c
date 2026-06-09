@@ -1985,18 +1985,24 @@ void ia32eEmulatorDispatcher(ia32eVmexitRegs_t *regs)
     ia32eEmulatoLoadHostDrx();
 
     exitReason = ia32eVmread(IA32E_VTX_VMCS_RO_EXIT_REASON);
-    basicReason = exitReason & IA32E_VTX_VMCS_EXIT_REASON_MASK;
-    failure = (exitReason & IA32E_VTX_VMCS_EXIT_REASON_VMENTRY_FAILURE_MASK) != 0;
 
     K_DYNAMIC_ASSERT((exitReason & IA32E_VTX_VMCS_EXIT_REASON_ENCLAVE_MASK) == 0);
 
-    if (failure || basicReason >= ARRAY_LEN(ia32eEmulatorDispatchTable)) {
+    basicReason = exitReason & IA32E_VTX_VMCS_EXIT_REASON_MASK;
+    failure = (exitReason & IA32E_VTX_VMCS_EXIT_REASON_VMENTRY_FAILURE_MASK) != 0;
+
+    if (failure) {
+        ia32eEmulatorHandleVcpuFailure();
+        UNREACHABLE();
+    }
+
+    K_DYNAMIC_ASSERT(basicReason < ARRAY_LEN(ia32eEmulatorDispatchTable));
+    if (basicReason >= ARRAY_LEN(ia32eEmulatorDispatchTable)) {
         ia32eEmulatorHandleVcpuFailure();
         UNREACHABLE();
     }
 
     K_DYNAMIC_ASSERT(ia32eEmulatorDispatchTable[basicReason]);
-
     if (!ia32eEmulatorDispatchTable[basicReason]) {
         ia32eEmulatorHandleVcpuFailure();
         UNREACHABLE();
