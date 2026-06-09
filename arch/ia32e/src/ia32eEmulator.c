@@ -173,8 +173,10 @@ void ia32eEmulatorHandleVcpuFailure(void)
 static
 void ia32eVmwriteSafe(uint64_t field, uint64_t val)
 {
-    if (K_BUG_ON(!__ia32eVmwrite(field, val)))
+    if (K_BUG_ON(!__ia32eVmwrite(field, val))) {
         ia32eEmulatorHandleVcpuFailure();
+        UNREACHABLE();
+    }
 }
 
 static
@@ -948,8 +950,14 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
         return;    
 
     x2apic = domain->archInfo.ia32eInfo.apicBus[x2apicId];
+
+    K_DYNAMIC_ASSERT(x2apic);
+
     __mcsNodeInit(&node);
 
+    cpuDisableInterrupts();
+    __mcsAcquire(&x2apic->latchLock, &node);
+    
     switch (deliveryMode) {
 
         case IA32E_DM_NORMAL:
@@ -962,18 +970,11 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
                     break;
             }
             
-            atomic_fetch_or(&x2apic->irr[vector / 32], (1 << (vector % 32)));
+            x2apic->latchedIrr[vector / 32] |= (1 << (vector % 32));
             break;
 
         case IA32E_DM_NMI:
-
-            cpuDisableInterrupts();
-            __mcsAcquire(&x2apic->latchLock, &node);
-
             x2apic->latch.fields.nmiPending = 1;
-            
-            __mcsRelease(&x2apic->latchLock, &node);
-            cpuEnableInterrupts();
             break;
 
         case IA32E_DM_INIT:
@@ -981,23 +982,14 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
             if (x2apicId == vcpuId)
                 break;
 
-            cpuDisableInterrupts();
-            __mcsAcquire(&x2apic->latchLock, &node);
-
             x2apic->latch.fields.initPending = 1;
             x2apic->latch.fields.sipiPending = 0;
-
-            __mcsRelease(&x2apic->latchLock, &node);
-            cpuEnableInterrupts();
             break;
 
         case IA32E_DM_STARTUP:
 
             if (x2apicId == vcpuId)
                 break;
-
-            cpuDisableInterrupts();
-            __mcsAcquire(&x2apic->latchLock, &node);
 
             if ((x2apic->latch.fields.waitForSipi != 0 || x2apic->latch.fields.initPending != 0) && 
                 x2apic->latch.fields.sipiPending == 0) {
@@ -1006,14 +998,15 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
                 x2apic->latch.fields.sipiPending = 1;
             }
 
-            __mcsRelease(&x2apic->latchLock, &node);
-            cpuEnableInterrupts();
             break;
 
         default:
             K_DYNAMIC_ASSERT(false);
             break;
     }
+
+    __mcsRelease(&x2apic->latchLock, &node);
+    cpuEnableInterrupts();
 }
 
 static
@@ -1575,6 +1568,8 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
     kSchedTask_t *task = NULL;
     uint32_t ecx = 0;
 
+    mcsNode_t node = {0};
+
     uint64_t vcpuId = 0;
 
     uint64_t val = 0;
@@ -1584,8 +1579,10 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 
     ecx = regs->regs.rcx & 0xffffffff;
 
+    __mcsNodeInit(&node);
+
     STATIC_ASSERT(ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.isr) == 8);
-    STATIC_ASSERT(ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.irr) == 8);
+    STATIC_ASSERT(ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr) == 8);
 
     switch (ecx) {
 
@@ -1626,28 +1623,14 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_ISR0:
-            val = task->ctx.ia32eCtx.vtx.x2apic.isr[0];
-            break;
         case IA32E_X2APIC_ISR1:
-            val = task->ctx.ia32eCtx.vtx.x2apic.isr[1];
-            break;
         case IA32E_X2APIC_ISR2:
-            val = task->ctx.ia32eCtx.vtx.x2apic.isr[2];
-            break;
         case IA32E_X2APIC_ISR3:
-            val = task->ctx.ia32eCtx.vtx.x2apic.isr[3];
-            break;
         case IA32E_X2APIC_ISR4:
-            val = task->ctx.ia32eCtx.vtx.x2apic.isr[4];
-            break;
         case IA32E_X2APIC_ISR5:
-            val = task->ctx.ia32eCtx.vtx.x2apic.isr[5];
-            break;
         case IA32E_X2APIC_ISR6:
-            val = task->ctx.ia32eCtx.vtx.x2apic.isr[6];
-            break;
         case IA32E_X2APIC_ISR7:
-            val = task->ctx.ia32eCtx.vtx.x2apic.isr[7];
+            val = task->ctx.ia32eCtx.vtx.x2apic.isr[ecx - IA32E_X2APIC_ISR0];
             break;
 
         case IA32E_X2APIC_TMR0:
@@ -1661,28 +1644,20 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_IRR0:
-            val = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.irr[0]);
-            break;
         case IA32E_X2APIC_IRR1:
-            val = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.irr[1]);
-            break;
         case IA32E_X2APIC_IRR2:
-            val = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.irr[2]);
-            break;
         case IA32E_X2APIC_IRR3:
-            val = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.irr[3]);
-            break;
         case IA32E_X2APIC_IRR4:
-            val = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.irr[4]);
-            break;
         case IA32E_X2APIC_IRR5:
-            val = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.irr[5]);
-            break;
         case IA32E_X2APIC_IRR6:
-            val = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.irr[6]);
-            break;
         case IA32E_X2APIC_IRR7:
-            val = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.irr[7]);
+            cpuDisableInterrupts();
+            __mcsAcquire(&task->ctx.ia32eCtx.vtx.x2apic.latchLock, &node);
+
+            val = task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[ecx - IA32E_X2APIC_IRR0];
+
+            __mcsRelease(&task->ctx.ia32eCtx.vtx.x2apic.latchLock, &node);
+            cpuEnableInterrupts();
             break;
 
         case IA32E_X2APIC_ESR:
@@ -2232,17 +2207,7 @@ void ia32eEmulatorX2apicReset(void)
     task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr = 0xfee00000;
     task->ctx.ia32eCtx.vtx.x2apic.sivr = 0xff;
     
-    STATIC_ASSERT(ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.irr) == 8);
-
     memset(task->ctx.ia32eCtx.vtx.x2apic.isr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.isr));
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[0], 0);
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[1], 0);
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[2], 0);
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[3], 0);
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[4], 0);
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[5], 0);
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[6], 0);
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.irr[7], 0);
 
     task->ctx.ia32eCtx.vtx.x2apic.shadowEsr = 0;
     task->ctx.ia32eCtx.vtx.x2apic.esr = 0;

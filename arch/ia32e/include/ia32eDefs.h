@@ -49,6 +49,7 @@ typedef struct ia32eVtxX2apic
             uint32_t reserved0 : 20;
         } fields;
     } latch;
+    uint32_t latchedIrr[8];
 
     union 
     {
@@ -68,7 +69,6 @@ typedef struct ia32eVtxX2apic
     uint8_t sivr;
 
     uint32_t isr[8];
-    atomic_uint_fast32_t irr[8];
 
     uint8_t shadowEsr;
     uint8_t esr;
