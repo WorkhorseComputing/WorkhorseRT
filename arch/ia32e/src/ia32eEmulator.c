@@ -1963,7 +1963,7 @@ ia32eEmulatorFn_t ia32eEmulatorDispatchTable[] = {
     [IA32E_VTX_EXIT_REASON_ENCLS] = ia32eEmulatorUd,
 };
 
-/* hypervisor */
+/* hypervisor helpers */
 
 static
 void ia32eEmulatorVmcsReset(void)
@@ -2274,6 +2274,8 @@ void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
 
     memset(cpu->vtx.areas.vmexitStoreVmentryLoadArea, 0, sizeof(cpu->vtx.areas.vmexitStoreVmentryLoadArea));
 }
+
+/* hypervisor */
 
 static 
 bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
