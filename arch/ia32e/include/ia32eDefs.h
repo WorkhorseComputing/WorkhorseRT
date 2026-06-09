@@ -46,7 +46,7 @@ typedef struct ia32eVtxX2apic
             uint32_t sipiPending : 1;
             uint32_t sipiVector : 8;
             uint32_t nmiPending : 1;
-            uint32_t reserved0 : 21;
+            uint32_t reserved0 : 20;
         } fields;
     } latch;
 

@@ -211,8 +211,7 @@ launch:
     IA32E_ASM_VTX_POP_REGS
 
     vmlaunch
-    IA32E_ASM_RELOAD_FP_STATE
-    jmp 2f
+    jmp 1f
 
 .balign 64
 __ia32eVmexitStub:
@@ -232,12 +231,9 @@ __ia32eVmexitStub:
     IA32E_ASM_VTX_POP_REGS
 
     vmresume
-    IA32E_ASM_RELOAD_FP_STATE
-    jmp 2f
 
-/* vmentry failure stub */
-
-2:  call ia32eEmulatorVcpuFailureEntry
+1:  IA32E_ASM_RELOAD_FP_STATE
+    call ia32eEmulatorVcpuFailureEntry
     int3
 
 #endif

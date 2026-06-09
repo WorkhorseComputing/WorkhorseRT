@@ -2007,17 +2007,10 @@ void ia32eEmulatorVmcsReset(void)
 
     cpuDisableInterrupts();
 
-#if CONFIG_KDYNAMIC_ASSERT
-
-    K_DYNAMIC_ASSERT(__ia32eVmclear(vmcsPhys));
-    K_DYNAMIC_ASSERT(__ia32eVmptrld(vmcsPhys));
-
-#else 
-
-    __ia32eVmclear(vmcsPhys);
-    __ia32eVmptrld(vmcsPhys);
-
-#endif
+    if (K_BUG_ON(!__ia32eVmclear(vmcsPhys)) || K_BUG_ON(!__ia32eVmptrld(vmcsPhys))) {
+        ia32eEmulatorHandleVcpuFailure();
+        UNREACHABLE();
+    }        
 
     task->ctx.ia32eCtx.vtx.x2apic.local.fields.vmcsInitialized = 1;
 
