@@ -2278,6 +2278,8 @@ void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
     regs->regs.fxsaveRegion.mxcsrMask = cpu->mxcsrMask;
 
     regs->regs.rdx = cpu->cpuVersion;
+
+    memset(cpu->vtx.areas.vmexitStoreVmentryLoadArea, 0, sizeof(cpu->vtx.areas.vmexitStoreVmentryLoadArea));
 }
 
 static 
@@ -2299,7 +2301,11 @@ void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
     task = kTickGetRunningTask();
     cpu = ia32eThisCpuData();
 
-    /* start vmcs */
+    /* are we bsp ?? */
+
+    task->ctx.ia32eCtx.vtx.x2apic.local.fields.bsp = ia32eEmulatorVcpuId() == 0;
+
+    /* Reset vmcs */
 
     switch (task->taggedInfo.type) {
         
@@ -2321,7 +2327,7 @@ void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
     vmcsVirt->header = cpu->vtx.revisionId;
     ia32eEmulatorVmcsReset();
 
-    /* setup vmcs */
+    /* Setup vmcs */
 
     ia32eEmulatorVmcsSetupBase();
     ia32eEmulatorX2apicReset();
