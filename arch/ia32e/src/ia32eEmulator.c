@@ -2527,9 +2527,16 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
     ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
 
-    initPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending != 0;
-    task->ctx.ia32eCtx.vtx.x2apic.latch.fields.waitForSipi = initPending;
-    task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending = 0;
+    if (task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending != 0) {
+
+        initPending = true;
+        task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending = 0;
+
+        task->ctx.ia32eCtx.vtx.x2apic.latch.fields.waitForSipi = 1;
+        
+        task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending = 0;
+        memset(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr));
+    }
 
     ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
 
@@ -2543,15 +2550,10 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
             sipiPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.sipiPending;
             sipiVector = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.sipiVector;
-
             task->ctx.ia32eCtx.vtx.x2apic.latch.fields.waitForSipi = !sipiPending;
 
-            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending = 0;
             task->ctx.ia32eCtx.vtx.x2apic.latch.fields.sipiPending = 0;
             task->ctx.ia32eCtx.vtx.x2apic.latch.fields.sipiVector = 0;
-            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending = 0;
-
-            memset(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr));
 
             ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
 
