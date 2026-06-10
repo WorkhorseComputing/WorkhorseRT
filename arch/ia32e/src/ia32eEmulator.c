@@ -2301,6 +2301,7 @@ void ia32eEmulatorX2apicReset(void)
 
     task->ctx.ia32eCtx.vtx.x2apic.local.fields.apicBaseBsp = task->ctx.ia32eCtx.vtx.x2apic.local.fields.bsp;
     task->ctx.ia32eCtx.vtx.x2apic.local.fields.tpr = 0;
+    task->ctx.ia32eCtx.vtx.x2apic.local.fields.tprSubclass = 0;
 
     task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr = 0xfee00000;
     task->ctx.ia32eCtx.vtx.x2apic.sivr = 0xff;
