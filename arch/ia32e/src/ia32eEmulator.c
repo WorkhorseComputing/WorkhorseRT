@@ -2338,6 +2338,18 @@ void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
     memset(cpu->vtx.areas.vmexitStoreVmentryLoadArea, 0, sizeof(cpu->vtx.areas.vmexitStoreVmentryLoadArea));
 }
 
+static
+void ia32eEmulatorVcpuReset(ia32eVmexitRegs_t *regs)
+{
+    ia32eEmulatorVmcsReset();
+
+    ia32eEmulatorVmcsSetupBase();
+    ia32eEmulatorVmcsSetupGuest();
+
+    ia32eEmulatorX2apicReset();
+    ia32eEmulatorRegsReset(regs);
+}
+
 /* Hypervisor */
 
 static
@@ -2541,14 +2553,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
                 ia32eEmulatorWait();
         }
 
-        ia32eEmulatorVmcsReset();
-
-        ia32eEmulatorVmcsSetupBase();
-        ia32eEmulatorVmcsSetupGuest();
-
-        ia32eEmulatorX2apicReset();
-        ia32eEmulatorRegsReset(regs);
-
+        ia32eEmulatorVcpuReset(regs);
         ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CS_BASE, sipiVector * 4096);
         ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CS_SELECTOR, sipiVector * 256);
 
@@ -2658,14 +2663,7 @@ void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
 
         K_DYNAMIC_ASSERT(task->domain.curDomain->invocationInfo._start <= UINT16_MAX);
 
-        ia32eEmulatorVmcsReset();
-
-        ia32eEmulatorVmcsSetupBase();
-        ia32eEmulatorVmcsSetupGuest();
-
-        ia32eEmulatorX2apicReset();
-        ia32eEmulatorRegsReset(regs);
-
+        ia32eEmulatorVcpuReset(regs);
         ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_RIP, task->domain.curDomain->invocationInfo._start);
 
         task->ctx.ia32eCtx.vtx.x2apic.local.fields.poweredOn = 1;
