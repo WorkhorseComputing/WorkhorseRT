@@ -226,7 +226,7 @@ __ia32eVmexitStub:
     cli
 
     test %eax, %eax
-    jz launch
+    jnz launch
 
     IA32E_ASM_VTX_POP_REGS
 

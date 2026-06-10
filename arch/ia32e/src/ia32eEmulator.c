@@ -102,6 +102,17 @@ void __ia32eVmexitStub(void);
 #define IA32E_EMULATOR_X2APIC_LVT_TIMER_WRITE_RESERVED_MASK                             \
     ((0xffULL << 8) | 0xfffffffffffc0000ULL)
 
+#define IA32E_EMULATOR_INTERRUPTIBILITY_STATE_NMIS_BLOCKED_MASK                         \
+        (IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_NMI_MASK |                         \
+         IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK)
+
+#define IA32E_EMULATOR_INTERRUPTIBILITY_STATE_INTS_BLOCKED_MASK                         \
+        (IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK |                         \
+         IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK)
+
+#define ia32eEmulatorGuestIf() \
+    ((ia32eVmread(IA32E_VTX_VMCS_GUEST_RFLAGS) & IA32E_FLAGS_IF_MASK) != 0)
+
 #define ia32eEmulatorRunningTaskMode() \
     (kTickGetRunningTask()->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode)
 
@@ -118,6 +129,35 @@ void __ia32eVmexitStub(void);
 #define ia32eEmulatorVmxPreemptionTimerIsEnabled()                                  \
     (testBitLe(ia32eVmread(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS),                  \
                            IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT))
+
+#define ia32eEmulatorLatchLockSafe(x2apic, node) do {                           \
+    __mcsNodeInit((node));                                                      \
+    cpuDisableInterrupts();                                                     \
+    __mcsAcquire(&(x2apic)->latchLock, (node));                                 \
+} while (0)
+
+#define ia32eEmulatorLatchUnlockSafe(x2apic, node) do {                         \
+    __mcsRelease(&(x2apic)->latchLock, (node));                                 \
+    cpuEnableInterrupts();                                                      \
+} while (0)
+
+#define ia32eEmulatorTripleFaultReceive() do {                                  \
+    if (atomic_load(&domain->archInfo.ia32eInfo.tripleFault) != 0) {            \
+        ia32eEmulatorHandleVcpuFailure();                                       \
+        UNREACHABLE();                                                          \
+    }                                                                           \
+} while (0)
+
+#define ia32eEmulatorWait() do {                                                        \
+    kSchedTaskType_t type = kTickGetRunningTask()->taggedInfo.type;                     \
+                                                                                        \
+    K_DYNAMIC_ASSERT(type == K_TASK_THREAD || type == K_TASK_LSR);                      \
+                                                                                        \
+    if (type == K_TASK_THREAD)                                                          \
+        kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_YIELD, 0);       \
+    else                                                                                \
+        kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_LSR_DONE, 0);    \
+} while (0)
 
 char *ia32eEmulatorErrorTable[] = {
     [0] = "UNKNOWN, ERRCODE 0",
@@ -754,6 +794,62 @@ void ia32eEmulatorX2apicUnsetIsrv(void)
 }
 
 static
+void ia32eEmulatorX2apicSetIsrv(uint8_t vector)
+{
+    kSchedTask_t *task = NULL;
+
+    task = kTickGetRunningTask();
+
+    task->ctx.ia32eCtx.vtx.x2apic.isr[vector / 32] |= (1U << (vector % 32));
+}
+
+static
+uint8_t ia32eEmulatorX2apicGetPpr(void)
+{
+    return max(ia32eEmulatorX2apicGetTpr(), ia32eEmulatorX2apicGetIsrv() / 16);
+}
+
+static
+int32_t ia32eEmulatorX2apicGetIrrPendingUnsafe(void)
+{
+    kSchedTask_t *task = NULL;
+
+    int32_t i = 0;
+    int idx = -1;
+
+    task = kTickGetRunningTask();
+
+    for (i = (ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr) - 1); i >= 0; i--) {
+        
+        idx = fls32(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[i]);
+        if (idx >= 0)
+            return (i * 32) + idx;
+    } 
+
+    return -1;
+}
+
+static
+void ia32eEmulatorX2apicUnsetIrrPendingUnsafe(void)
+{
+    kSchedTask_t *task = NULL;
+
+    int32_t i = 0;
+    int idx = -1;
+
+    task = kTickGetRunningTask();
+
+    for (i = (ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr) - 1); i >= 0; i--) {
+        
+        idx = fls32(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[i]);
+        if (idx >= 0) {
+            task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[i] &= ~(1 << idx);
+            break;
+        }
+    } 
+}
+
+static
 uint32_t ia32eEmulatorX2apicCompressCounter(uint32_t count, uint32_t dcr)
 {
     switch (dcr) {
@@ -956,10 +1052,7 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
 
     K_DYNAMIC_ASSERT(x2apic);
 
-    __mcsNodeInit(&node);
-
-    cpuDisableInterrupts();
-    __mcsAcquire(&x2apic->latchLock, &node);
+    ia32eEmulatorLatchLockSafe(x2apic, &node);
     
     switch (deliveryMode) {
 
@@ -1009,8 +1102,7 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
             break;
     }
 
-    __mcsRelease(&x2apic->latchLock, &node);
-    cpuEnableInterrupts();
+    ia32eEmulatorLatchUnlockSafe(x2apic, &node);
 }
 
 static
@@ -1585,8 +1677,6 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 
     ecx = regs->regs.rcx & 0xffffffff;
 
-    __mcsNodeInit(&node);
-
     STATIC_ASSERT(ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.isr) == 8);
     STATIC_ASSERT(ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr) == 8);
 
@@ -1616,7 +1706,7 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_PPR:
-            val = max(ia32eEmulatorX2apicGetTpr(), ia32eEmulatorX2apicGetIsrv() / 16) << 4;
+            val = ia32eEmulatorX2apicGetPpr() << 4;
             break;
 
         case IA32E_X2APIC_LDR:
@@ -1657,13 +1747,9 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_IRR5:
         case IA32E_X2APIC_IRR6:
         case IA32E_X2APIC_IRR7:
-            cpuDisableInterrupts();
-            __mcsAcquire(&task->ctx.ia32eCtx.vtx.x2apic.latchLock, &node);
-
+            ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
             val = task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[ecx - IA32E_X2APIC_IRR0];
-
-            __mcsRelease(&task->ctx.ia32eCtx.vtx.x2apic.latchLock, &node);
-            cpuEnableInterrupts();
+            ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
             break;
 
         case IA32E_X2APIC_ESR:
@@ -2381,21 +2467,151 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     kSchedTask_t *task = NULL;
     kDomain_t *domain = NULL;
 
+    mcsNode_t node = {0};
+
+    bool powerGiven = false;
+    bool initPending = false;
+    bool sipiPending = false;
+    uint32_t sipiVector = 0;
+
+    bool launch = false;
+
+    bool injected = false;
+
+    uint32_t interruptibilityState = 0;
+    bool nmiPending = false;
+
+    int32_t intVector = 0;
+    bool intPending = false;
+
+    uint32_t proc = 0;
+
+    K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
+
     task = kTickGetRunningTask();
     domain = task->domain.curDomain;
 
-    /* 1: check if the chipset broadcasted a triple fault */
+    /* 1: check if we have been given power */
 
-    if (atomic_load(&domain->archInfo.ia32eInfo.tripleFault) != 0) {
-        ia32eEmulatorHandleVcpuFailure();
-        UNREACHABLE();
+    while (task->ctx.ia32eCtx.vtx.x2apic.local.fields.poweredOn == 0) {
+
+        ia32eEmulatorTripleFaultReceive();
+
+        ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+        powerGiven = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending != 0;
+        ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+        if (!powerGiven)
+            ia32eEmulatorWait();
+        else
+            task->ctx.ia32eCtx.vtx.x2apic.local.fields.poweredOn = 1;
     }
 
     /* 2: check if we should go into an initialization state */
 
+    ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+    initPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending != 0;
+    task->ctx.ia32eCtx.vtx.x2apic.latch.fields.waitForSipi = initPending;
+    task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending = 0;
+
+    ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+    if (initPending) {
+
+        while (!sipiPending) {
+
+            ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+            sipiPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.sipiPending;
+            sipiVector = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.sipiVector;
+
+            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.waitForSipi = !sipiPending;
+
+            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.initPending = 0;
+            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.sipiPending = 0;
+            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.sipiVector = 0;
+            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending = 0;
+
+            memset(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr));
+
+            ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+            if (!sipiPending)
+                ia32eEmulatorWait();
+        }
+
+        ia32eEmulatorVmcsReset();
+
+        ia32eEmulatorVmcsSetupBase();
+        ia32eEmulatorVmcsSetupGuest();
+
+        ia32eEmulatorX2apicReset();
+        ia32eEmulatorRegsReset(regs);
+
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CS_BASE, sipiVector * 4096);
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CS_SELECTOR, sipiVector * 256);
+
+        launch = true;
+    } 
+
     /* 3: dequeue any pending events */
 
+    injected = !ia32eEmulatorDequeueEvents(regs);
 
+    /* 4: see if we have any pending events */
+
+    interruptibilityState = ia32eVmread(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE);
+
+    ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+    if (!injected) {
+        nmiPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending != 0;
+
+        intVector = ia32eEmulatorX2apicGetIrrPendingUnsafe();
+        intPending = intVector > 0;
+
+        if (nmiPending && (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_NMIS_BLOCKED_MASK) == 0) {
+
+            ia32eEmulatorInjectEvent(IA32E_NMI, IA32E_INTERRUPT_TYPE_NMI, false, 0, false, 0);
+            task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending = 0;
+
+            injected = true;
+            nmiPending = false;
+        }
+
+        if (!injected && intPending &&  ia32eEmulatorGuestIf() && ia32eEmulatorX2apicGetPpr() < (intVector / 16) &&
+            (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_INTS_BLOCKED_MASK) == 0) {
+
+            ia32eEmulatorInjectEvent(intVector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0, false, 0);
+
+            ia32eEmulatorX2apicUnsetIrrPendingUnsafe();
+            ia32eEmulatorX2apicSetIsrv(intVector);
+
+            injected = true;
+            intPending = ia32eEmulatorX2apicGetIrrPendingUnsafe() > 0;
+        }
+    }
+
+    ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+    /* 5: trigger an exit if we have any events still pending */
+
+    proc = ia32eVmread(IA32E_VTX_VMCS_CTRL_PROCBASED_CTLS);
+
+    if (nmiPending)
+        proc |= (1U << IA32E_VTX_VMCS_PROCBASED_CTLS_NMI_WINDOW_EXITING_BIT);
+    else
+        proc &= ~(1U << IA32E_VTX_VMCS_PROCBASED_CTLS_NMI_WINDOW_EXITING_BIT);
+
+    if (intPending)
+        proc |= (1 << IA32E_VTX_VMCS_PROCBASED_CTLS_INTERRUPT_WINDOW_EXITING_BIT);
+    else
+        proc &= ~(1 << IA32E_VTX_VMCS_PROCBASED_CTLS_INTERRUPT_WINDOW_EXITING_BIT);
+
+    ia32eVmwriteSafe(IA32E_VMX_PROCBASED_CTLS, proc);
+
+    return launch;
 }
 
 void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
@@ -2435,18 +2651,19 @@ void ia32eEmulatorBootManager(ia32eVmexitRegs_t *regs)
     }
 
     vmcsVirt->header = cpu->vtx.revisionId;
-    ia32eEmulatorVmcsReset();
 
     /* Setup vmcs */
-
-    ia32eEmulatorVmcsSetupBase();
-    ia32eEmulatorX2apicReset();
 
     if (task->ctx.ia32eCtx.vtx.x2apic.local.fields.bsp != 0) {
 
         K_DYNAMIC_ASSERT(task->domain.curDomain->invocationInfo._start <= UINT16_MAX);
 
+        ia32eEmulatorVmcsReset();
+
+        ia32eEmulatorVmcsSetupBase();
         ia32eEmulatorVmcsSetupGuest();
+
+        ia32eEmulatorX2apicReset();
         ia32eEmulatorRegsReset(regs);
 
         ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_RIP, task->domain.curDomain->invocationInfo._start);
