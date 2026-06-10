@@ -2597,6 +2597,8 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
         if (!injected && intPending && ia32eEmulatorGuestIf() && ia32eEmulatorX2apicGetPpr() < (intVector / 16) &&
             (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_INTS_BLOCKED_MASK) == 0) {
 
+            K_DYNAMIC_ASSERT(intVector > 15);
+
             ia32eEmulatorInjectEvent(intVector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0, false, 0);
 
             ia32eEmulatorX2apicUnsetIrrPendingUnsafe();
