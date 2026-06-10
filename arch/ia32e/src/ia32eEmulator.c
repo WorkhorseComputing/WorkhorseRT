@@ -2503,7 +2503,11 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     task = kTickGetRunningTask();
     domain = task->domain.curDomain;
 
-    /* 1: check if we have been given power */
+    /* 1: mandatory receiving of broadcasts */
+
+    ia32eEmulatorTripleFaultReceive();
+
+    /* 2: check if we have been given power */
 
     while (task->ctx.ia32eCtx.vtx.x2apic.local.fields.poweredOn == 0) {
 
@@ -2519,7 +2523,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
             task->ctx.ia32eCtx.vtx.x2apic.local.fields.poweredOn = 1;
     }
 
-    /* 2: check if we should go into an initialization state */
+    /* 3: check if we should go into an initialization state */
 
     ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
 
@@ -2532,6 +2536,8 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     if (initPending) {
 
         while (!sipiPending) {
+
+            ia32eEmulatorTripleFaultReceive();
 
             ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
 
@@ -2558,13 +2564,13 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
         ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_CS_SELECTOR, sipiVector * 256);
 
         launch = true;
-    } 
+    }
 
-    /* 3: dequeue any pending events */
+    /* 4: dequeue any pending events */
 
     injected = !ia32eEmulatorDequeueEvents(regs);
 
-    /* 4: see if we have any pending events */
+    /* 5: see if we have any pending events */
 
     interruptibilityState = ia32eVmread(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE);
 
@@ -2585,7 +2591,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
             nmiPending = false;
         }
 
-        if (!injected && intPending &&  ia32eEmulatorGuestIf() && ia32eEmulatorX2apicGetPpr() < (intVector / 16) &&
+        if (!injected && intPending && ia32eEmulatorGuestIf() && ia32eEmulatorX2apicGetPpr() < (intVector / 16) &&
             (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_INTS_BLOCKED_MASK) == 0) {
 
             ia32eEmulatorInjectEvent(intVector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0, false, 0);
@@ -2600,7 +2606,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
     ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
 
-    /* 5: trigger an exit if we have any events still pending */
+    /* 6: trigger an exit if we have any events still pending */
 
     proc = ia32eVmread(IA32E_VTX_VMCS_CTRL_PROCBASED_CTLS);
 
