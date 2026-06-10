@@ -445,7 +445,7 @@ void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool de
 }
 
 static
-void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
+bool ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
 {
     uintptr_t guestIp = 0;
     uintptr_t length = 0;
@@ -473,7 +473,10 @@ void ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
     if ((guestFlags & IA32E_FLAGS_TF_MASK) != 0) {
         regs->dr6 |= IA32E_DR6_BS_MASK;
         ia32eEmulatorInjectEvent(IA32E_DEBUG_EXCEPTION, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, false, 0, false, 0);
+        return false;
     }
+
+    return true;
 }
 
 static
@@ -1608,7 +1611,7 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_TPR:
-            val = ia32eEmulatorX2apicGetTpr() << 4;
+            val = (ia32eEmulatorX2apicGetTpr() << 4) | task->ctx.ia32eCtx.vtx.x2apic.local.fields.tprSubclass;
             break;
 
         case IA32E_X2APIC_PPR:
@@ -1752,11 +1755,13 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_X2APIC_TPR:
             
-            if ((val & ~0xffULL) == 0)
-                ia32eEmulatorX2apicSetTpr(val >> 4);
-            else
+            if ((val & ~0xffULL) != 0) {
                 valid = false;
-
+                break;
+            }
+                
+            ia32eEmulatorX2apicSetTpr(val >> 4);
+            task->ctx.ia32eCtx.vtx.x2apic.local.fields.tprSubclass = val & 0xf;
             break;
 
         case IA32E_X2APIC_EOI:

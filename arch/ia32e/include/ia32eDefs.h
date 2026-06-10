@@ -53,14 +53,16 @@ typedef struct ia32eVtxX2apic
 
     union 
     {
-        uint8_t val;
+        uint32_t val;
         struct 
         {
-            uint8_t vmcsInitialized : 1;
-            uint8_t bsp : 1;
-            uint8_t poweredOn : 1;
-            uint8_t apicBaseBsp : 1;
-            uint8_t tpr : 4;
+            uint32_t vmcsInitialized : 1;
+            uint32_t bsp : 1;
+            uint32_t poweredOn : 1;
+            uint32_t apicBaseBsp : 1;
+            uint32_t tpr : 4;
+            uint32_t tprSubclass : 4;
+            uint32_t reserved0 : 20;
         } fields;
     } local;
 

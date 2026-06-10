@@ -379,7 +379,9 @@ void ia32eApicEnable(uint8_t spuriousVector)
     uint32_t sivr = 0;
     
     sivr = ia32eApicRead(IA32E_XAPIC_SIVR_OFFSET, false);
-    sivr |= ((uint32_t)spuriousVector) | (1 << 8);
+    sivr &= ~0xff;
+    sivr |= spuriousVector; 
+    sivr |= (1 << 8);
     ia32eApicWrite(IA32E_XAPIC_SIVR_OFFSET, sivr, false);
 }
 
