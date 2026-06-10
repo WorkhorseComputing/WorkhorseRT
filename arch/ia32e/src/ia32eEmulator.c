@@ -445,7 +445,7 @@ void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool de
 }
 
 static
-bool ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
+bool ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs, bool checkTf)
 {
     uintptr_t guestIp = 0;
     uintptr_t length = 0;
@@ -470,7 +470,7 @@ bool ia32eEmulatorAdvance(ia32eVmexitRegs_t *regs)
         ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE, interruptibilityState);
     }
 
-    if ((guestFlags & IA32E_FLAGS_TF_MASK) != 0) {
+    if (checkTf && (guestFlags & IA32E_FLAGS_TF_MASK) != 0) {
         regs->dr6 |= IA32E_DR6_BS_MASK;
         ia32eEmulatorInjectEvent(IA32E_DEBUG_EXCEPTION, IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION, false, 0, false, 0);
         return false;
@@ -967,10 +967,11 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
 
             if (vector <= 15) {
 
-                task->ctx.ia32eCtx.vtx.x2apic.shadowEsr |= IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK;
+                atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr, IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK);
+                if (x2apicId != vcpuId)
+                    atomic_fetch_or(&x2apic->shadowEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
 
-                if (x2apicId == vcpuId)
-                    break;
+                break;
             }
             
             x2apic->latchedIrr[vector / 32] |= (1 << (vector % 32));
@@ -1789,8 +1790,8 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 break;
             }
 
-            task->ctx.ia32eCtx.vtx.x2apic.esr = task->ctx.ia32eCtx.vtx.x2apic.shadowEsr;
-            task->ctx.ia32eCtx.vtx.x2apic.shadowEsr = 0;
+            task->ctx.ia32eCtx.vtx.x2apic.esr = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr);
+            atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr, 0);
             break;
 
         case IA32E_X2APIC_ICR:
@@ -1878,7 +1879,11 @@ void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 
     if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_DISABLE_MASK) == 0) {
         vector = lvtTImer & IA32E_XAPIC_LVT_TIMER_VECTOR_MASK;
-        ia32eEmulatorQueueEventSynthetic(false, vector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0);
+
+        if (vector <= 15)
+            atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
+        else 
+            ia32eEmulatorQueueEventSynthetic(false, vector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0);
     }
 
     pin = ia32eVmread(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS);
@@ -2216,7 +2221,7 @@ void ia32eEmulatorX2apicReset(void)
     
     memset(task->ctx.ia32eCtx.vtx.x2apic.isr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.isr));
 
-    task->ctx.ia32eCtx.vtx.x2apic.shadowEsr = 0;
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr, 0);
     task->ctx.ia32eCtx.vtx.x2apic.esr = 0;
 
     task->ctx.ia32eCtx.vtx.x2apic.icr = 0;
@@ -2249,9 +2254,147 @@ void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
 
 /* Hypervisor */
 
+static
+bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
+{
+    kSchedTask_t *task = NULL;
+    uint8_t vcpuId = 0;
+
+    bool lostValid = false;
+    uint8_t lostVector = 0;
+    ia32eInterruptType_t lostType = IA32E_INTERRUPT_TYPE_EXTERNAL;
+    bool lostDeliverErrcode = false;
+    uint64_t lostErrcode = 0;
+    bool lostAdvance = false;
+    ia32eEmulatorMode_t lostMode = IA32E_EMULATOR_INVALID;
+
+    bool syntheticValid = false;
+    uint8_t syntheticVector = 0;
+    ia32eInterruptType_t syntheticType = IA32E_INTERRUPT_TYPE_EXTERNAL;
+    bool syntheticDeliverErrcode = false;
+    uint64_t syntheticErrcode = 0;
+    bool syntheticAdvance = false;
+    ia32eEmulatorMode_t syntheticMode = IA32E_EMULATOR_INVALID;
+
+    bool ret = true;
+
+    task = kTickGetRunningTask();
+    vcpuId = ia32eEmulatorVcpuId();
+    
+    lostValid = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.valid != 0;
+    lostVector = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.vector;
+    lostType = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.type;
+    lostDeliverErrcode = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.deliverErrcode != 0;
+    lostErrcode = task->ctx.ia32eCtx.vtx.lostEvent.errcode;
+    lostAdvance = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.advance != 0;
+    lostMode = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.mode;
+
+    syntheticValid = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.valid != 0;
+    syntheticVector = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.vector;
+    syntheticType = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.type;
+    syntheticDeliverErrcode = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode != 0;
+    syntheticErrcode = task->ctx.ia32eCtx.vtx.syntheticEvent.errcode;
+    syntheticAdvance = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.advance != 0;
+    syntheticMode = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode;
+
+    /** Invariants
+     * 
+     * ¬lostAdvance 
+     * lostValid -> ¬IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) /\ ¬syntheticAdvance
+     * syntheticValid -> ¬IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) \/ ¬syntheticAdvance
+     * syntheticValid -> syntheticType = IA32E_INTERRUPT_TYPE_EXTERNAL -> syntheticVector > 15
+     *
+     */
+
+    K_DYNAMIC_ASSERT(!lostAdvance);
+    K_DYNAMIC_ASSERT(!lostValid || (!IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) && !syntheticAdvance));
+    K_DYNAMIC_ASSERT(!syntheticValid || !IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) || !syntheticAdvance);
+    K_DYNAMIC_ASSERT(!syntheticValid || syntheticType != IA32E_INTERRUPT_TYPE_EXTERNAL || syntheticVector > 15);
+
+    task->ctx.ia32eCtx.vtx.lostEvent.delivery.val = 0;
+    task->ctx.ia32eCtx.vtx.lostEvent.errcode = 0;
+    task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.mode = lostMode;
+
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.val = 0;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = 0;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode = syntheticMode;
+
+    /* lost events take priority */
+
+    if (lostValid) {
+        ia32eEmulatorInjectEvent(lostVector, lostType, lostDeliverErrcode, lostErrcode, false, 0);
+        ret = false;
+    }
+
+    /* queue this shit */
+
+    if (syntheticValid) {
+
+        if (!syntheticAdvance) {
+
+            switch (syntheticType) {
+
+                case IA32E_INTERRUPT_TYPE_EXTERNAL:
+                    ia32eEmulatorX2apicSendPacket(vcpuId, syntheticVector, IA32E_DM_NORMAL);
+                    break;
+
+	            case IA32E_INTERRUPT_TYPE_NMI:
+                    ia32eEmulatorX2apicSendPacket(vcpuId, IA32E_NMI, IA32E_DM_NMI);
+                    break;
+
+	            case IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION:
+                    K_DYNAMIC_ASSERT(ret);
+
+                    ia32eEmulatorInjectEvent(syntheticVector, syntheticType, syntheticDeliverErrcode, 
+                                             syntheticErrcode, false, 0);
+                    ret = false;
+                    break;
+
+	            case IA32E_INTERRUPT_TYPE_SOFTWARE_INT:
+	            case IA32E_INTERRUPT_TYPE_PRIV_SOFTWARE_EXCEPTION:
+	            case IA32E_INTERRUPT_TYPE_SOFTWARE_EXCEPTION:
+                    K_DYNAMIC_ASSERT(ret);
+
+                    ia32eEmulatorAdvance(regs, false);
+                    ia32eEmulatorInjectEvent(syntheticVector, syntheticType, syntheticDeliverErrcode, 
+                                             syntheticErrcode, false, 0);
+                    ret = false;
+                    break;
+
+                default:
+                    K_DYNAMIC_ASSERT(false);
+                    break;
+            }
+
+        } else {
+            K_DYNAMIC_ASSERT(ret);
+            ret = ia32eEmulatorAdvance(regs, true);
+        }
+    }
+
+    return ret;
+}
+
 static 
 bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 {
+    kSchedTask_t *task = NULL;
+    kDomain_t *domain = NULL;
+
+    task = kTickGetRunningTask();
+    domain = task->domain.curDomain;
+
+    /* 1: check if the chipset broadcasted a triple fault */
+
+    if (atomic_load(&domain->archInfo.ia32eInfo.tripleFault) != 0) {
+        ia32eEmulatorHandleVcpuFailure();
+        UNREACHABLE();
+    }
+
+    /* 2: check if we should go into an initialization state */
+
+    /* 3: dequeue any pending events */
+
 
 }
 

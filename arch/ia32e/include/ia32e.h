@@ -678,6 +678,12 @@ typedef enum
 	IA32E_INTERRUPT_TYPE_OTHER_EVENT =              7
 } ia32eInterruptType_t;
 
+#define IA32E_IS_SYNCHRONOUS_INTERRUPT(type)                    \
+    (type == IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION ||         \
+	 type == IA32E_INTERRUPT_TYPE_SOFTWARE_INT ||               \
+	 type == IA32E_INTERRUPT_TYPE_PRIV_SOFTWARE_EXCEPTION ||    \
+	 type == IA32E_INTERRUPT_TYPE_SOFTWARE_EXCEPTION)
+
 typedef struct ATTR_PACKED ia32eIoapic
 {
     uint32_t reg;

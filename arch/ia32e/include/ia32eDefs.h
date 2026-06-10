@@ -71,7 +71,7 @@ typedef struct ia32eVtxX2apic
 
     uint32_t isr[8];
 
-    uint8_t shadowEsr;
+    atomic_uint_fast8_t shadowEsr;
     uint8_t esr;
 
     uint64_t icr;
