@@ -34,12 +34,12 @@
 #include <lib/dsa/bitmap.h>
 #include <lib/mcsLock.h>
 
-#define IA32E_EMULATOR_CALLBACK_FAILURE 0
-#define IA32E_EMULATOR_CALLBACK_SUCCESS 1
+#define IA32E_EMULATOR_CALLBACK_FAILURE false
+#define IA32E_EMULATOR_CALLBACK_SUCCESS true
 
-typedef int (*ia32eEmulatorInOutCallbackFn_t)(ia32eVmexitRegs_t *regs);
-typedef int (*ia32eEmulatorEptFaultCallbackFn_t)(ia32eVmexitRegs_t *regs);
-typedef int (*ia32eEmulatorEptMisconfigCallbackFn_t)(ia32eVmexitRegs_t *regs);
+typedef bool (*ia32eEmulatorInOutCallbackFn_t)(ia32eVmexitRegs_t *regs);
+typedef bool (*ia32eEmulatorEptFaultCallbackFn_t)(ia32eVmexitRegs_t *regs);
+typedef bool (*ia32eEmulatorEptMisconfigCallbackFn_t)(ia32eVmexitRegs_t *regs);
 
 typedef struct ia32eEmulatorCallbacks
 {
