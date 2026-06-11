@@ -2497,6 +2497,10 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     int32_t intVector = 0;
     bool intPending = false;
 
+    uint8_t injectionVector = 0;
+    ia32eInterruptType_t injectionType = IA32E_INTERRUPT_TYPE_EXTERNAL;
+    bool injectionDeferred = false;
+    
     uint32_t proc = 0;
 
     K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
@@ -2587,7 +2591,10 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
         if (nmiPending && (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_NMIS_BLOCKED_MASK) == 0) {
 
-            ia32eEmulatorInjectEvent(IA32E_NMI, IA32E_INTERRUPT_TYPE_NMI, false, 0, false, 0);
+            injectionVector = IA32E_NMI;;
+            injectionType = IA32E_INTERRUPT_TYPE_NMI;
+            injectionDeferred = true;
+
             task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending = 0;
 
             injected = true;
@@ -2599,7 +2606,9 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
             K_DYNAMIC_ASSERT(intVector > 15);
 
-            ia32eEmulatorInjectEvent(intVector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0, false, 0);
+            injectionVector = intVector;
+            injectionType = IA32E_INTERRUPT_TYPE_EXTERNAL;
+            injectionDeferred = true;
 
             ia32eEmulatorX2apicUnsetIrrPendingUnsafe();
             ia32eEmulatorX2apicSetIsrv(intVector);
@@ -2610,6 +2619,9 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     }
 
     ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+    if (injectionDeferred)
+        ia32eEmulatorInjectEvent(injectionVector, injectionType, false, 0, false, 0);
 
     /* 6: trigger an exit if we have any events still pending */
 
