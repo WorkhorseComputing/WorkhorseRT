@@ -163,7 +163,7 @@ void __ia32eVmexitStub(void);
     (ia32eEmulatorVtxInfo()->vcpuId)
 
 #define ia32eEmulatorGetCallbacks() \
-    (&(ia32eEmulatorVtxInfo()->callbacks))
+    (&(ia32eEmulatorVtxInfo()->vtxParam.callbacks))
 
 char *ia32eEmulatorErrorTable[] = {
     [0] = "UNKNOWN, ERRCODE 0",

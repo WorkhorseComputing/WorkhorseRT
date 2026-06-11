@@ -108,7 +108,6 @@ typedef struct ia32eVtxTaskInfo
 {
     ia32eVtxParam_t vtxParam;
     uint8_t vcpuId;
-    ia32eEmulatorCallbacks_t callbacks;
 } ia32eVtxTaskInfo_t;
 
 typedef struct ia32eVtxVectoredEvent
