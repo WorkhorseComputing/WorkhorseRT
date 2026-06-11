@@ -2625,7 +2625,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     else
         proc &= ~(1U << IA32E_VTX_VMCS_PROCBASED_CTLS_INTERRUPT_WINDOW_EXITING_BIT);
 
-    ia32eVmwriteSafe(IA32E_VMX_PROCBASED_CTLS, proc);
+    ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_PROCBASED_CTLS, proc);
 
     return launch;
 }
