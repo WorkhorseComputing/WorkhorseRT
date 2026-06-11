@@ -26,12 +26,27 @@
 #ifndef _IA32E_DEFS_H_
 #define _IA32E_DEFS_H_
 
+#include <ia32eEmulator.h>
 #include <ia32eAsm.h>
 #include <ia32eVmcs.h>
 #include <lib/dsa/stackq.h>
 #include <lib/dsa/dq.h>
 #include <lib/dsa/bitmap.h>
 #include <lib/mcsLock.h>
+
+#define IA32E_EMULATOR_CALLBACK_FAILURE 0
+#define IA32E_EMULATOR_CALLBACK_SUCCESS 1
+
+typedef int (*ia32eEmulatorInOutCallbackFn_t)(ia32eVmexitRegs_t *regs);
+typedef int (*ia32eEmulatorEptFaultCallbackFn_t)(ia32eVmexitRegs_t *regs);
+typedef int (*ia32eEmulatorEptMisconfigCallbackFn_t)(ia32eVmexitRegs_t *regs);
+
+typedef struct ia32eEmulatorCallbacks
+{
+    ia32eEmulatorInOutCallbackFn_t ia32eEmulatorInOutCallbackFn;
+    ia32eEmulatorEptFaultCallbackFn_t ia32eEmulatorEptFaultCallbackFn;
+    ia32eEmulatorEptMisconfigCallbackFn_t ia32eEmulatorEptMisconfigCallbackFn;
+} ia32eEmulatorCallbacks_t;
 
 typedef struct ia32eVtxX2apic 
 {
@@ -86,12 +101,14 @@ typedef struct ia32eVtxParam
 {
     ia32eVtxVmcsRegion_t *vmcsVirt;
     uintptr_t vmcsPhys;
+    ia32eEmulatorCallbacks_t callbacks;
 } ia32eVtxParam_t;
 
 typedef struct ia32eVtxTaskInfo 
 {
     ia32eVtxParam_t vtxParam;
     uint8_t vcpuId;
+    ia32eEmulatorCallbacks_t callbacks;
 } ia32eVtxTaskInfo_t;
 
 typedef struct ia32eVtxVectoredEvent

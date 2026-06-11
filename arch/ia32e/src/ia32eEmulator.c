@@ -159,6 +159,12 @@ void __ia32eVmexitStub(void);
         kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_LSR_DONE, 0);    \
 } while (0)
 
+#define ia32eEmulatorVcpuId() \
+    (ia32eEmulatorVtxInfo()->vcpuId)
+
+#define ia32eEmulatorGetCallbacks() \
+    (&(ia32eEmulatorVtxInfo()->callbacks))
+
 char *ia32eEmulatorErrorTable[] = {
     [0] = "UNKNOWN, ERRCODE 0",
     [1] = "VMCALL executed in VMX root operation",
@@ -610,13 +616,13 @@ bool ia32eEmulatorValidateCr0(uint64_t cr0)
 }
 
 static
-uint8_t ia32eEmulatorVcpuId(void)
+ia32eVtxTaskInfo_t *ia32eEmulatorVtxInfo(void)
 {
     kSchedTask_t *task = NULL;
     kSchedThread_t *thread = NULL;
     kSchedLsr_t *lsr = NULL;
 
-    uint8_t vcpuId = 0;
+    ia32eVtxTaskInfo_t *info = NULL;
 
     task = kTickGetRunningTask();
 
@@ -624,12 +630,12 @@ uint8_t ia32eEmulatorVcpuId(void)
 
         case K_TASK_THREAD:
             thread = &task->taggedInfo.info.thread;
-            vcpuId = thread->archInfo.ia32eInfo.vtxInfo.vcpuId;
+            info = &thread->archInfo.ia32eInfo.vtxInfo;
             break;
 
         case K_TASK_LSR:
             lsr = &task->taggedInfo.info.lsr;
-            vcpuId = lsr->archInfo.ia32eInfo.vtxInfo.vcpuId;
+            info = &lsr->archInfo.ia32eInfo.vtxInfo;
             break;
 
         default:
@@ -637,7 +643,7 @@ uint8_t ia32eEmulatorVcpuId(void)
             break;
     }
 
-    return vcpuId;
+    return info;
 }
 
 static
@@ -695,6 +701,17 @@ void ia32eEmulatorCatchLostEvent(void)
     task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.type = type;
     task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.deliverErrcode = deliverErrcode;
     task->ctx.ia32eCtx.vtx.lostEvent.errcode = errcode;
+}
+
+static 
+void ia32eEmulatorAccessDenied(ATTR_UNUSED ia32eVmexitRegs_t *regs)
+{
+#if CONFIG_IA32E_VTX_ACCESS_DENIED_GP0
+    ia32eEmulatorQueueGp0();
+#else 
+    ia32eEmulatorHandleVcpuFailure();
+    UNREACHABLE();
+#endif 
 }
 
 static
@@ -1204,6 +1221,19 @@ bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
     return true;
 }
 
+/* Callback helpers */
+
+void ia32eEmulatorCallbackQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
+                                              bool deliverErrcode, uint64_t errcode)
+{
+    if (!advance && type == IA32E_INTERRUPT_TYPE_EXTERNAL && vector <= 15) {
+        kTickGetRunningTask()->ctx.ia32eCtx.vtx.x2apic.shadowEsr |= IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK;
+        return;
+    }
+
+    ia32eEmulatorQueueEventSynthetic(advance, vector, type, deliverErrcode, errcode);
+}
+
 /* General purpose events */
 
 static 
@@ -1230,16 +1260,6 @@ void ia32eEmulatorVcpuFailure(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
     ia32eEmulatorHandleVcpuFailure();
     UNREACHABLE();
-}
-
-static 
-void ia32eEmulatorAccessDenied(ATTR_UNUSED ia32eVmexitRegs_t *regs)
-{
-#if CONFIG_IA32E_VTX_ACCESS_DENIED_GP0
-    ia32eEmulatorQueueGp0();
-#else 
-    ia32eEmulatorHandleVcpuFailure();
-#endif 
 }
 
 /* Specific events */
@@ -1658,6 +1678,21 @@ void ia32eEmulatorCrAccess(ia32eVmexitRegs_t *regs)
     ia32eEmulatorQueueAdvance();
 }
 
+static
+void ia32eEmulatorInOut(ia32eVmexitRegs_t *regs)
+{
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
+    bool handled = false;
+
+    callbacks = ia32eEmulatorGetCallbacks();
+
+    if (callbacks->ia32eEmulatorInOutCallbackFn)
+        handled = callbacks->ia32eEmulatorInOutCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
+
+    if (!handled)
+        ia32eEmulatorAccessDenied(regs);
+}
+
 static 
 void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 {
@@ -1943,6 +1978,38 @@ void ia32eEmulatorMceDuringVmentry(ATTR_UNUSED ia32eVmexitRegs_t *regs)
     cpuRelax();
 }
 
+static
+void ia32eEmulatorEptFault(ia32eVmexitRegs_t *regs)
+{
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
+    bool handled = false;
+
+    callbacks = ia32eEmulatorGetCallbacks();
+
+    if (callbacks->ia32eEmulatorEptFaultCallbackFn)
+        handled = callbacks->ia32eEmulatorEptFaultCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
+
+    if (!handled)
+        ia32eEmulatorAccessDenied(regs);
+}
+
+static
+void ia32eEmulatorEptMisconfig(ia32eVmexitRegs_t *regs)
+{
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
+    bool handled = false;
+
+    callbacks = ia32eEmulatorGetCallbacks();
+
+    if (callbacks->ia32eEmulatorEptMisconfigCallbackFn)
+        handled = callbacks->ia32eEmulatorEptMisconfigCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
+
+    if (!handled) {
+        ia32eEmulatorHandleVcpuFailure();
+        UNREACHABLE();
+    }
+}
+
 static 
 void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
@@ -2020,14 +2087,14 @@ ia32eEmulatorFn_t ia32eEmulatorDispatchTable[] = {
     [IA32E_VTX_EXIT_REASON_VMXOFF] = ia32eEmulatorUd,
     [IA32E_VTX_EXIT_REASON_VMXON] = ia32eEmulatorUd,
     [IA32E_VTX_EXIT_REASON_CR_ACCESS] = ia32eEmulatorCrAccess,
-    [IA32E_VTX_EXIT_REASON_INOUT] = ia32eEmulatorAccessDenied,
+    [IA32E_VTX_EXIT_REASON_INOUT] = ia32eEmulatorInOut,
     [IA32E_VTX_EXIT_REASON_RDMSR] = ia32eEmulatorRdmsr,
     [IA32E_VTX_EXIT_REASON_WRMSR] = ia32eEmulatorWrmsr,
     [IA32E_VTX_EXIT_REASON_MWAIT] = ia32eEmulatorUd,
     [IA32E_VTX_EXIT_REASON_MONITOR] = ia32eEmulatorUd,
     [IA32E_VTX_EXIT_REASON_MCE_DURING_ENTRY] = ia32eEmulatorMceDuringVmentry,
-    [IA32E_VTX_EXIT_REASON_EPT_FAULT] = ia32eEmulatorAccessDenied,
-    [IA32E_VTX_EXIT_REASON_EPT_MISCONFIG] = ia32eEmulatorVcpuFailure,
+    [IA32E_VTX_EXIT_REASON_EPT_FAULT] = ia32eEmulatorEptFault,
+    [IA32E_VTX_EXIT_REASON_EPT_MISCONFIG] = ia32eEmulatorEptMisconfig,
     [IA32E_VTX_EXIT_REASON_INVEPT] = ia32eEmulatorUd,
     [IA32E_VTX_EXIT_REASON_VMX_PREEMPT] = ia32eEmulatorVmxPreempt,
     [IA32E_VTX_EXIT_REASON_INVVPID] = ia32eEmulatorUd,
