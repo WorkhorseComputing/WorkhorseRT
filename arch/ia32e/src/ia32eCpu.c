@@ -802,7 +802,7 @@ void ia32eCpuTaskCtxInit(kSchedTask_t *task, uintptr_t pc)
 #if CONFIG_IA32E_VTX
 
     if (task->domain.curDomain->archInfo.ia32eInfo.vm) {
-        ia32eCpuVtxTaskInit(task);
+        ia32eCpuVtxTaskCtxInit(task);
         return;
     }
 

@@ -2323,8 +2323,10 @@ static
 void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
 {
     ia32ePerCpu_t *cpu = NULL;
+    kSchedTask_t *task = NULL;
 
     cpu = ia32eThisCpuData();
+    task = kTickGetRunningTask();
 
     memset(regs, 0, sizeof(*regs));
 
@@ -2336,7 +2338,8 @@ void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
 
     regs->regs.rdx = cpu->cpuVersion;
 
-    memset(cpu->vtx.areas.vmexitStoreVmentryLoadArea, 0, sizeof(cpu->vtx.areas.vmexitStoreVmentryLoadArea));
+    memset(task->ctx.ia32eCtx.vtx.vmexitStoreVmentryLoadAreaData, 0, 
+           sizeof(task->ctx.ia32eCtx.vtx.vmexitStoreVmentryLoadAreaData));
 }
 
 static
@@ -2364,7 +2367,6 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     ia32eInterruptType_t lostType = IA32E_INTERRUPT_TYPE_EXTERNAL;
     bool lostDeliverErrcode = false;
     uint64_t lostErrcode = 0;
-    bool lostAdvance = false;
     ia32eEmulatorMode_t lostMode = IA32E_EMULATOR_INVALID;
 
     bool syntheticValid = false;
@@ -2385,7 +2387,6 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     lostType = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.type;
     lostDeliverErrcode = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.deliverErrcode != 0;
     lostErrcode = task->ctx.ia32eCtx.vtx.lostEvent.errcode;
-    lostAdvance = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.advance != 0;
     lostMode = task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.mode;
 
     syntheticValid = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.valid != 0;
@@ -2405,7 +2406,7 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
      *
      */
 
-    K_DYNAMIC_ASSERT(!lostAdvance);
+    K_DYNAMIC_ASSERT(task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.advance == 0);
     K_DYNAMIC_ASSERT(!lostValid || (!IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) && !syntheticAdvance));
     K_DYNAMIC_ASSERT(!syntheticValid || !IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) || !syntheticAdvance);
     K_DYNAMIC_ASSERT(!syntheticValid || syntheticType != IA32E_INTERRUPT_TYPE_EXTERNAL || syntheticVector > 15);

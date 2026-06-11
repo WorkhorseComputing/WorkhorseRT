@@ -49,6 +49,16 @@
 #define IA32E_PG_ENTRY_PS_PAT_MASK  (1ULL << 12)
 #define IA32E_PG_ENTRY_XD_MASK      (1ULL << 63)
 
+#define IA32E_EPT_ENTRY_R_MASK          (1ULL << 0)
+#define IA32E_EPT_ENTRY_W_MASK          (1ULL << 1)
+#define IA32E_EPT_ENTRY_X_MASK          (1ULL << 2)
+#define IA32E_EPT_ENTRY_MEMTYPE_SHIFT   3
+#define IA32E_EPT_ENTRY_IGNORE_PAT_MASK (1ULL << 6)
+#define IA32E_EPT_ENTRY_PS_MASK         (1ULL << 7)
+
+#define IA32E_EPT_ENTRY_MEMTYPE_UC      0
+#define IA32E_EPT_ENTRY_MEMTYPE_WB      6
+
 /* Control registers */
 
 #define IA32E_CR0_PE_MASK       (1 << 0)

@@ -20,3 +20,5 @@ verif/**/*.vos
 .cache
 
 todo
+
+plugins/*

@@ -36,7 +36,7 @@
 void ia32eCpuVtxInit(void);
 void ia32eGlobalVtxInit(void);
 
-void ia32eCpuVtxTaskInit(kSchedTask_t *task);
+void ia32eCpuVtxTaskCtxInit(kSchedTask_t *task);
 void ia32eCpuVtxTaskSaveCtx(kSchedTask_t *task);
 void ia32eCpuVtxTaskRestoreCtx(kSchedTask_t *task);
 void ia32eCpuVtxEnterDomain(kDomain_t *domain);
