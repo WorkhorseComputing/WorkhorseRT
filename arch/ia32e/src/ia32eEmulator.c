@@ -2502,6 +2502,8 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
             switch (syntheticType) {
 
                 case IA32E_INTERRUPT_TYPE_EXTERNAL:
+                    K_DYNAMIC_ASSERT(syntheticVector > 15);
+
                     ia32eEmulatorX2apicSendPacket(vcpuId, syntheticVector, IA32E_DM_NORMAL);
                     break;
 
