@@ -2599,10 +2599,9 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
             injected = true;
             nmiPending = false;
-        }
 
-        if (!injected && intPending && ia32eEmulatorGuestIf() && ia32eEmulatorX2apicGetPpr() < (intVector / 16) &&
-            (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_INTS_BLOCKED_MASK) == 0) {
+        } else if (intPending && ia32eEmulatorGuestIf() && ia32eEmulatorX2apicGetPpr() < (intVector / 16) &&
+                   (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_INTS_BLOCKED_MASK) == 0) {
 
             K_DYNAMIC_ASSERT(intVector > 15);
 
