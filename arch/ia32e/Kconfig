@@ -47,6 +47,13 @@ config IA32E_VTX_ACCESS_DENIED_GP0
     ---help---
         Inject GP0 when a guest attempt to access a resource is denied instead of failing the vcpu
 
+config IA32E_VTX_SYSCALL
+    bool "Vtx syscalls"
+    depends on IA32E_VTX
+    default y
+    ---help---
+        Allow vcpus to execute syscalls
+
 config IA32E_KSTACK_SIZE
     int "Kernel stack size"
     default 4096
