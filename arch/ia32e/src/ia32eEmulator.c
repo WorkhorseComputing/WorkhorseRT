@@ -2656,7 +2656,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     nmiPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending != 0;
 
     intVector = ia32eEmulatorX2apicGetIrrPendingUnsafe();
-    intPending = intVector > 0;
+    intPending = intVector > 0 && ia32eEmulatorX2apicGetPpr() < (intVector / 16);
 
     if (!injected) {
 
@@ -2671,7 +2671,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
             injected = true;
             nmiPending = false;
 
-        } else if (intPending && ia32eEmulatorGuestIf() && ia32eEmulatorX2apicGetPpr() < (intVector / 16) &&
+        } else if (intPending && ia32eEmulatorGuestIf() &&
                    (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_INTS_BLOCKED_MASK) == 0) {
 
             K_DYNAMIC_ASSERT(intVector > 15);
