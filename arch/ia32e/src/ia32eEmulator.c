@@ -2684,7 +2684,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
             ia32eEmulatorX2apicSetIsrv(intVector);
 
             injected = true;
-            intPending = ia32eEmulatorX2apicGetIrrPendingUnsafe() > 0;
+            intPending = false;
         }
     }
 
