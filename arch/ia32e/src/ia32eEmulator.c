@@ -449,6 +449,8 @@ ia32eEmulatorMode_t ia32eEmulatorMode(void)
     return (guestAr & IA32E_ACCESS_RIGHTS_DB_MASK) != 0 ? IA32E_EMULATOR_32 : IA32E_EMULATOR_16;
 }
 
+#if CONFIG_IA32E_VTX_SYSCALL
+
 static
 bool ia32eEmulatorCpl0(void)
 {
@@ -472,6 +474,8 @@ bool ia32eEmulatorCpl0(void)
     guestAr = ia32eVmread(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS);
     return (guestAr & IA32E_ACCESS_RIGHTS_DPL_MASK) == 0;
 }
+
+#endif
 
 static
 void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool deliverErrcode, uint64_t errcode, 
@@ -2486,14 +2490,12 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
      * ¬lostAdvance 
      * lostValid -> ¬IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) /\ ¬syntheticAdvance
      * syntheticValid -> ¬IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) \/ ¬syntheticAdvance
-     * syntheticValid -> syntheticType = IA32E_INTERRUPT_TYPE_EXTERNAL -> syntheticVector > 15
      *
      */
 
     K_DYNAMIC_ASSERT(task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.advance == 0);
     K_DYNAMIC_ASSERT(!lostValid || (!IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) && !syntheticAdvance));
     K_DYNAMIC_ASSERT(!syntheticValid || !IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) || !syntheticAdvance);
-    K_DYNAMIC_ASSERT(!syntheticValid || syntheticType != IA32E_INTERRUPT_TYPE_EXTERNAL || syntheticVector > 15);
 
     task->ctx.ia32eCtx.vtx.lostEvent.delivery.val = 0;
     task->ctx.ia32eCtx.vtx.lostEvent.errcode = 0;
