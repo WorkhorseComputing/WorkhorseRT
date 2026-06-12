@@ -2653,11 +2653,12 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
     ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
 
-    if (!injected) {
-        nmiPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending != 0;
+    nmiPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending != 0;
 
-        intVector = ia32eEmulatorX2apicGetIrrPendingUnsafe();
-        intPending = intVector > 0;
+    intVector = ia32eEmulatorX2apicGetIrrPendingUnsafe();
+    intPending = intVector > 0;
+
+    if (!injected) {
 
         if (nmiPending && (interruptibilityState & IA32E_EMULATOR_INTERRUPTIBILITY_STATE_NMIS_BLOCKED_MASK) == 0) {
 
