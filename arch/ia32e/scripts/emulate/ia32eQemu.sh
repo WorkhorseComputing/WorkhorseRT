@@ -8,8 +8,9 @@ echo "  ISO:  $ISO"
 echo "  MEM:  $MEM"
 echo "  CPUS: $CPUS"
 
-qemu-system-x86_64  \
-    -cdrom "$ISO"   \
-    -serial stdio   \
-    -m "$MEM"       \
+qemu-system-x86_64                  \
+    -bios /usr/share/ovmf/OVMF.fd   \
+    -cdrom "$ISO"                   \
+    -serial stdio                   \
+    -m "$MEM"                       \
     -smp "$CPUS"

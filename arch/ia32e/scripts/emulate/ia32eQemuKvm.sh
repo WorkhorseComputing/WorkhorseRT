@@ -8,10 +8,11 @@ echo "  ISO:  $ISO"
 echo "  MEM:  $MEM"
 echo "  CPUS: $CPUS"
 
-qemu-system-x86_64  \
-    -enable-kvm     \
-    -cpu host       \
-    -cdrom "$ISO"   \
-    -serial stdio   \
-    -m "$MEM"       \
+qemu-system-x86_64                  \
+    -enable-kvm                     \
+    -cpu host                       \
+    -bios /usr/share/ovmf/OVMF.fd   \
+    -cdrom "$ISO"                   \
+    -serial stdio                   \
+    -m "$MEM"                       \
     -smp "$CPUS"
