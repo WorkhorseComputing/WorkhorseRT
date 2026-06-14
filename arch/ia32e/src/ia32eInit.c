@@ -669,14 +669,6 @@ void ia32eBspConfig(void)
     cpu = ia32eThisCpuData();
     global = cpu->global;
 
-    ia32eTssInit();
-    ia32eGdtInit();
-    ia32eTrInit();
-    ia32eIdtInit();
-
-    ia32eApicEnable(IA32E_SPURIOUS_INT_VECTOR);
-    cpu->apicFrequencyHz = ia32eApicFrequencyHz(IA32E_SPURIOUS_INT_VECTOR);
-    cpu->mxcsrMask = ia32eMxcsrMask64();
     ia32eCpuInit();
 
     ia32eHpetDisableCounter();

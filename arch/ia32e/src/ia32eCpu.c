@@ -391,6 +391,107 @@ void ia32eThisTopology(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, 
     ia32eThisTopologyLegacy(lapicId, threadId, coreId, pkgId);
 }
 
+ia32eGlobal_t *ia32eGetGlobalPtr(void)
+{
+    return &ia32eGlobal;
+}
+
+uint32_t ia32eMxcsrMask64(void)
+{
+    ia32eFxsave64_t ATTR_ALIGNED(16) fxsave = {0};
+    __ia32eFxsave(&fxsave);
+    return fxsave.mxcsrMask;
+}
+
+void ia32eEarlyIdtInit(void)
+{
+    ia32eGlobal_t *global = NULL;
+    ia32eIdtDescriptor64_t *ia32eIdt64High = NULL;
+    uint32_t i = 0;
+
+    global = ia32eGetGlobalPtr();
+    ia32eIdt64High = global->cpuDataStructures.idt;
+    
+    for (i = 0; i < ARRAY_LEN(ia32eIsrEntryTable); i++) {
+
+        ia32eIdt64High[i].ist = i == IA32E_NMI ? 2 : i == IA32E_DOUBLE_FAULT ? 3 : 1;
+        ia32eIdt64High[i].attr = (1 << 7) | IA32E_INTERRUPT_GATE64;
+        ia32eIdt64High[i].selector = IA32E_KCS_SELECTOR;
+        ia32eIdt64High[i].offset_low = ia32eIsrEntryTable[i] & 0xffff;
+        ia32eIdt64High[i].offset_mid = (ia32eIsrEntryTable[i] >> 16) & 0xffff;
+        ia32eIdt64High[i].offset_high = ia32eIsrEntryTable[i] >> 32;
+        ia32eIdt64High[i].reserved0 = 0;
+
+        ia32eIdt64[i].ist = 0;
+        ia32eIdt64[i].attr = (1 << 7) | IA32E_INTERRUPT_GATE64;
+        ia32eIdt64[i].selector = IA32E_KCS_SELECTOR;
+        ia32eIdt64[i].offset_low = ia32eIsrEntryTable[i] & 0xffff;
+        ia32eIdt64[i].offset_mid = (ia32eIsrEntryTable[i] >> 16) & 0xffff;
+        ia32eIdt64[i].offset_high = ia32eIsrEntryTable[i] >> 32;
+        ia32eIdt64[i].reserved0 = 0;
+    }   
+
+    ia32eIdt64High[IA32E_BREAKPOINT].attr |= (3 << 5);
+
+    global->cpuDataStructures.idtr.base = (uintptr_t)ia32eIdt64High;
+    global->cpuDataStructures.idtr.limit = sizeof(global->cpuDataStructures.idt) - 1;
+}
+
+void ia32eTssInit(void)
+{
+    ia32ePerCpu_t *cpu = NULL;
+
+    cpu = ia32eThisCpuData();
+
+    cpu->cpuDataStructures.tssFull.tss.rsp0 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->intStack.stack)]);
+    cpu->cpuDataStructures.tssFull.tss.ist1 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->intStack.stack)]);
+    cpu->cpuDataStructures.tssFull.tss.ist2 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->nmiStack.stack)]);
+    cpu->cpuDataStructures.tssFull.tss.ist3 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->doubleFaultStack.stack)]);
+
+    cpu->cpuDataStructures.tssFull.tss.iopbBase = offsetof(ia32eTssFull64_t, iopb);
+    cpu->cpuDataStructures.tssFull.iopb[ARRAY_LEN(cpu->cpuDataStructures.tssFull.iopb) - 1] = 0xff;
+}
+
+void ia32eGdtInit(void)
+{
+    ia32ePerCpu_t *cpu = NULL;
+    uint64_t *gdt = NULL;
+    uintptr_t tssBase = 0;
+    uint64_t tssLimit = 0;
+
+    cpu = ia32eThisCpuData();
+    gdt = cpu->cpuDataStructures.gdtDesc;
+
+    tssBase = (uintptr_t)&cpu->cpuDataStructures.tssFull;
+    tssLimit = sizeof(ia32eTssFull64_t) - 1;
+
+    gdt[IA32E_KCS_IDX] = IA32E_ASM_KCS_DESC;
+    gdt[IA32E_KDS_IDX] = IA32E_ASM_KDS_DESC;
+    gdt[IA32E_UCS_IDX] = IA32E_ASM_UCS_DESC;
+    gdt[IA32E_UDS_IDX] = IA32E_ASM_UDS_DESC;
+
+    gdt[IA32E_TR_LOW_IDX] = (tssLimit & 0xffff) | ((tssBase & 0xffff) << 16) | 
+                            (((tssBase >> 16) & 0xff) << 32) | (0x9ULL << 40) | (1ULL << 47) | 
+                            (((tssLimit >> 16) & 0xf) << 48) | (((tssBase >> 24) & 0xff) << 56);
+
+    gdt[IA32E_TR_HIGH_IDX] = tssBase >> 32;
+
+    cpu->cpuDataStructures.gdtr.limit = sizeof(cpu->cpuDataStructures.gdtDesc) - 1;
+    cpu->cpuDataStructures.gdtr.base = (uintptr_t)gdt;
+
+    __ia32eLgdt(&cpu->cpuDataStructures.gdtr);
+}
+
+void ia32eTrInit(void)
+{
+    __ia32eLtr(IA32E_TR_SELECTOR);
+}
+
+void ia32eIdtInit(void)
+{
+    __ia32eLidt(&ia32eThisCpuData()->global->cpuDataStructures.idtr);
+}
+
 void ia32eCpuInit(void)
 {
     ia32ePerCpu_t *cpu = NULL;
@@ -410,6 +511,15 @@ void ia32eCpuInit(void)
     cpu = ia32eThisCpuData();
     cr4 = __ia32eReadCr4();
     efer = __ia32eRdmsr(IA32E_EFER);
+
+    ia32eTssInit();
+    ia32eGdtInit();
+    ia32eTrInit();
+    ia32eIdtInit();
+
+    ia32eApicEnable(IA32E_SPURIOUS_INT_VECTOR);
+    cpu->apicFrequencyHz = ia32eApicFrequencyHz(IA32E_SPURIOUS_INT_VECTOR);
+    cpu->mxcsrMask = ia32eMxcsrMask64();
 
     ia32eCpuid(1, 0, &regs1[0], &regs1[1], &regs1[2], &regs1[3]);
 
@@ -551,107 +661,6 @@ void ia32eCpuInit(void)
 #endif
 }
 
-ia32eGlobal_t *ia32eGetGlobalPtr(void)
-{
-    return &ia32eGlobal;
-}
-
-uint32_t ia32eMxcsrMask64(void)
-{
-    ia32eFxsave64_t ATTR_ALIGNED(16) fxsave = {0};
-    __ia32eFxsave(&fxsave);
-    return fxsave.mxcsrMask;
-}
-
-void ia32eEarlyIdtInit(void)
-{
-    ia32eGlobal_t *global = NULL;
-    ia32eIdtDescriptor64_t *ia32eIdt64High = NULL;
-    uint32_t i = 0;
-
-    global = ia32eGetGlobalPtr();
-    ia32eIdt64High = global->cpuDataStructures.idt;
-    
-    for (i = 0; i < ARRAY_LEN(ia32eIsrEntryTable); i++) {
-
-        ia32eIdt64High[i].ist = i == IA32E_NMI ? 2 : i == IA32E_DOUBLE_FAULT ? 3 : 1;
-        ia32eIdt64High[i].attr = (1 << 7) | IA32E_INTERRUPT_GATE64;
-        ia32eIdt64High[i].selector = IA32E_KCS_SELECTOR;
-        ia32eIdt64High[i].offset_low = ia32eIsrEntryTable[i] & 0xffff;
-        ia32eIdt64High[i].offset_mid = (ia32eIsrEntryTable[i] >> 16) & 0xffff;
-        ia32eIdt64High[i].offset_high = ia32eIsrEntryTable[i] >> 32;
-        ia32eIdt64High[i].reserved0 = 0;
-
-        ia32eIdt64[i].ist = 0;
-        ia32eIdt64[i].attr = (1 << 7) | IA32E_INTERRUPT_GATE64;
-        ia32eIdt64[i].selector = IA32E_KCS_SELECTOR;
-        ia32eIdt64[i].offset_low = ia32eIsrEntryTable[i] & 0xffff;
-        ia32eIdt64[i].offset_mid = (ia32eIsrEntryTable[i] >> 16) & 0xffff;
-        ia32eIdt64[i].offset_high = ia32eIsrEntryTable[i] >> 32;
-        ia32eIdt64[i].reserved0 = 0;
-    }   
-
-    ia32eIdt64High[IA32E_BREAKPOINT].attr |= (3 << 5);
-
-    global->cpuDataStructures.idtr.base = (uintptr_t)ia32eIdt64High;
-    global->cpuDataStructures.idtr.limit = sizeof(global->cpuDataStructures.idt) - 1;
-}
-
-void ia32eTssInit(void)
-{
-    ia32ePerCpu_t *cpu = NULL;
-
-    cpu = ia32eThisCpuData();
-
-    cpu->cpuDataStructures.tssFull.tss.rsp0 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->intStack.stack)]);
-    cpu->cpuDataStructures.tssFull.tss.ist1 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->intStack.stack)]);
-    cpu->cpuDataStructures.tssFull.tss.ist2 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->nmiStack.stack)]);
-    cpu->cpuDataStructures.tssFull.tss.ist3 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->doubleFaultStack.stack)]);
-
-    cpu->cpuDataStructures.tssFull.tss.iopbBase = offsetof(ia32eTssFull64_t, iopb);
-    cpu->cpuDataStructures.tssFull.iopb[ARRAY_LEN(cpu->cpuDataStructures.tssFull.iopb) - 1] = 0xff;
-}
-
-void ia32eGdtInit(void)
-{
-    ia32ePerCpu_t *cpu = NULL;
-    uint64_t *gdt = NULL;
-    uintptr_t tssBase = 0;
-    uint64_t tssLimit = 0;
-
-    cpu = ia32eThisCpuData();
-    gdt = cpu->cpuDataStructures.gdtDesc;
-
-    tssBase = (uintptr_t)&cpu->cpuDataStructures.tssFull;
-    tssLimit = sizeof(ia32eTssFull64_t) - 1;
-
-    gdt[IA32E_KCS_IDX] = IA32E_ASM_KCS_DESC;
-    gdt[IA32E_KDS_IDX] = IA32E_ASM_KDS_DESC;
-    gdt[IA32E_UCS_IDX] = IA32E_ASM_UCS_DESC;
-    gdt[IA32E_UDS_IDX] = IA32E_ASM_UDS_DESC;
-
-    gdt[IA32E_TR_LOW_IDX] = (tssLimit & 0xffff) | ((tssBase & 0xffff) << 16) | 
-                            (((tssBase >> 16) & 0xff) << 32) | (0x9ULL << 40) | (1ULL << 47) | 
-                            (((tssLimit >> 16) & 0xf) << 48) | (((tssBase >> 24) & 0xff) << 56);
-
-    gdt[IA32E_TR_HIGH_IDX] = tssBase >> 32;
-
-    cpu->cpuDataStructures.gdtr.limit = sizeof(cpu->cpuDataStructures.gdtDesc) - 1;
-    cpu->cpuDataStructures.gdtr.base = (uintptr_t)gdt;
-
-    __ia32eLgdt(&cpu->cpuDataStructures.gdtr);
-}
-
-void ia32eTrInit(void)
-{
-    __ia32eLtr(IA32E_TR_SELECTOR);
-}
-
-void ia32eIdtInit(void)
-{
-    __ia32eLidt(&ia32eThisCpuData()->global->cpuDataStructures.idtr);
-}
-
 ATTR_NORETURN
 void ia32eCpuApStart(void)
 {
@@ -689,20 +698,6 @@ void ia32eCpuApStart(void)
 
     ia32eApApicSync();
 
-#if CONFIG_IA32E_APPLY_MADT_NMI_OVERRIDES
-    
-    ia32eApicConfigMadtNmiOverrides();
-
-#endif
-
-    ia32eTssInit();
-    ia32eGdtInit();
-    ia32eTrInit();
-    ia32eIdtInit();
-
-    ia32eApicEnable(IA32E_SPURIOUS_INT_VECTOR);
-    cpu->apicFrequencyHz = ia32eApicFrequencyHz(IA32E_SPURIOUS_INT_VECTOR);
-    cpu->mxcsrMask = ia32eMxcsrMask64();
     ia32eCpuInit();
 
     cpuEnableInterrupts();

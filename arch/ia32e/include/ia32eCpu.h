@@ -389,8 +389,6 @@ bool ia32eThisTopology0x0b(uint32_t *lapicId, uint32_t *threadId, uint32_t *core
 void ia32eThisTopologyLegacy(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId);
 void ia32eThisTopology(uint32_t *lapicId, uint32_t *threadId, uint32_t *coreId, uint32_t *pkgId);
 
-void ia32eCpuInit(void);
-
 ia32eGlobal_t *ia32eGetGlobalPtr(void);
 
 uint32_t ia32eMxcsrMask64(void);
@@ -400,6 +398,8 @@ void ia32eTssInit(void);
 void ia32eGdtInit(void);
 void ia32eTrInit(void);
 void ia32eIdtInit(void);
+
+void ia32eCpuInit(void);
 
 void ia32eCpuApStart(void);
 
