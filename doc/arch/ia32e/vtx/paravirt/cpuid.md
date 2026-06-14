@@ -19,12 +19,12 @@ edx - 0x78747665
 
 - Returns hypervisor emulation info
 
-edx:
-0 - gp0 on denied access to pmio or physical memory
-1 - task gate emulation supported
-2 - cr0.ne is not clamped to 1
-3 - cr0.cd is not clamped to 0
-4 - cr0.nw is not clamped to 0
-5 - guest can execute hypercalls otherwise #GP
+edx: <br>
+0 - gp0 on denied access to pmio or physical memory <br>
+1 - task gate emulation supported <br>
+2 - cr0.ne is not clamped to 1 <br>
+3 - cr0.cd is not clamped to 0 <br>
+4 - cr0.nw is not clamped to 0 <br>
+5 - guest can execute hypercalls otherwise #GP <br>
 
 --- 
