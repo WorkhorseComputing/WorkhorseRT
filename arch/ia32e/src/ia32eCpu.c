@@ -632,7 +632,7 @@ void ia32eCpuInit(void)
     efer |= IA32E_EFER_SYSCALL_ENABLE_MASK;
     __ia32eWrmsr(IA32E_STAR, ((((IA32E_UDS_IDX - 1) << 3) | 3) << 48) | (IA32E_KCS_SELECTOR << 32));
     __ia32eWrmsr(IA32E_LSTAR, (uintptr_t)__ia32eSyscallEntry);
-    __ia32eWrmsr(IA32E_FMASK, IA32E_FLAGS_TF_MASK | IA32E_FLAGS_IF_MASK | IA32E_FLAGS_DF_MASK | IA32E_FLAGS_AC_MASK);
+    __ia32eWrmsr(IA32E_FMASK, ~0x2ULL);
 
     __ia32eWriteCr4(cr4);
     __ia32eWrmsr(IA32E_EFER, efer);
