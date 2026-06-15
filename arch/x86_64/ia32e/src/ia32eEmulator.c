@@ -1738,6 +1738,12 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 
     switch (ecx) {
 
+#if !CONFIG_X86_64_IA32E_VTX_TSD
+        case IA32E_TSC:
+            val = (uint64_t)ia32eRdtsc() + ia32eVmread(IA32E_VTX_VMCS_CTRL_TSC_OFFSET);
+            break;
+#endif
+
         case IA32E_APIC_BASE:
 
             val = (task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr | 
@@ -1871,6 +1877,10 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
     uint64_t val = 0;
 
+#if !CONFIG_X86_64_IA32E_VTX_TSD
+    uint64_t now = 0;
+#endif
+
     bool valid = true;
 
     task = kTickGetRunningTask();
@@ -1882,6 +1892,13 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
     val = (edx << 32) | eax;
 
     switch (ecx) {
+
+#if !CONFIG_X86_64_IA32E_VTX_TSD
+        case IA32E_TSC:
+            now = (uint64_t)ia32eRdtsc() + ia32eVmread(IA32E_VTX_VMCS_CTRL_TSC_OFFSET);
+            ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_TSC_OFFSET, val - now);
+            break;
+#endif
 
         case IA32E_APIC_BASE:
             
@@ -2208,6 +2225,8 @@ void ia32eEmulatorVmcsSetupBase(void)
 
 #if CONFIG_X86_64_IA32E_VTX_TSD
             (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT) |
+#else 
+            (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_TSC_OFFSET_BIT) |
 #endif
             (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_LOAD_EXITING_BIT) |
             (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_STORE_EXITING_BIT) |

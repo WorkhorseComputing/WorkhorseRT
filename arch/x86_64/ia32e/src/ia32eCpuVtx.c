@@ -308,9 +308,11 @@ void ia32eCpuVtxInit(void)
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_INTERRUPT_WINDOW_EXITING_BIT + 32) ||
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDPMC_EXITING_BIT + 32) ||
 
-        (!testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT + 32) && 
-          CONFIG_X86_64_IA32E_VTX_TSD) ||
-
+#if CONFIG_X86_64_IA32E_VTX_TSD
+        (!testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT + 32)) ||
+#else
+        (!testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_TSC_OFFSET_BIT + 32)) ||
+#endif
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_LOAD_EXITING_BIT + 32) ||
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_STORE_EXITING_BIT + 32) || 
 

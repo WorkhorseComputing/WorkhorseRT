@@ -170,8 +170,7 @@ start32:
 
     /* enable pae */
 
-    movl %cr4, %ecx
-    orl $(IA32E_CR4_PAE_MASK | IA32E_CR4_DE_MASK | IA32E_CR4_OSFXSR_MASK | IA32E_CR4_OSXMMEXCPT_MASK), %ecx
+    movl $(IA32E_CR4_PAE_MASK | IA32E_CR4_PGE_MASK | IA32E_CR4_OSFXSR_MASK | IA32E_CR4_OSXMMEXCPT_MASK), %ecx
     movl %ecx, %cr4
 
     /* enable lme */
@@ -297,12 +296,6 @@ __ia32eStartHigh64:
     /* load the boot idt */
 
     lidt ia32eIdtr64
-
-    /* enable pge */
-
-    movq %cr4, %rcx
-    orq $IA32E_CR4_PGE_MASK, %rcx
-    movq %rcx, %cr4
 
     /* jump to c entry */
 

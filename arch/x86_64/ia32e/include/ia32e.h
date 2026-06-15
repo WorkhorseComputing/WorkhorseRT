@@ -407,6 +407,8 @@
 
 /* Msr */
 
+#define IA32E_TSC 0x10
+
 #define IA32E_SYSENTER_CS   0x174
 #define IA32E_SYSENTER_ESP  0x175
 #define IA32E_SYSENTER_EIP  0x176
