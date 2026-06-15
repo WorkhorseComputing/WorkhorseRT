@@ -1,5 +1,7 @@
 # Task
 
+Both threads and LSRs can be apart of virtual machines.
+
 For tasks that are initialized in domains that are virtual machines, the following parameter is required:
 
 ```c
