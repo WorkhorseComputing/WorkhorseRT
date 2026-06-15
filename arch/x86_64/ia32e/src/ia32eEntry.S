@@ -154,6 +154,7 @@ __ia32eSyscallEntry:
 __ia32eTaskIdleEntry:
     
     sti
+    nop
 
 1:  hlt
     jmp 1b
