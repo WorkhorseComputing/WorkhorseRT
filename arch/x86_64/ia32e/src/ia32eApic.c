@@ -412,14 +412,14 @@ uint32_t ia32eApicCalibrate(uint8_t spuriousVector)
     if (ia32eHpetIsInitialized()) {
 
         counterFrequencyHz = ia32eHpetFrequencyHz();
-        calibrationTicks = msToTicks(CONFIG_IA32E_APIC_CALIBRATION_TIME_MS, counterFrequencyHz);
+        calibrationTicks = msToTicks(CONFIG_X86_64_IA32E_APIC_CALIBRATION_TIME_MS, counterFrequencyHz);
         startTicks = ia32eHpetReadCounter();
         spinUntil(ia32eHpetReadCounter() - startTicks >= calibrationTicks);
 
     } else {
 
         counterFrequencyHz = ACPI_PM_TMR_HZ;
-        calibrationTicks = msToTicks(CONFIG_IA32E_APIC_CALIBRATION_TIME_MS, counterFrequencyHz);
+        calibrationTicks = msToTicks(CONFIG_X86_64_IA32E_APIC_CALIBRATION_TIME_MS, counterFrequencyHz);
 
         if (global->acpiPm.mmio) {
 

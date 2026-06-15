@@ -539,7 +539,7 @@ void ia32eCpuInit(void)
 
     if ((regs1[2] & IA32E_CPUID1_C_PCID_MASK) != 0 && (regs7_0[1] & IA32E_CPUID7_0_B_INVPCID_MASK) != 0) {    
         
-#if CONFIG_IA32E_FEATURE_PCID
+#if CONFIG_X86_64_IA32E_FEATURE_PCID
         cr4 |= IA32E_CR4_PCIDE_MASK; 
         cpu->global->gFlags.fields.pcidCapableExists = 1;
 #endif 
@@ -554,7 +554,7 @@ void ia32eCpuInit(void)
 
     if ((regs7_0[1] & IA32E_CPUID7_0_B_SMEP_MASK) != 0) {
 
-#if CONFIG_IA32E_FEATURE_SMEP
+#if CONFIG_X86_64_IA32E_FEATURE_SMEP
         cr4 |= IA32E_CR4_SMEP_MASK;
 #endif
 
@@ -563,7 +563,7 @@ void ia32eCpuInit(void)
 
     if ((regs7_0[1] & IA32E_CPUID7_0_B_SMAP_MASK) != 0) {
 
-#if CONFIG_IA32E_FEATURE_SMAP
+#if CONFIG_X86_64_IA32E_FEATURE_SMAP
         cr4 |= IA32E_CR4_SMAP_MASK;
 #endif
 
@@ -572,7 +572,7 @@ void ia32eCpuInit(void)
 
     if ((regs7_0[2] & IA32E_CPUID7_0_C_UMIP_MASK) != 0) {
 
-#if CONFIG_IA32E_FEATURE_UMIP
+#if CONFIG_X86_64_IA32E_FEATURE_UMIP
         cr4 |= IA32E_CR4_UMIP_MASK;
 #endif
 
@@ -625,7 +625,7 @@ void ia32eCpuInit(void)
     ia32eCpuid(18, 0, &regs18[0], &regs18[1], &regs18[2], &regs18[3]);
     cpu->cpuFlags.fields.sgx = (regs18[0] & IA32E_CPUID18_0_A_SGX1_MASK) != 0;
 
-#if CONFIG_IA32E_TSD
+#if CONFIG_X86_64_IA32E_TSD
     cr4 |= IA32E_CR4_TSD_MASK;
 #endif
 
@@ -649,14 +649,14 @@ void ia32eCpuInit(void)
     dr7 |= IA32E_DR7_BP3_RW_8B_MASK;
     __ia32eWriteDr7(dr7);
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
     if ((regs1[2] & IA32E_CPUID1_C_VMX_MASK) != 0)
         ia32eCpuVtxInit();
 
 #endif
 
-#if CONFIG_IA32E_APPLY_MADT_NMI_OVERRIDES
+#if CONFIG_X86_64_IA32E_APPLY_MADT_NMI_OVERRIDES
     ia32eApicConfigMadtNmiOverrides();
 #endif
 }
@@ -794,7 +794,7 @@ void ia32eCpuTaskCtxInit(kSchedTask_t *task, uintptr_t pc)
 {
     memset(&task->ctx, 0, sizeof(task->ctx));
     
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
     if (task->domain.curDomain->archInfo.ia32eInfo.vm) {
         ia32eCpuVtxTaskCtxInit(task);
@@ -859,7 +859,7 @@ void ia32eCpuTaskSaveCtx(kSchedTask_t *task)
     task->ctx.ia32eCtx.cs = topFrame->cs;
     task->ctx.ia32eCtx.ss = topFrame->ss;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
     K_DYNAMIC_ASSERT(task->taggedInfo.type != K_TASK_INVALID);
 
@@ -909,7 +909,7 @@ void ia32eCpuTaskRestoreCtx(kSchedTask_t *task)
     topFrame->cs = task->ctx.ia32eCtx.cs;
     topFrame->ss = task->ctx.ia32eCtx.ss;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
     K_DYNAMIC_ASSERT(task->taggedInfo.type != K_TASK_INVALID);
 
@@ -958,14 +958,14 @@ void ia32eCpuEnterDomain(kDomain_t *domain)
     uint64_t cr3 = 0;
     ia32ePerCpu_t *cpu = NULL;
 
-#if CONFIG_IA32E_FEATURE_PCID && CONFIG_KMAX_DOMAINS > 4096
+#if CONFIG_X86_64_IA32E_FEATURE_PCID && CONFIG_KMAX_DOMAINS > 4096
     uint32_t pcid = 0;
 #endif
 
     cr3 = domain->archInfo.ia32eInfo.cr3;
     cpu = ia32eThisCpuData();
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
     if (domain->archInfo.ia32eInfo.vm) {
         ia32eCpuVtxEnterDomain(domain);
@@ -974,7 +974,7 @@ void ia32eCpuEnterDomain(kDomain_t *domain)
 
 #endif
 
-#if CONFIG_IA32E_FEATURE_PCID 
+#if CONFIG_X86_64_IA32E_FEATURE_PCID 
 
 #   if CONFIG_KMAX_DOMAINS > 4096
     
@@ -1041,14 +1041,14 @@ bool ia32eCpuIdValidate(uint32_t cpuId)
 
 int ia32eCpuThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param)
 {
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     int ret = 0;
 #endif
 
     if (param->ia32eParam.tpr >= IA32E_MAX_VECTOR_PRIO)
         return -EINVAL;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     
     if (ia32eCpuVtxThreadParamIsVm(param)) {
 
@@ -1068,7 +1068,7 @@ int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
     uint8_t vector = 0;
     uint8_t prio = 0;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     int ret = 0;
 #endif
 
@@ -1079,7 +1079,7 @@ int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
         return -EINVAL;
 
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     
     if (ia32eCpuVtxLsrParamIsVm(param)) {
 
@@ -1100,13 +1100,13 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     ia32ePml4_t *pml4Virt = NULL;
     ia32ePml4e_t pml4e = 0;
 
-#if CONFIG_IA32E_FEATURE_PCID
+#if CONFIG_X86_64_IA32E_FEATURE_PCID
     ia32ePerCpu_t *cpu = NULL;
     ia32eGlobal_t *global = NULL; 
     int32_t pcid = 0;
 #endif
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
     if (param->ia32eParam.vm)
         return ia32eCpuVtxDomainInfoInit(info, param);
@@ -1134,7 +1134,7 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
 
     info->ia32eInfo.cr3 = pml4Phys;
 
-#if CONFIG_IA32E_FEATURE_PCID
+#if CONFIG_X86_64_IA32E_FEATURE_PCID
 
     cpu = ia32eThisCpuData();
     global = cpu->global;

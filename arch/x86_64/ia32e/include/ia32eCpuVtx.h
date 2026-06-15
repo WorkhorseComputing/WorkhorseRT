@@ -29,7 +29,7 @@
 #include <generated/autoconf.h>
 #include <stdWorkhorse.h>
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
 #include <workhorse/kSched/kSchedTask.h>
 

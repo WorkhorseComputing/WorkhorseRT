@@ -456,7 +456,7 @@ void ia32eMadtParser(void)
 
                 typeIoapic = (void *)madtEntry;
 
-                if (numIoapics == CONFIG_IA32E_MAX_IOAPICS) {
+                if (numIoapics == CONFIG_X86_64_IA32E_MAX_IOAPICS) {
                     ia32eEarlyKpanic("Too many ioapics, likely bad config\n");
                     UNREACHABLE();
                 }
@@ -677,7 +677,7 @@ void ia32eBspConfig(void)
     global->ipiData.ipiSender = ia32eThisCpuData()->cpuId;
     global->intcSetup = true;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     ia32eGlobalVtxInit();
 #endif
 }
@@ -715,7 +715,7 @@ K_REGISTER_INITCALL(ia32eHpetParser, ia32eHpetParser,                           
 K_REGISTER_INITCALL(ia32eApicConfig, ia32eApicConfig,                                       008);
 K_REGISTER_INITCALL(ia32eIoapicConfig, ia32eIoapicConfig,                                   009);
 
-#if CONFIG_IA32E_APPLY_MADT_NMI_OVERRIDES
+#if CONFIG_X86_64_IA32E_APPLY_MADT_NMI_OVERRIDES
 K_REGISTER_INITCALL(ia32eIoapicConfigMadtNmiOverrides, ia32eIoapicConfigMadtNmiOverrides,   010);
 #endif
 

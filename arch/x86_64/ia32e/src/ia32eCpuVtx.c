@@ -25,7 +25,7 @@
 
 #include <ia32eCpuVtx.h>
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
 #include <ia32eCpu.h>
 #include <ia32eVma.h>
@@ -309,7 +309,7 @@ void ia32eCpuVtxInit(void)
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDPMC_EXITING_BIT + 32) ||
 
         (!testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT + 32) && 
-          CONFIG_IA32E_VTX_TSD) ||
+          CONFIG_X86_64_IA32E_VTX_TSD) ||
 
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_LOAD_EXITING_BIT + 32) ||
         !testBitLe(procbasedCtls, IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_STORE_EXITING_BIT + 32) || 
@@ -386,7 +386,7 @@ void ia32eCpuVtxInit(void)
 
     /* security checks */
 
-    if (((cr4 & IA32E_CR4_TSD_MASK) != 0) != CONFIG_IA32E_TSD ||
+    if (((cr4 & IA32E_CR4_TSD_MASK) != 0) != CONFIG_X86_64_IA32E_TSD ||
         (cr4 & IA32E_CR4_MCE_MASK) != 0 || 
         (cr4 & IA32E_CR4_PCE_MASK) != 0 ||
         (cr4 & IA32E_CR4_LA57_MASK) != 0 ||
@@ -395,10 +395,10 @@ void ia32eCpuVtxInit(void)
         (cr4 & IA32E_CR4_PKE_MASK) != 0 ||
         (cr4 & IA32E_CR4_UINTR_MASK) != 0 ||
 
-        (!CONFIG_IA32E_FEATURE_PCID && ((cr4 & IA32E_CR4_PCIDE_MASK) != 0)) ||
-        (!CONFIG_IA32E_FEATURE_SMEP && ((cr4 & IA32E_CR4_SMEP_MASK) != 0)) ||
-        (!CONFIG_IA32E_FEATURE_SMAP && ((cr4 & IA32E_CR4_SMAP_MASK) != 0)) ||
-        (!CONFIG_IA32E_FEATURE_UMIP && ((cr4 & IA32E_CR4_UMIP_MASK) != 0))){
+        (!CONFIG_X86_64_IA32E_FEATURE_PCID && ((cr4 & IA32E_CR4_PCIDE_MASK) != 0)) ||
+        (!CONFIG_X86_64_IA32E_FEATURE_SMEP && ((cr4 & IA32E_CR4_SMEP_MASK) != 0)) ||
+        (!CONFIG_X86_64_IA32E_FEATURE_SMAP && ((cr4 & IA32E_CR4_SMAP_MASK) != 0)) ||
+        (!CONFIG_X86_64_IA32E_FEATURE_UMIP && ((cr4 & IA32E_CR4_UMIP_MASK) != 0))){
 
         return;
     }
@@ -443,7 +443,7 @@ void ia32eGlobalVtxInit(void)
     if (global->gFlags.fields.vcpuCapableExists == 0)
         return;
 
-#if CONFIG_IA32E_VTX_FEATURE_VPID
+#if CONFIG_X86_64_IA32E_VTX_FEATURE_VPID
     global->vtxGlobal.vpidCtr = 1;
 #endif
 
@@ -651,7 +651,7 @@ int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     info->ia32eInfo.cr3 = pml4Phys | (global->gFlags.fields.allEptAd << 6) | (3 << 3) | IA32E_VTX_EPT_WB;
     info->ia32eInfo.vm = param->ia32eParam.vm;
 
-#if CONFIG_IA32E_VTX_FEATURE_VPID
+#if CONFIG_X86_64_IA32E_VTX_FEATURE_VPID
 
     K_DYNAMIC_ASSERT(global->vtxGlobal.vpidCtr <= UINT16_MAX);
 

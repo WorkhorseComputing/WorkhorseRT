@@ -52,7 +52,7 @@ typedef enum ia32eEmulatorMode
 
 typedef void (*ia32eEmulatorFn_t)(ia32eVmexitRegs_t *regs);
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
 #define IA32E_EMULATOR_CPUIDV_START             0x40000000
 #define IA32E_EMULATOR_CPUIDV_PARAVIRT          0x40000001

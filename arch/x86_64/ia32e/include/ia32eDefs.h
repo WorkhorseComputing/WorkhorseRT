@@ -160,7 +160,7 @@ typedef struct ia32eSchedCtx
     uint16_t ss;
     ia32eStack_t kStack;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     struct 
     { 
         uint64_t vmexitStoreVmentryLoadAreaData[5];
@@ -178,7 +178,7 @@ typedef struct ia32eSchedThreadParam
 {
     uint8_t tpr;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     ia32eVtxParam_t vtxParam;
 #endif
 
@@ -188,7 +188,7 @@ typedef struct ia32eSchedThreadInfo
 {
     uint8_t tpr;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     ia32eVtxTaskInfo_t vtxInfo;
 #endif
 
@@ -198,7 +198,7 @@ typedef struct ia32eSchedLsrParam
 {
     uint8_t vector;
     
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     ia32eVtxParam_t vtxParam;
 #endif
 
@@ -208,7 +208,7 @@ typedef struct ia32eSchedLsrInfo
 {
     uint8_t vector;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     ia32eVtxTaskInfo_t vtxInfo;
 #endif
 
@@ -219,10 +219,10 @@ typedef struct ia32eDomainInfo
     uint64_t cr3;
     uint8_t iopb[8192];
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     bool vm;
 
-#   if CONFIG_IA32E_VTX_FEATURE_VPID
+#   if CONFIG_X86_64_IA32E_VTX_FEATURE_VPID
     uint16_t vpid;
 #   endif
 
@@ -240,7 +240,7 @@ typedef struct ia32eDomainParam
     uintptr_t pml4BasePhys;
     uint8_t iopb[8192];
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     bool vm;
 #endif
 

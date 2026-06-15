@@ -40,7 +40,7 @@ ia32eVmaDescriptor_t ia32eVmaEarlyDesc = {0};
 
 static 
 IA32E_DEFINE_VMA_PARTITION_TABLE(ia32eVmaEarlyPartitionTable, 
-                                CONFIG_IA32E_VMA_EARLY_PARTITION_TABLE_COUNT);
+                                CONFIG_X86_64_IA32E_VMA_EARLY_PARTITION_TABLE_COUNT);
 
 IA32E_REGISTER_VMA_PARTITION_TABLE(ia32eVmaEarlyPartitionTable, 
                                    ia32eVirtToPhysStatic(ia32eVmaEarlyPartitionTable),
@@ -69,7 +69,7 @@ bool ia32eVmaTicketService(ia32eVmaPartitionTicket_t *ticket)
         ia32ePdptReloc[IA32E_FREE_PDPTE_START + vmaPartitionCount] = ticket->tablePhys | 0x3;
         vmaPartitionCount++;
 
-        if (vmaPartitionCount == CONFIG_IA32E_MAX_VMA_PARTITIONS)
+        if (vmaPartitionCount == CONFIG_X86_64_IA32E_MAX_VMA_PARTITIONS)
             break;
     }
 
@@ -80,7 +80,7 @@ bool ia32eVmaTicketService(ia32eVmaPartitionTicket_t *ticket)
     ticket->descriptor->numValid = numValid;
     ticket->descriptor->size = numValid * IA32E_VMA_PARTITION_SIZE;
 
-    return vmaPartitionCount == CONFIG_IA32E_MAX_VMA_PARTITIONS;
+    return vmaPartitionCount == CONFIG_X86_64_IA32E_MAX_VMA_PARTITIONS;
 }
 
 void ia32eVmaInit(void)

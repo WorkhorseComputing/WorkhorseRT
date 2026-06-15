@@ -185,7 +185,7 @@
     .balign 4096
     \name:
         .set addr, 0
-        .set numEntries, (CONFIG_IA32E_KMAX_SIZE_MB + 1) / 2
+        .set numEntries, (CONFIG_X86_64_IA32E_KMAX_SIZE_MB + 1) / 2
         .rept numEntries
             .quad addr + 0x183  /* P | RW | PS | G */
             .set addr, addr + (2 * 1024 * 1024)
@@ -268,9 +268,9 @@
 typedef struct ia32eStack
 {
     char padding[16] ATTR_ALIGNED(16);
-    char stack[CONFIG_IA32E_KSTACK_SIZE] ATTR_ALIGNED(16);
+    char stack[CONFIG_X86_64_IA32E_KSTACK_SIZE] ATTR_ALIGNED(16);
 } ATTR_PACKED ia32eStack_t;
-SIZE_ASSERT(ia32eStack_t, CONFIG_IA32E_KSTACK_SIZE + 16);
+SIZE_ASSERT(ia32eStack_t, CONFIG_X86_64_IA32E_KSTACK_SIZE + 16);
 
 typedef struct ATTR_PACKED ia32eRegs
 {

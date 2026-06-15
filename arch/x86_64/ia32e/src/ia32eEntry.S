@@ -39,7 +39,7 @@
 .extern ia32eIsrHandler
 .extern ia32eSyscallHandler
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
 .extern ia32eEmulatorBootManager
 .extern ia32eEmulatorVcpuFailureEntry
@@ -63,7 +63,7 @@
 .globl __ia32eFakeIsr
 .type __ia32eFakeIsr, @function
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
 .globl __ia32eVmboot
 .type __ia32eVmboot, @function
@@ -194,7 +194,7 @@ __ia32eFakeIsr:
 
 /* Vtx stubs */
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
 
 .balign 64

@@ -1,92 +1,82 @@
 menu "ia32e Configuration"
 
-# CMake configs
-
-config CMAKELISTS_SUBDIR
-    string 
-    default "arch/ia32e"
-
-config CMAKE_TOOLCHAIN
-    string 
-    default "arch/ia32e/toolchain.cmake"
-
 # Kernel configs
 
-config IA32E_VTX
+config X86_64_IA32E_VTX
     bool "Vtx"
     default y
     ---help---
         Enable hardware assisted virtualization
 
-config IA32E_VTX_FEATURE_VPID
+config X86_64_IA32E_VTX_FEATURE_VPID
     bool "Vpid"
-    depends on IA32E_VTX
+    depends on X86_64_IA32E_VTX
     default y
     ---help---
         Enable vpids if supported
 
-config IA32E_VTX_TSC_CALIBRATION_TIME_MS
+config X86_64_IA32E_VTX_TSC_CALIBRATION_TIME_MS
     int "Tsc calibration time ms"
-    depends on IA32E_VTX
+    depends on X86_64_IA32E_VTX
     default 1
     range 1 10
     ---help---
         Amount of time taken to calibrate the tsc
 
-config IA32E_VTX_TSD
+config X86_64_IA32E_VTX_TSD
     bool "Disable TSC in vtx"
-    depends on IA32E_VTX
+    depends on X86_64_IA32E_VTX
     default n
     ---help---
         Disable timestamp counter in virtual domains
 
-config IA32E_VTX_ACCESS_DENIED_GP0
+config X86_64_IA32E_VTX_ACCESS_DENIED_GP0
     bool "GP0 on denied access to resources in vtx"
-    depends on IA32E_VTX
+    depends on X86_64_IA32E_VTX
     default n
     ---help---
         Inject GP0 when a guest attempt to access a resource is denied instead of failing the vcpu
 
-config IA32E_VTX_SYSCALL
+config X86_64_IA32E_VTX_SYSCALL
     bool "Vtx syscalls"
-    depends on IA32E_VTX
+    depends on X86_64_IA32E_VTX
     default y
     ---help---
         Allow vcpus to execute syscalls
 
-config IA32E_KSTACK_SIZE
+config X86_64_IA32E_KSTACK_SIZE
     int "Kernel stack size"
     default 4096
     range 4096 65536
     ---help---
         Size of each kernel stack in bytes.
         
-config IA32E_KMAX_SIZE_MB
+config X86_64_IA32E_KMAX_SIZE_MB
     int "Maximum kernel size (MB)"
     default 4
     range 2 512
 
-config IA32E_MULTIBOOT2
+config X86_64_IA32E_MULTIBOOT2
     bool "Multiboot2"
     default y
     ---help---
         Enable support for booting as a multiboot2 module
 
-config IA32E_MAX_VMA_PARTITIONS
+config X86_64_IA32E_MAX_VMA_PARTITIONS
     int "Maximum number of vma partitions"
     range 1 511
     ---help---
         Sets the maximum number of vma partitions supported by WorkhorseRT
         on the ia32e architecture
 
-config IA32E_VMA_EARLY_PARTITION_TABLE_COUNT
+config X86_64_IA32E_VMA_EARLY_PARTITION_TABLE_COUNT
     int "Number of vma partitions used by early vma"
     range 1 511
     ---help---
         Sets the number of vma partitions used by WorkhorseRT early vma
         on the ia32e architecture
 
-config IA32E_MAX_IOAPICS
+config X86_64_IA32E_MAX_IOAPICS
     int "Maximum number of IOAPICs"
     default 2
     range 1 32
@@ -94,44 +84,44 @@ config IA32E_MAX_IOAPICS
         Sets the maximum number of IOAPICs supported by WorkhorseRT
         on the ia32e architecture
 
-config IA32E_APPLY_MADT_NMI_OVERRIDES
+config X86_64_IA32E_APPLY_MADT_NMI_OVERRIDES
     bool "Apply MADT NMI overrides"
     default n
     ---help---
         Enable NMI overrides stated by the ACPI MADT
 
-config IA32E_APIC_CALIBRATION_TIME_MS
+config X86_64_IA32E_APIC_CALIBRATION_TIME_MS
     int "Apic calibration time ms"
     default 1
     range 1 10
     ---help---
         Amount of time taken to calibrate the Apic
 
-config IA32E_FEATURE_PCID
+config X86_64_IA32E_FEATURE_PCID
     bool "Enable PCID"
     default y
     ---help---
         Enable PCID if supported
 
-config IA32E_FEATURE_UMIP
+config X86_64_IA32E_FEATURE_UMIP
     bool "Enable UMIP"
     default y
     ---help---
         Enable UMIP if supported
 
-config IA32E_FEATURE_SMEP
+config X86_64_IA32E_FEATURE_SMEP
     bool "Enable SMEP"
     default n
     ---help---
         "Enable SMEP if supported
 
-config IA32E_FEATURE_SMAP
+config X86_64_IA32E_FEATURE_SMAP
     bool "Enable SMAP"
     default n
     ---help---
         "Enable SMAP if supported
 
-config IA32E_TSD
+config X86_64_IA32E_TSD
     bool "Disable TSC"
     default n
     ---help---

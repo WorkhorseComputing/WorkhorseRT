@@ -110,4 +110,4 @@ SECTIONS
     __kernelEnd = .;
 }
 
-ASSERT((__kernelEnd - __kernelStart + __bootEnd) <= (CONFIG_IA32E_KMAX_SIZE_MB * 1M), "kernel image too large");
+ASSERT((__kernelEnd - __kernelStart + __bootEnd) <= (CONFIG_X86_64_IA32E_KMAX_SIZE_MB * 1M), "kernel image too large");

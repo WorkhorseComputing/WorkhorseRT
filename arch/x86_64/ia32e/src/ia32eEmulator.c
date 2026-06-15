@@ -25,7 +25,7 @@
 
 #include <ia32eEmulator.h>
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
 #include <ia32eCpu.h>
 #include <ia32eVma.h>
@@ -449,7 +449,7 @@ ia32eEmulatorMode_t ia32eEmulatorMode(void)
     return (guestAr & IA32E_ACCESS_RIGHTS_DB_MASK) != 0 ? IA32E_EMULATOR_32 : IA32E_EMULATOR_16;
 }
 
-#if CONFIG_IA32E_VTX_SYSCALL
+#if CONFIG_X86_64_IA32E_VTX_SYSCALL
 
 static
 bool ia32eEmulatorCpl0(void)
@@ -710,7 +710,7 @@ void ia32eEmulatorCatchLostEvent(void)
 static 
 void ia32eEmulatorAccessDenied(ATTR_UNUSED ia32eVmexitRegs_t *regs)
 {
-#if CONFIG_IA32E_VTX_ACCESS_DENIED_GP0
+#if CONFIG_X86_64_IA32E_VTX_ACCESS_DENIED_GP0
     ia32eEmulatorQueueGp0();
 #else 
     ia32eEmulatorHandleVcpuFailure();
@@ -1380,11 +1380,11 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
 
             case IA32E_EMULATOR_CPUIDV_EMULATION:
 
-#if CONFIG_IA32E_VTX_ACCESS_DENIED_GP0
+#if CONFIG_X86_64_IA32E_VTX_ACCESS_DENIED_GP0
                 regs->regs.rdx |= IA32E_EMULATOR_CPUIDV_EMULATION_D_ACCESS_DENIED_GP0_MASK;
 #endif            
 
-#if CONFIG_IA32E_VTX_SYSCALL
+#if CONFIG_X86_64_IA32E_VTX_SYSCALL
                 regs->regs.rdx |= IA32E_EMULATOR_CPUIDV_EMULATION_D_SYSCALL_MASK;
 #endif
 
@@ -1475,7 +1475,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
 
             regs->regs.rdx |= IA32E_CPUID1_D_APIC_MASK;
 
-#if CONFIG_IA32E_VTX_TSD
+#if CONFIG_X86_64_IA32E_VTX_TSD
             regs->regs.rdx &= ~IA32E_CPUID1_D_TSC_MASK;
 #endif
             break;
@@ -1576,7 +1576,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     }
 }
 
-#if CONFIG_IA32E_VTX_SYSCALL
+#if CONFIG_X86_64_IA32E_VTX_SYSCALL
 
 static 
 void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
@@ -2206,7 +2206,7 @@ void ia32eEmulatorVmcsSetupBase(void)
     proc = (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_MWAIT_EXITING_BIT) |
             (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_RDPMC_EXITING_BIT) |
 
-#if CONFIG_IA32E_VTX_TSD
+#if CONFIG_X86_64_IA32E_VTX_TSD
             (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_RDTSC_EXITING_BIT) |
 #endif
             (1ULL << IA32E_VTX_VMCS_PROCBASED_CTLS_CR8_LOAD_EXITING_BIT) |
@@ -2276,7 +2276,7 @@ void ia32eEmulatorVmcsSetupBase(void)
     cr4Mask =  IA32E_CR4_PSE_MASK | IA32E_CR4_PAE_MASK | IA32E_CR4_PGE_MASK | 
                IA32E_CR4_OSFXSR_MASK | IA32E_CR4_OSXMMEXCPT_MASK;
 
-#if !CONFIG_IA32E_VTX_TSD
+#if !CONFIG_X86_64_IA32E_VTX_TSD
     cr4Mask |= IA32E_CR4_TSD_MASK;
 #endif
 
@@ -2339,7 +2339,7 @@ void ia32eEmulatorVmcsSetupBase(void)
 
     ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_EPTP, task->domain.curDomain->archInfo.ia32eInfo.cr3);
 
-#if CONFIG_IA32E_VTX_FEATURE_VPID
+#if CONFIG_X86_64_IA32E_VTX_FEATURE_VPID
 
     if (cpu->cpuFlags.fields.vpid != 0)
         ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_VPID, task->domain.curDomain->archInfo.ia32eInfo.vpid);

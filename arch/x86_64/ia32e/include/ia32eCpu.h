@@ -32,7 +32,7 @@
 #define IA32E_ASM_SYSCALL_KSP_OFF   0
 #define IA32E_ASM_SYSCALL_USP_OFF   8
 
-#define IA32E_ASM_PDE_COUNT         ((CONFIG_IA32E_KMAX_SIZE_MB + 1) / 2)
+#define IA32E_ASM_PDE_COUNT         ((CONFIG_X86_64_IA32E_KMAX_SIZE_MB + 1) / 2)
 
 #define IA32E_SPURIOUS_INT_VECTOR   255
 #define IA32E_K_EVENT_VECTOR        254
@@ -53,7 +53,7 @@
 #include <lib/dsa/stackq.h>
 #include <ia32eVmcs.h>
 
-STATIC_ASSERT((CONFIG_IA32E_KSTACK_SIZE % 16) == 0);
+STATIC_ASSERT((CONFIG_X86_64_IA32E_KSTACK_SIZE % 16) == 0);
 STATIC_ASSERT(IA32E_ASM_PDE_COUNT <= 256);
 
 /* lowdata */
@@ -116,7 +116,7 @@ typedef struct ia32ePerCpu
     ia32eFrame_t *currentFrame;
     bool external;
 
-#if CONFIG_IA32E_FEATURE_PCID && CONFIG_KMAX_DOMAINS > 4096
+#if CONFIG_X86_64_IA32E_FEATURE_PCID && CONFIG_KMAX_DOMAINS > 4096
     kDomain_t *pcidLastDomain[4096];
 #endif
 
@@ -197,7 +197,7 @@ typedef struct ia32ePerCpu
     uint32_t extFeaturesSubleafMax;
     uint32_t esigMax;
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
     struct 
     {   
         uint32_t revisionId;
@@ -310,7 +310,7 @@ typedef struct ia32eGlobal
             uintptr_t ioapicMmioPhys;
             uintptr_t ioapicMmio;
             uint32_t ioapicGsiBase;
-        } ioapicData[CONFIG_IA32E_MAX_IOAPICS];
+        } ioapicData[CONFIG_X86_64_IA32E_MAX_IOAPICS];
 
         uint32_t numIoApics;
     } ioapic;
@@ -345,15 +345,15 @@ typedef struct ia32eGlobal
     kCpuInvokeRoutineFn_t nmiHandler;
     volatile atomic_uint_fast32_t numCpusOnline;
 
-#if CONFIG_IA32E_FEATURE_PCID
+#if CONFIG_X86_64_IA32E_FEATURE_PCID
     uint32_t pcidCtr;
 #endif
 
-#if CONFIG_IA32E_VTX
+#if CONFIG_X86_64_IA32E_VTX
 
     struct 
     {
-#   if CONFIG_IA32E_VTX_FEATURE_VPID
+#   if CONFIG_X86_64_IA32E_VTX_FEATURE_VPID
         uint32_t vpidCtr;
 #   endif
 

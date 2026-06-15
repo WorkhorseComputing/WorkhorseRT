@@ -90,7 +90,7 @@
 .section .multiboot_header, "a", @progbits
 .balign 64
 header_start:
-#if CONFIG_IA32E_MULTIBOOT2
+#if CONFIG_X86_64_IA32E_MULTIBOOT2
 
     .long MULTIBOOT2_HEADER_MAGIC
     .long 0
@@ -374,7 +374,7 @@ ia32eApDr0:                 .quad 0
 .balign 64
 ia32eBootStackPadding:      .skip 16
 ia32eBootStackBottom:
-    .skip                   CONFIG_IA32E_KSTACK_SIZE
+    .skip                   CONFIG_X86_64_IA32E_KSTACK_SIZE
 ia32eBootStackTop:
 
 .balign 64
