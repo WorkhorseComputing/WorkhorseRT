@@ -2033,7 +2033,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             break;
 
         default:
-
             valid = false;
             if (callbacks->ia32eEmulatorWrmsrCallbackFn)
                 valid = callbacks->ia32eEmulatorWrmsrCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
