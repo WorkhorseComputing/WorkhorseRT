@@ -1719,6 +1719,7 @@ static
 void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 {
     kSchedTask_t *task = NULL;
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
     uint32_t ecx = 0;
 
     mcsNode_t node = {0};
@@ -1731,6 +1732,7 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
     K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
 
     task = kTickGetRunningTask();
+    callbacks = ia32eEmulatorGetCallbacks();
 
     ecx = regs->regs.rcx & 0xffffffff;
 
@@ -1861,6 +1863,9 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 
         default:
             valid = false;
+            if (callbacks->ia32eEmulatorRdmsrCallbackFn)
+                valid = callbacks->ia32eEmulatorRdmsrCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
+
             break;
     }
 
@@ -1879,6 +1884,7 @@ static
 void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 {
     kSchedTask_t *task = NULL;
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
     
     uint32_t ecx = 0;
     uint64_t eax = 0;
@@ -1893,6 +1899,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
     bool valid = true;
 
     task = kTickGetRunningTask();
+    callbacks = ia32eEmulatorGetCallbacks();
 
     ecx = regs->regs.rcx & 0xffffffff;
     eax = regs->regs.rax & 0xffffffff;
@@ -2016,8 +2023,21 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             ia32eEmulatorX2apicSendPacket(ia32eEmulatorVcpuId(), val, IA32E_DM_NORMAL);
             break;
 
+        case IA32E_EMULATOR_SHUTDOWN:
+            
+            if (val == 0)
+                ia32eEmulatorHandleVcpuFailure();
+            else 
+                valid = false;
+
+            break;
+
         default:
+
             valid = false;
+            if (callbacks->ia32eEmulatorWrmsrCallbackFn)
+                valid = callbacks->ia32eEmulatorWrmsrCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
+
             break;
     }
 

@@ -21,16 +21,22 @@ typedef struct ia32eVtxParam
 Plugins can register callbacks for certain events in the guest, this allows them to emulate peripherals which the guest OS expects to be available, allowing for them to run without modification. Callbacks can should use helpers available in ```<ia32eEmulator.h>```.
 
 ```c
+typedef bool (*ia32eEmulatorCallbackFn_t)(ia32eVmexitRegs_t *regs);
+
 typedef struct ia32eEmulatorCallbacks
 {
-    ia32eEmulatorInOutCallbackFn_t ia32eEmulatorInOutCallbackFn;
-    ia32eEmulatorEptFaultCallbackFn_t ia32eEmulatorEptFaultCallbackFn;
-    ia32eEmulatorEptMisconfigCallbackFn_t ia32eEmulatorEptMisconfigCallbackFn;
+    ia32eEmulatorCallbackFn_t ia32eEmulatorInOutCallbackFn;
+    ia32eEmulatorCallbackFn_t ia32eEmulatorRdmsrCallbackFn;
+    ia32eEmulatorCallbackFn_t ia32eEmulatorWrmsrCallbackFn;
+    ia32eEmulatorCallbackFn_t ia32eEmulatorEptFaultCallbackFn;
+    ia32eEmulatorCallbackFn_t ia32eEmulatorEptMisconfigCallbackFn;
 } ia32eEmulatorCallbacks_t;
 ```
 
 Callbacks: <br>
 ```ia32eEmulatorInOutCallbackFn``` - Called during a trapped PMIO access. <br>
+```ia32eEmulatorRdmsrCallbackFn``` - Called on a rdmsr from an msr that isn't natively emulated <br>
+```ia32eEmulatorWrmsrCallbackFn``` - Called on a wrmsr to an msr that isn't natively emulated <br>
 ```ia32eEmulatorEptFaultCallbackFn``` - Called when a vcpu accesses memory such that is not permissible in its EPTs. <br>
 ```ia32eEmulatorEptMisconfig``` - Called when a vcpus EPTs is configured incorrectly. <br>
 

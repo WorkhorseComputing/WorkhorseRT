@@ -70,6 +70,8 @@ typedef void (*ia32eEmulatorFn_t)(ia32eVmexitRegs_t *regs);
 #define IA32E_EMULATOR_CPUIDV_ECX 0x73726f68
 #define IA32E_EMULATOR_CPUIDV_EDX 0x78747665
 
+#define IA32E_EMULATOR_SHUTDOWN   0x40000000
+
 void ia32eEmulatorCallbackQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
                                               bool deliverErrcode, uint64_t errcode);
 
