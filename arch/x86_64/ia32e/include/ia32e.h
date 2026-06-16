@@ -212,6 +212,7 @@
 #define IA32E_CPUID1_C_MOVBE_MASK               (1 << 22)
 #define IA32E_CPUID1_C_POPCNT_MASK              (1 << 23)
 #define IA32E_CPUID1_C_AES_NI_MASK              (1 << 25)
+#define IA32E_CPUID1_C_AVX_MASK                 (1 << 28)
 #define IA32E_CPUID1_C_F16C_MASK                (1 << 29)
 #define IA32E_CPUID1_C_RDRAND_MASK              (1 << 30)
 #define IA32E_CPUID1_C_HYPERVISOR_PRESENT_MASK  (1 << 31)
