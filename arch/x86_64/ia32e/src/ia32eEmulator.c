@@ -1704,15 +1704,13 @@ static
 void ia32eEmulatorInOut(ia32eVmexitRegs_t *regs)
 {
     ia32eEmulatorCallbacks_t *callbacks = NULL;
-    bool handled = false;
-
     callbacks = ia32eEmulatorGetCallbacks();
 
-    if (callbacks->ia32eEmulatorInOutCallbackFn)
-        handled = callbacks->ia32eEmulatorInOutCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
+    if (callbacks->ia32eEmulatorInOutCallbackFn && 
+        callbacks->ia32eEmulatorInOutCallbackFn(regs) != IA32E_EMULATOR_CALLBACK_SUCCESS) {
 
-    if (!handled)
         ia32eEmulatorAccessDenied(regs);
+    }
 }
 
 static 
@@ -2076,29 +2074,24 @@ static
 void ia32eEmulatorEptFault(ia32eVmexitRegs_t *regs)
 {
     ia32eEmulatorCallbacks_t *callbacks = NULL;
-    bool handled = false;
-
     callbacks = ia32eEmulatorGetCallbacks();
 
-    if (callbacks->ia32eEmulatorEptFaultCallbackFn)
-        handled = callbacks->ia32eEmulatorEptFaultCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
+    if (callbacks->ia32eEmulatorEptFaultCallbackFn && 
+        callbacks->ia32eEmulatorEptFaultCallbackFn(regs) != IA32E_EMULATOR_CALLBACK_SUCCESS) {
 
-    if (!handled)
         ia32eEmulatorAccessDenied(regs);
+    }    
 }
 
 static
 void ia32eEmulatorEptMisconfig(ia32eVmexitRegs_t *regs)
 {
     ia32eEmulatorCallbacks_t *callbacks = NULL;
-    bool handled = false;
-
     callbacks = ia32eEmulatorGetCallbacks();
 
-    if (callbacks->ia32eEmulatorEptMisconfigCallbackFn)
-        handled = callbacks->ia32eEmulatorEptMisconfigCallbackFn(regs) == IA32E_EMULATOR_CALLBACK_SUCCESS;
+    if (callbacks->ia32eEmulatorEptMisconfigCallbackFn && 
+        callbacks->ia32eEmulatorEptMisconfigCallbackFn(regs) != IA32E_EMULATOR_CALLBACK_SUCCESS) {
 
-    if (!handled) {
         ia32eEmulatorHandleVcpuFailure();
         UNREACHABLE();
     }
@@ -2487,9 +2480,11 @@ void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
 {
     ia32ePerCpu_t *cpu = NULL;
     kSchedTask_t *task = NULL;
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
 
     cpu = ia32eThisCpuData();
     task = kTickGetRunningTask();
+    callbacks = ia32eEmulatorGetCallbacks();
 
     memset(regs, 0, sizeof(*regs));
 
@@ -2503,6 +2498,15 @@ void ia32eEmulatorRegsReset(ia32eVmexitRegs_t *regs)
 
     memset(task->ctx.ia32eCtx.vtx.vmexitStoreVmentryLoadAreaData, 0, 
            sizeof(task->ctx.ia32eCtx.vtx.vmexitStoreVmentryLoadAreaData));
+
+    task->ctx.ia32eCtx.vtx.signId = 0;
+
+    if (callbacks->ia32eEmulatorRegsResetCallbackFn && 
+        callbacks->ia32eEmulatorRegsResetCallbackFn(regs) != IA32E_EMULATOR_CALLBACK_SUCCESS) {
+
+        ia32eEmulatorHandleVcpuFailure();
+        UNREACHABLE();
+    }
 }
 
 static

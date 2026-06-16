@@ -18,7 +18,7 @@ typedef struct ia32eVtxParam
 
 ---
 
-Plugins can register callbacks for certain events in the guest, this allows them to emulate peripherals which the guest OS expects to be available, allowing for them to run without modification. Callbacks can should use helpers available in ```<ia32eEmulator.h>```.
+Plugins can register callbacks for certain events in the guest, this allows them to easily extend the hypervisors functionality aswell as emulate peripherals which the guest OS expects to be available, allowing for them to run without modification. Callbacks can should use helpers available in ```<ia32eEmulator.h>```.
 
 ```c
 typedef bool (*ia32eEmulatorCallbackFn_t)(ia32eVmexitRegs_t *regs);
@@ -30,15 +30,17 @@ typedef struct ia32eEmulatorCallbacks
     ia32eEmulatorCallbackFn_t ia32eEmulatorWrmsrCallbackFn;
     ia32eEmulatorCallbackFn_t ia32eEmulatorEptFaultCallbackFn;
     ia32eEmulatorCallbackFn_t ia32eEmulatorEptMisconfigCallbackFn;
+    ia32eEmulatorCallbackFn_t ia32eEmulatorRegsResetCallbackFn;
 } ia32eEmulatorCallbacks_t;
 ```
 
 Callbacks: <br>
-```ia32eEmulatorInOutCallbackFn``` - Called during a trapped PMIO access. <br>
-```ia32eEmulatorRdmsrCallbackFn``` - Called on a rdmsr from an msr that isn't natively emulated <br>
-```ia32eEmulatorWrmsrCallbackFn``` - Called on a wrmsr to an msr that isn't natively emulated <br>
+```ia32eEmulatorInOutCallbackFn``` - Called during a PMIO access that is not permissible in its IOPB. <br>
+```ia32eEmulatorRdmsrCallbackFn``` - Called on a rdmsr from an msr that isn't natively emulated. <br>
+```ia32eEmulatorWrmsrCallbackFn``` - Called on a wrmsr to an msr that isn't natively emulated. <br>
 ```ia32eEmulatorEptFaultCallbackFn``` - Called when a vcpu accesses memory such that is not permissible in its EPTs. <br>
-```ia32eEmulatorEptMisconfig``` - Called when a vcpus EPTs is configured incorrectly. <br>
+```ia32eEmulatorEptMisconfigCallbackFn``` - Called when a vcpus EPTs is configured incorrectly. <br>
+```ia32eEmulatorRegsResetCallbackFn``` - Called whenever a guests registers are being reset due to an init ipi or power on. <br>
 
 Return values: <br>
 ```IA32E_EMULATOR_CALLBACK_FAILURE``` - The event was unhandled <br> 

@@ -46,6 +46,7 @@ typedef struct ia32eEmulatorCallbacks
     ia32eEmulatorCallbackFn_t ia32eEmulatorWrmsrCallbackFn;
     ia32eEmulatorCallbackFn_t ia32eEmulatorEptFaultCallbackFn;
     ia32eEmulatorCallbackFn_t ia32eEmulatorEptMisconfigCallbackFn;
+    ia32eEmulatorCallbackFn_t ia32eEmulatorRegsResetCallbackFn;
 } ia32eEmulatorCallbacks_t;
 
 typedef struct ia32eVtxX2apic 
@@ -165,10 +166,10 @@ typedef struct ia32eSchedCtx
     { 
         uint64_t vmexitStoreVmentryLoadAreaData[5];
 
+        uint64_t signId;
+
         ia32eVtxVectoredEvent_t lostEvent;
         ia32eVtxVectoredEvent_t syntheticEvent;
-
-        uint64_t signId;
 
         ia32eVtxX2apic_t x2apic;
     } vtx;
