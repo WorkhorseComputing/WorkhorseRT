@@ -639,7 +639,8 @@ void ia32eApWakeup(void)
     memcpy(ia32eWakeupBlobSaveArea, wakeupArea, wakeupBlobSize);
     memcpy(wakeupArea, ia32eWakeupBlobStart, wakeupBlobSize);
 
-    ia32eHpetEnableCounter();
+    if (ia32eHpetIsInitialized())
+        ia32eHpetEnableCounter();
 
     for (i = 0; i < numCpus; i++) {
 
@@ -671,7 +672,9 @@ void ia32eBspConfig(void)
 
     ia32eCpuInit();
 
-    ia32eHpetDisableCounter();
+    if (ia32eHpetIsInitialized())
+        ia32eHpetDisableCounter();
+        
     atomic_fetch_add(&global->numCpusOnline, 1);
 
     global->ipiData.ipiSender = ia32eThisCpuData()->cpuId;
