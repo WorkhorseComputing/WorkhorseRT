@@ -621,8 +621,6 @@ int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     uintptr_t pml4Phys = 0;
     uintptr_t pml4Virt = 0;
 
-    uint32_t i = 0;
-
     global = ia32eThisCpuData()->global;
 
     if (global->gFlags.fields.vcpuCapableExists == 0)
@@ -632,12 +630,7 @@ int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
     pml4Phys = param->ia32eParam.pml4BasePhys;
     pml4Virt = (uintptr_t)param->ia32eParam.pml4BaseVirt;
 
-    /* Vm domains should NOT be allowed to partake in IPC, and must have a valid _start to boot in realmode */
-
-    for (i = 0; i < ARRAY_LEN(domainParam->param.invocationInfo.invokePermMap); i++) {
-        if (domainParam->param.invocationInfo.invokePermMap[i] != 0)
-            return -EINVAL;
-    }
+    /* Vm domains should NOT be allowed to partake in 'regular' IPC, and must have a valid _start to boot in realmode */
 
     if (domainParam->param.invocationInfo.invocationIpc.valid || 
         domainParam->param.invocationInfo._start > UINT16_MAX ||

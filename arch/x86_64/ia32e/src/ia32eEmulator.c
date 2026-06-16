@@ -33,6 +33,7 @@
 #include <import/kSyscallHandler.h>
 #include <workhorse/kTick/kTick.h>
 #include <stdatomic.h>
+#include <errno.h>
 
 extern 
 void __ia32eVmexitStub(void);
@@ -1222,6 +1223,53 @@ bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
     return true;
 }
 
+static
+bool ia32eEmulatorIpiRouter(uint64_t val)
+{
+    uint32_t domId = 0;
+    uint8_t dest = 0;
+    uint8_t vector = 0;
+    bool nmi = false;
+    
+    kDomain_t *send = NULL;
+    kDomain_t *recv = NULL;
+
+    ia32eVtxX2apic_t *x2apic = NULL;
+    mcsNode_t node = {0};
+
+    domId = val & 0xffffffff;
+    dest = (val >> 32) & 0xff;
+    vector = (val >> 40) & 0xff;
+    nmi = ((val >> 48) & 1) != 0;
+
+    if ((val >> 49) != 0 || (!nmi && vector <= 15))
+        return false;
+
+    send = kTickGetRunningTask()->domain.curDomain;
+    recv = kDomainUniverseGet(domId);
+
+    if (!recv || !recv->archInfo.ia32eInfo.vm || !BITMAP_TEST(send->invocationInfo.invokePermMap, domId) || 
+        dest >= recv->archInfo.ia32eInfo.numVcpus) {
+
+        return false;
+    }
+
+    x2apic = recv->archInfo.ia32eInfo.apicBus[dest];
+    
+    K_DYNAMIC_ASSERT(x2apic);
+
+    ia32eEmulatorLatchLockSafe(x2apic, &node);
+
+    if (nmi)
+        x2apic->latch.fields.nmiPending = 1;
+    else
+        x2apic->latchedIrr[vector / 32] |= (1 << (vector % 32));
+
+    ia32eEmulatorLatchUnlockSafe(x2apic, &node);
+
+    return true;
+}
+
 /* Callback helpers */
 
 void ia32eEmulatorCallbackQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
@@ -1593,7 +1641,12 @@ void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
 
     mode = ia32eEmulatorRunningTaskMode();
     if (mode == IA32E_EMULATOR_64) {
-        ia32eSyscallHandler(&regs->regs);
+
+        if (regs->regs.rax != WORKHORSE_SYS_INVOCATION_CTRL)
+            ia32eSyscallHandler(&regs->regs);
+        else 
+            regs->regs.rax = -EINVAL;
+
         return;
     }
 
@@ -1605,7 +1658,10 @@ void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
     regs->regs.rdi &= 0xffffffff;
     regs->regs.rsi &= 0xffffffff;
 
-    ia32eSyscallHandler(&regs->regs);
+    if (regs->regs.rax != WORKHORSE_SYS_INVOCATION_CTRL)
+        ia32eSyscallHandler(&regs->regs);
+    else 
+        regs->regs.rax = -EINVAL;
 
     regs->regs.rax &= 0xffffffff;
 }
@@ -2041,6 +2097,10 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             else 
                 valid = false;
 
+            break;
+
+        case IA32E_EMULATOR_IPI:
+            valid = ia32eEmulatorIpiRouter(val);
             break;
 
         default:
