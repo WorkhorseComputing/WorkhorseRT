@@ -1706,7 +1706,7 @@ void ia32eEmulatorInOut(ia32eVmexitRegs_t *regs)
     ia32eEmulatorCallbacks_t *callbacks = NULL;
     callbacks = ia32eEmulatorGetCallbacks();
 
-    if (callbacks->ia32eEmulatorInOutCallbackFn && 
+    if (!callbacks->ia32eEmulatorInOutCallbackFn ||
         callbacks->ia32eEmulatorInOutCallbackFn(regs) != IA32E_EMULATOR_CALLBACK_SUCCESS) {
 
         ia32eEmulatorAccessDenied(regs);
@@ -2076,7 +2076,7 @@ void ia32eEmulatorEptFault(ia32eVmexitRegs_t *regs)
     ia32eEmulatorCallbacks_t *callbacks = NULL;
     callbacks = ia32eEmulatorGetCallbacks();
 
-    if (callbacks->ia32eEmulatorEptFaultCallbackFn && 
+    if (!callbacks->ia32eEmulatorEptFaultCallbackFn ||
         callbacks->ia32eEmulatorEptFaultCallbackFn(regs) != IA32E_EMULATOR_CALLBACK_SUCCESS) {
 
         ia32eEmulatorAccessDenied(regs);
@@ -2089,7 +2089,7 @@ void ia32eEmulatorEptMisconfig(ia32eVmexitRegs_t *regs)
     ia32eEmulatorCallbacks_t *callbacks = NULL;
     callbacks = ia32eEmulatorGetCallbacks();
 
-    if (callbacks->ia32eEmulatorEptMisconfigCallbackFn && 
+    if (!callbacks->ia32eEmulatorEptMisconfigCallbackFn ||
         callbacks->ia32eEmulatorEptMisconfigCallbackFn(regs) != IA32E_EMULATOR_CALLBACK_SUCCESS) {
 
         ia32eEmulatorHandleVcpuFailure();
