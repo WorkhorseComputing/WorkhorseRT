@@ -44,8 +44,8 @@ void __ia32eVmexitStub(void);
    IA32E_CPUID1_C_CX16_MASK | IA32E_CPUID1_C_PCID_MASK |                                \
    IA32E_CPUID1_C_SSE4_1_MASK | IA32E_CPUID1_C_SSE4_2_MASK |                            \
    IA32E_CPUID1_C_MOVBE_MASK | IA32E_CPUID1_C_POPCNT_MASK |                             \
-   IA32E_CPUID1_C_AES_NI_MASK | IA32E_CPUID1_C_F16C_MASK |                              \
-   IA32E_CPUID1_C_RDRAND_MASK)
+   IA32E_CPUID1_C_AES_NI_MASK | IA32E_CPUID1_C_AVX_MASK |                               \
+   IA32E_CPUID1_C_F16C_MASK | IA32E_CPUID1_C_RDRAND_MASK)
 
 #define IA32E_EMULATOR_CPUID1_D_TARGET_MASK                                             \
   (IA32E_CPUID1_D_FPU_MASK | IA32E_CPUID1_D_VME_MASK | IA32E_CPUID1_D_DE_MASK |         \
@@ -1513,7 +1513,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
             ia32eCpuid(1, 0, &cpuidRegs[0], &cpuidRegs[1], &cpuidRegs[2], &cpuidRegs[3]);
 
             regs->regs.rax = cpuidRegs[0];
-            regs->regs.rbx = (cpuidRegs[1] & 0xffff) | (vcpuId << 24);
+            regs->regs.rbx = (cpuidRegs[1] & 0xffff) | (vcpuId << 24) | (256 << 16);
             regs->regs.rcx = (cpuidRegs[2] & IA32E_EMULATOR_CPUID1_C_TARGET_MASK);
             regs->regs.rdx = (cpuidRegs[3] & IA32E_EMULATOR_CPUID1_D_TARGET_MASK);
 
