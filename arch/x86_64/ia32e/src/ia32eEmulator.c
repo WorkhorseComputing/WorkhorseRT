@@ -1916,6 +1916,12 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             break;
 #endif
 
+        /** QUIRK:
+         * 
+         * Silent fails on invalid writes to IA32E_BIOS_UPDT_TRIG instead of #GP(0)
+         * 
+         */
+
         case IA32E_BIOS_UPDT_TRIG:
             break;
 
