@@ -144,6 +144,7 @@ typedef struct ia32ePerCpu
     uint8_t tpr;
 
     uint32_t cpuVersion;
+    uint64_t signId;
     union
     {
         uint64_t val;

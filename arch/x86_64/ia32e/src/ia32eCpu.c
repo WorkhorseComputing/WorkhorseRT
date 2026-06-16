@@ -521,9 +521,12 @@ void ia32eCpuInit(void)
     cpu->apicFrequencyHz = ia32eApicFrequencyHz(IA32E_SPURIOUS_INT_VECTOR);
     cpu->mxcsrMask = ia32eMxcsrMask64();
 
+    __ia32eWrmsr(IA32E_BIOS_SIGN_ID, 0);
+
     ia32eCpuid(1, 0, &regs1[0], &regs1[1], &regs1[2], &regs1[3]);
 
     cpu->cpuVersion = regs1[0];
+    cpu->signId = __ia32eRdmsr(IA32E_BIOS_SIGN_ID);
     
     cpu->cpuFlags.fields.monitorMwait = (regs1[2] & IA32E_CPUID1_C_MONITOR_MWAIT_MASK) != 0;
     cpu->cpuFlags.fields.vme = (regs1[3] & IA32E_CPUID1_D_VME_MASK) != 0;

@@ -246,7 +246,7 @@ void ia32eCpuVtxInit(void)
 
     /* We currently cannot emulate rtm properly, so we will not support cpus with rtm */
 
-    if (cpu->cpuFlags.fields.rtm != 0 && cpu->cpuFlags.fields.rtmAbort == 0)
+    if (cpu->cpuFlags.fields.rtm != 0)
         return;
 
     global = cpu->global;

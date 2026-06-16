@@ -409,6 +409,12 @@
 
 #define IA32E_TSC 0x10
 
+#define IA32E_DEBUGCTL 0x1d9
+
+#define IA32E_PLATFORM_ID       0x17
+#define IA32E_BIOS_UPDT_TRIG    0x79
+#define IA32E_BIOS_SIGN_ID      0x8b
+
 #define IA32E_SYSENTER_CS   0x174
 #define IA32E_SYSENTER_ESP  0x175
 #define IA32E_SYSENTER_EIP  0x176

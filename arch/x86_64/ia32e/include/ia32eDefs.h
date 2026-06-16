@@ -168,6 +168,8 @@ typedef struct ia32eSchedCtx
         ia32eVtxVectoredEvent_t lostEvent;
         ia32eVtxVectoredEvent_t syntheticEvent;
 
+        uint64_t signId;
+
         ia32eVtxX2apic_t x2apic;
     } vtx;
 #endif

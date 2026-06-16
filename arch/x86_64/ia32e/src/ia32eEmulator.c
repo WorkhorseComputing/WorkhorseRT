@@ -59,8 +59,7 @@ void __ia32eVmexitStub(void);
   (IA32E_CPUID7_0_B_FSGSBASE_MASK | IA32E_CPUID7_0_B_BMI1_MASK |                        \
    IA32E_CPUID7_0_B_HLE_MASK | IA32E_CPUID7_0_B_FDP_EXCEPTION_ONLY_MASK |               \
    IA32E_CPUID7_0_B_SMEP_MASK | IA32E_CPUID7_0_B_BMI2_MASK |                            \
-   IA32E_CPUID7_0_B_ERMS_MASK | IA32E_CPUID7_0_B_INVPCID_MASK |                         \
-   IA32E_CPUID7_0_B_RTM_MASK | IA32E_CPUID7_0_B_FCS_FDS_DEPR_MASK |                     \
+   IA32E_CPUID7_0_B_INVPCID_MASK | IA32E_CPUID7_0_B_FCS_FDS_DEPR_MASK |                 \
    IA32E_CPUID7_0_B_RDSEED_MASK | IA32E_CPUID7_0_B_ADX_MASK |                           \
    IA32E_CPUID7_0_B_SMAP_MASK | IA32E_CPUID7_0_B_PCOMMIT_MASK |                         \
    IA32E_CPUID7_0_B_CLFLUSHOPT_MASK | IA32E_CPUID7_0_B_CLWB_MASK |                      \
@@ -75,18 +74,16 @@ void __ia32eVmexitStub(void);
    IA32E_CPUID7_0_C_MOVDIR64B_MASK)
 
 #define IA32E_EMULATOR_CPUID7_0_D_TARGET_MASK                                           \
-  (IA32E_CPUID7_0_D_FSRM_MASK | IA32E_CPUID7_0_D_AVX512_VP2INTERSECT_MASK |             \
-    IA32E_CPUID7_0_D_RTM_ABORT_MASK | IA32E_CPUID7_0_D_SERIALIZE_MASK |                 \
+  (IA32E_CPUID7_0_D_AVX512_VP2INTERSECT_MASK | IA32E_CPUID7_0_D_SERIALIZE_MASK |        \
     IA32E_CPUID7_0_D_TSXLDTRK_MASK | IA32E_CPUID7_0_D_AVX512_FP16_MASK)
 
 #define IA32E_EMULATOR_CPUID7_1_A_TARGET_MASK                                           \
   (IA32E_CPUID7_1_A_SM3_MASK | IA32E_CPUID7_1_A_SM4_MASK |                              \
    IA32E_CPUID7_1_A_RAO_INT_MASK | IA32E_CPUID7_1_A_AVX_VNNI_MASK |                     \
    IA32E_CPUID7_1_A_AVX512_BF16_MASK | IA32E_CPUID7_1_A_CMPCCXADD_MASK |                \
-   IA32E_CPUID7_1_A_FZRM_MASK | IA32E_CPUID7_1_A_FSRS_MASK |                            \
-   IA32E_CPUID7_1_A_RSRCS_MASK | IA32E_CPUID7_1_A_LKGS_MASK |                           \
-   IA32E_CPUID7_1_A_WRMSRNS_MASK | IA32E_CPUID7_1_A_AVX_IFMA_MASK |                     \
-   IA32E_CPUID7_1_A_BIOS_DONE_MASK | IA32E_CPUID7_1_A_MOVRS_MASK)
+   IA32E_CPUID7_1_A_LKGS_MASK | IA32E_CPUID7_1_A_WRMSRNS_MASK |                         \
+   IA32E_CPUID7_1_A_AVX_IFMA_MASK | IA32E_CPUID7_1_A_BIOS_DONE_MASK |                   \
+   IA32E_CPUID7_1_A_MOVRS_MASK)
 
 #define IA32E_EMULATOR_CPUID7_1_D_TARGET_MASK                                           \
   (IA32E_CPUID7_1_D_AVX512_VNNI_FP16_MASK | IA32E_CPUID7_1_D_AVX512_VNNI_INT8_MASK |    \
@@ -1350,6 +1347,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     uint32_t ecx = 0;
 
     ia32ePerCpu_t *cpu = NULL;
+    kSchedTask_t *task = NULL;
     uint32_t vcpuId = 0;
 
     uint32_t cpuidRegs[4] = {0};
@@ -1358,6 +1356,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     ecx = regs->regs.rcx & 0xffffffff;
 
     cpu = ia32eThisCpuData();
+    task = kTickGetRunningTask();
     vcpuId = ia32eEmulatorVcpuId();
 
     regs->regs.rax = 0;
@@ -1478,6 +1477,8 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
 #if CONFIG_X86_64_IA32E_VTX_TSD
             regs->regs.rdx &= ~IA32E_CPUID1_D_TSC_MASK;
 #endif
+
+            task->ctx.ia32eCtx.vtx.signId = cpu->signId;
             break;
 
         case 2:
@@ -1744,6 +1745,14 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 #endif
 
+        case IA32E_PLATFORM_ID:
+            val = __ia32eRdmsr(IA32E_PLATFORM_ID);
+            break;
+
+        case IA32E_BIOS_SIGN_ID:
+            val = task->ctx.ia32eCtx.vtx.signId;
+            break;
+
         case IA32E_APIC_BASE:
 
             val = (task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr | 
@@ -1899,6 +1908,17 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             ia32eVmwriteSafe(IA32E_VTX_VMCS_CTRL_TSC_OFFSET, val - now);
             break;
 #endif
+
+        case IA32E_BIOS_UPDT_TRIG:
+            break;
+
+        case IA32E_BIOS_SIGN_ID:
+            if ((val & 0xffffffff) == 0)
+                task->ctx.ia32eCtx.vtx.signId = val;
+            else
+                valid = false;
+
+            break;
 
         case IA32E_APIC_BASE:
             
