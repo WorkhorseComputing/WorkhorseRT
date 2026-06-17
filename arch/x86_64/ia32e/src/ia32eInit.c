@@ -672,6 +672,8 @@ void ia32eBspConfig(void)
 
     ia32eCpuInit();
 
+    cpuEnableInterrupts();
+
     if (ia32eHpetIsInitialized())
         ia32eHpetDisableCounter();
         
