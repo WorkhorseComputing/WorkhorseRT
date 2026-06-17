@@ -241,6 +241,12 @@ void kSchedCtrlLsrDone(void)
     kTickSwitchRunningTask(K_TASK_STATE_LSR_DORMANT);
 }
 
+static
+void kSchedCtrlFailure(void)
+{
+    kTickSwitchRunningTask(K_TASK_STATE_FAILURE);
+}
+
 intptr_t kSysInvocationCtrl(uintptr_t ctrl, uintptr_t val)
 {
     intptr_t ret = 0;
@@ -268,7 +274,7 @@ intptr_t kSysInvocationCtrl(uintptr_t ctrl, uintptr_t val)
             break;
 
         case WORKHORSE_INVOCATION_CTRL_GET_RETURN_ADDRESS:
-            ret = kCpuSyscallGetReturnAddress();
+            ret = kInvocationCtrlGetReturnAddress();
             break;
 
         case WORKHORSE_INVOCATION_CTRL_GET_VMEM_FAULT_ADDRESS:
@@ -324,6 +330,15 @@ intptr_t kSysSchedCtrl(uintptr_t ctrl)
 
             if (type == K_TASK_LSR)
                 kCpuSelfIpi(kSchedCtrlLsrDone);
+            else
+                ret = -EINVAL;
+
+            break;
+
+        case WORKHORSE_SCHED_CTRL_FAILURE:
+
+            if (type == K_TASK_THREAD || type == K_TASK_LSR)
+                kCpuSelfIpi(kSchedCtrlFailure);
             else
                 ret = -EINVAL;
 

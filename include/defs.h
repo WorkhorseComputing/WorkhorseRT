@@ -28,7 +28,7 @@
 
 #include <generated/autoconf.h>
 
-#if CONFIG_ARCH_IA32E
+#if CONFIG_ARCH_X86_64_IA32E
 #   include <ia32eDefs.h>
 #endif
 

@@ -29,7 +29,7 @@
 #include <export/kDbgInterface.h>
 #include <export/kCpuInterface.h>
 
-void kExceptionHandler(kDomainInvocationType_t type, uintptr_t returnAddress, 
+void kExceptionHandler(bool fail, kDomainInvocationType_t type, uintptr_t returnAddress, 
                        uintptr_t vmemFaultAddress, uintptr_t errorCode)
 {
     kSchedTask_t *runningTask = NULL;
@@ -44,7 +44,7 @@ void kExceptionHandler(kDomainInvocationType_t type, uintptr_t returnAddress,
 
     K_DYNAMIC_ASSERT(domain);
 
-    if (kDomainPushInvocationEntry(&newPc, domain, type, returnAddress, vmemFaultAddress, errorCode) == 0)
+    if (!fail && kDomainPushInvocationEntry(&newPc, domain, type, returnAddress, vmemFaultAddress, errorCode) == 0)
         kCpuExceptionSetReturnAddress(newPc);
     else 
         kTickSwitchRunningTask(K_TASK_STATE_FAILURE);

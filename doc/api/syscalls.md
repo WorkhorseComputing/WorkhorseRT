@@ -3,8 +3,8 @@
 All syscalls follow sysV ABI, and return a -errno on failure. If there is no sysV ABI defined for the architecture, 
 check the architecture/board specific docs.
 
-errno's will be a value between 1 - 63. Programs can check for errors by checking if the return value is between -1 
-and -63. Bsp's therefore must ensure that addresses between -63 and -1 are not accessible to userland.
+errno's will be a value between 1 - 63. Programs can check for errors by checking if the return value is between -63
+and -1. Bsp's therefore must ensure that addresses between -63 and -1 are not accessible to userland.
 
 ---
 
@@ -82,7 +82,12 @@ Ctrls:
 ```WORKHORSE_SCHED_CTRL_LSR_DONE 2```
 
 - LSR only
-- Hands control to the scheduler and Transitions the calling LSR to a dormant state, where it is woken up on the next relevant hardware event
+- Hands control to the scheduler and transitions the calling LSR to a dormant state, where it is woken up on the next relevant hardware event.
+
+```WORKHORSE_SCHED_CTRL_FAILURE 3```
+
+- Thread and LSR only
+- Hands control to the scheduler and transitions the task to a failure state.
 
 ---
 

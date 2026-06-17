@@ -1,0 +1,32 @@
+menu "x86_64 configuration"
+
+# Kernel configs
+
+choice 
+
+    prompt "Bsp"
+    default ARCH_X86_64_IA32E
+
+    config ARCH_X86_64_IA32E
+        bool "ia32e"
+
+endchoice # Bsp
+
+
+# CMake configs
+
+if ARCH_X86_64_IA32E
+
+config CMAKELISTS_SUBDIR
+    string 
+    default "arch/x86_64/ia32e"
+
+source "arch/x86_64/ia32e/Kconfig"
+
+endif
+
+config CMAKE_TOOLCHAIN
+    string 
+    default "arch/x86_64/toolchain.cmake"
+
+endmenu

@@ -23,12 +23,32 @@
  * SOFTWARE.
 */
 
-#ifndef _K_EXCEPTION_HANDLER_H_
-#define _K_EXCEPTION_HANDLER_H_
+#ifndef _IA32E_CPU_VTX_H_
+#define _IA32E_CPU_VTX_H_
 
-#include <workhorse/kDomainUniverse/kDomainUniverse.h>
+#include <generated/autoconf.h>
+#include <stdWorkhorse.h>
 
-void kExceptionHandler(bool fail, kDomainInvocationType_t type, uintptr_t returnAddress, 
-                       uintptr_t vmemFaultAddress, uintptr_t errorCode);
+#if CONFIG_X86_64_IA32E_VTX
+
+#include <workhorse/kSched/kSchedTask.h>
+
+void ia32eCpuVtxInit(void);
+void ia32eGlobalVtxInit(void);
+
+void ia32eCpuVtxTaskCtxInit(kSchedTask_t *task);
+void ia32eCpuVtxTaskSaveCtx(kSchedTask_t *task);
+void ia32eCpuVtxTaskRestoreCtx(kSchedTask_t *task);
+void ia32eCpuVtxEnterDomain(kDomain_t *domain);
+
+bool ia32eCpuVtxThreadParamIsVm(archSchedThreadParam_t *param);
+bool ia32eCpuVtxLsrParamIsVm(archSchedLsrParam_t *param);
+
+int ia32eCpuVtxThreadInfoInit(archSchedThreadInfo_t *info, archSchedThreadParam_t *param);
+int ia32eCpuVtxLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param);
+int ia32eCpuVtxDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param);
+
+#endif
+
 
 #endif

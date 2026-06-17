@@ -29,6 +29,11 @@
 #include <compiler.h>
 
 #define msToTicks(ms, freqHz) (((ms) * (freqHz)) / 1000ULL)
+#define usToTicks(us, freqHz) (((us) * (freqHz)) / 1000000ULL)
+#define testBitLe(val, bit) ((((val) >> (bit)) & 1) != 0)
+
+#define min(x, y) ((x) < (y) ? (x) : (y))
+#define max(x, y) ((x) > (y) ? (x) : (y))
 
 #define READ_ONCE(x)					                        \
 ({      					                                    \
@@ -83,5 +88,76 @@ void __writeOnceSize(volatile void *p, void *res, int size)
         	break;
 	}
 }
+
+inline 
+int fls32(uint32_t val)
+{
+	int bit = 0;
+	
+	bit = 31;
+
+    if (val == 0)
+        return -1;
+
+    if (!(val & 0xffff0000)) {
+        val <<= 16;
+        bit -= 16;
+    }
+
+    if (!(val & 0xff000000)) {
+        val <<= 8;
+        bit -= 8;
+    }
+
+    if (!(val & 0xf0000000)) {
+        val <<= 4;
+        bit -= 4;
+    }
+
+    if (!(val & 0xc0000000)) {
+        val <<= 2;
+        bit -= 2;
+    }
+
+    if (!(val & 0x80000000))
+        bit -= 1;
+
+    return bit;
+}
+
+inline 
+int ffs32(uint32_t val) 
+{
+	int bit = 0;
+
+    if (val == 0)
+        return -1;  
+        
+    if (!(val & 0x0000ffff)) {
+        val >>= 16;
+        bit += 16;
+    }
+	
+    if (!(val & 0x000000ff)) {
+        val >>= 8;
+        bit += 8;
+    }
+
+    if (!(val & 0x0000000f)) {
+        val >>= 4;
+        bit += 4;
+    }
+
+    if (!(val & 0x00000003)) {
+        val >>= 2;
+        bit += 2;
+    }
+	
+    if (!(val & 0x00000001))
+        bit += 1;
+        
+    return bit;
+}
+
 
 #endif

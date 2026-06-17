@@ -68,16 +68,11 @@ kSchedTask_t *kTaskFromReplenishNode(deltaNode_t *deltaNode)
 {
     kSchedTick_t *tickPtr = NULL;
     kSchedThread_t *threadPtr = NULL;
-    kSchedTaskInfo_t *infoPtr = NULL;
-    kSchedTaskTaggedInfo_t *taggedInfoPtr = NULL;
     kSchedTask_t *taskPtr = NULL;
 
     tickPtr = containerOf(deltaNode, kSchedTick_t, replenishNode);
     threadPtr = containerOf(tickPtr, kSchedThread_t, tick);
-
-    infoPtr = containerOf(threadPtr, kSchedTaskInfo_t, thread);
-    taggedInfoPtr = containerOf(infoPtr, kSchedTaskTaggedInfo_t, info);
-    taskPtr = containerOf(taggedInfoPtr, kSchedTask_t, taggedInfo);
+    taskPtr = kSchedTaskFromThread(threadPtr);
 
     return taskPtr;
 }

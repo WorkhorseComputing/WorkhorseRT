@@ -16,3 +16,9 @@ verif/**/*.vok
 verif/**/*.vos
 
 .vscode
+.clangd
+.cache
+
+todo
+
+plugins/*

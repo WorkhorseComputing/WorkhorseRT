@@ -3,16 +3,16 @@ mainmenu "WorkhorseRT Configuration"
 choice 
 
     prompt "Architecture"
-    default ARCH_IA32E
+    default ARCH_X86_64
 
-    config ARCH_IA32E
-        bool "ia32e"
+    config ARCH_X86_64
+        bool "x86_64"
 
 endchoice # Architecture
 
-if ARCH_IA32E
-    source "arch/ia32e/Kconfig"
-endif # ARCH_IA32E
+if ARCH_X86_64
+    source "arch/x86_64/Kconfig"
+endif # ARCH_X86_64
 
 config KMAX_CPUS
     int "Maximum number of CPUs"

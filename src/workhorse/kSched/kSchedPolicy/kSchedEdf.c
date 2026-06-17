@@ -53,16 +53,12 @@ kSchedTask_t *kSchedTaskFromThreadDeltaNodeEdf(deltaNode_t *deltaNodePtr)
     kSchedThreadLinkEdf_t *linkEdfPtr = NULL;
     kSchedThreadLink_t *linkPtr = NULL;
     kSchedThread_t *threadPtr = NULL;
-    kSchedTaskInfo_t *infoPtr = NULL;
-    kSchedTaskTaggedInfo_t *taggedInfoPtr = NULL;
     kSchedTask_t *taskPtr = NULL;
-    
+
     linkEdfPtr = containerOf(deltaNodePtr, kSchedThreadLinkEdf_t, node);
     linkPtr = containerOf(linkEdfPtr, kSchedThreadLink_t, linkEdf);
     threadPtr = containerOf(linkPtr, kSchedThread_t, link);
-    infoPtr = containerOf(threadPtr, kSchedTaskInfo_t, thread);
-    taggedInfoPtr = containerOf(infoPtr, kSchedTaskTaggedInfo_t, info);
-    taskPtr = containerOf(taggedInfoPtr, kSchedTask_t, taggedInfo);
+    taskPtr = kSchedTaskFromThread(threadPtr);
 
     return taskPtr;
 }

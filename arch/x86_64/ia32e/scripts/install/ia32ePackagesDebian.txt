@@ -1,0 +1,4 @@
+qemu-system-x86
+xorriso
+grub-common
+ovmf

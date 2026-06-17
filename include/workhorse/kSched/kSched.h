@@ -85,7 +85,7 @@ void kSchedTaskIdleInit(kSchedTask_t *idle)
 #if CONFIG_KDYNAMIC_ASSERT
     K_DYNAMIC_ASSERT(kSchedTaskAdd(K_SCHED_IDLE_TASK_ID(), idle) == 0);
 #else 
-    kSchedTaskAdd(cpuId, idle);
+    kSchedTaskAdd(K_SCHED_IDLE_TASK_ID(), idle);
 #endif
 
     kCallbackActivation(idle);
