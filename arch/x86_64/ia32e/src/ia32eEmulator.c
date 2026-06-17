@@ -100,6 +100,11 @@ void __ia32eVmexitStub(void);
 #define IA32E_EMULATOR_X2APIC_LVT_TIMER_WRITE_RESERVED_MASK                             \
     ((0xffULL << 8) | 0xfffffffffffc0000ULL)
 
+#define IA32E_EMULATOR_X2APIC_LVT_TSR_WRITE_RESERVED_MASK 0xffffffffffffec00ULL
+#define IA32E_EMULATOR_X2APIC_LVT_PMCR_WRITE_RESERVED_MASK 0xffffffffffffeb00ULL
+#define IA32E_EMULATOR_X2APIC_LVT_LINT_WRITE_RESERVED_MASK 0xffffffffffff5800ULL
+#define IA32E_EMULATOR_X2APIC_LVT_ERROR_WRITE_RESERVED_MASK (~((1ULL << 16) | (0xffULL)))
+
 #define IA32E_EMULATOR_INTERRUPTIBILITY_STATE_NMIS_BLOCKED_MASK                         \
         (IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_NMI_MASK |                         \
          IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK)
@@ -1079,9 +1084,9 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
 
             if (vector <= 15) {
 
-                atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr, IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK);
+                atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.receiverEsr, IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK);
                 if (x2apicId != vcpuId)
-                    atomic_fetch_or(&x2apic->shadowEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
+                    atomic_fetch_or(&x2apic->receiverEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
 
                 break;
             }
@@ -1224,6 +1229,39 @@ bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
 }
 
 static
+void ia32eEmulatorX2apicCheckReceiverEsr()
+{
+    kSchedTask_t *task = NULL;
+    uint8_t receiver = 0;
+    uint8_t vector = 0;
+    mcsNode_t node = {0};
+
+    task = kTickGetRunningTask();
+
+    receiver = atomic_exchange(&task->ctx.ia32eCtx.vtx.x2apic.receiverEsr, 0);
+
+    if (task->ctx.ia32eCtx.vtx.x2apic.pendingEsr == 0 && receiver != 0) {
+
+        if ((task->ctx.ia32eCtx.vtx.x2apic.lvtError & IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK) == 0) {
+            
+            vector = task->ctx.ia32eCtx.vtx.x2apic.lvtError & 0xff;
+
+            if (vector > 15) {
+                
+                ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+                task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[vector / 32] |= (1 << (vector % 32));
+                ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+            } else {
+                receiver |= IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK;
+            }
+        }
+    }
+
+    task->ctx.ia32eCtx.vtx.x2apic.pendingEsr |= receiver;
+}
+
+static
 bool ia32eEmulatorIpiRouter(uint64_t val)
 {
     uint32_t domId = 0;
@@ -1276,7 +1314,7 @@ void ia32eEmulatorCallbackQueueEventSynthetic(bool advance, uint8_t vector, ia32
                                               bool deliverErrcode, uint64_t errcode)
 {
     if (!advance && type == IA32E_INTERRUPT_TYPE_EXTERNAL && vector <= 15) {
-        kTickGetRunningTask()->ctx.ia32eCtx.vtx.x2apic.shadowEsr |= IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK;
+        atomic_fetch_or(&kTickGetRunningTask()->ctx.ia32eCtx.vtx.x2apic.receiverEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
         return;
     }
 
@@ -1827,7 +1865,7 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
             break;
 
         case IA32E_X2APIC_VERSION:
-            val = 0x15;
+            val = 0x15 | (5 << 16);
             break;
 
         case IA32E_X2APIC_TPR:
@@ -1892,6 +1930,21 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_LVT_TIMER:
             val = task->ctx.ia32eCtx.vtx.x2apic.lvtTImer;
             break;
+        case IA32E_X2APIC_LVT_TSR:
+            val = task->ctx.ia32eCtx.vtx.x2apic.lvtTsr;
+            break;
+        case IA32E_X2APIC_LVT_PMCR:
+            val = task->ctx.ia32eCtx.vtx.x2apic.lvtPmcr;
+            break;
+        case IA32E_X2APIC_LVT_LINT0:
+            val = task->ctx.ia32eCtx.vtx.x2apic.lvtLint0;
+            break;
+        case IA32E_X2APIC_LVT_LINT1:
+            val = task->ctx.ia32eCtx.vtx.x2apic.lvtLint1;
+            break;
+        case IA32E_X2APIC_LVT_ERROR:
+            val = task->ctx.ia32eCtx.vtx.x2apic.lvtError;
+            break;
 
         case IA32E_X2APIC_TIMER_INIT_COUNT:
             val = task->ctx.ia32eCtx.vtx.x2apic.initCount;
@@ -1955,6 +2008,9 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 #if !CONFIG_X86_64_IA32E_VTX_TSD
     uint64_t now = 0;
 #endif
+
+    uint32_t dm = 0;
+    bool dmValid = false;
 
     bool valid = true;
     bool handled = false;
@@ -2043,8 +2099,8 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 break;
             }
 
-            task->ctx.ia32eCtx.vtx.x2apic.esr = atomic_load(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr);
-            atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr, 0);
+            task->ctx.ia32eCtx.vtx.x2apic.esr = task->ctx.ia32eCtx.vtx.x2apic.pendingEsr;
+            task->ctx.ia32eCtx.vtx.x2apic.pendingEsr = 0;
             break;
 
         case IA32E_X2APIC_ICR:
@@ -2056,6 +2112,57 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             if ((val & IA32E_EMULATOR_X2APIC_LVT_TIMER_WRITE_RESERVED_MASK) == 0)
                 task->ctx.ia32eCtx.vtx.x2apic.lvtTImer = val;
             else
+                valid = false;
+
+            break;
+
+        case IA32E_X2APIC_LVT_TSR:
+
+            if ((val & IA32E_EMULATOR_X2APIC_LVT_TSR_WRITE_RESERVED_MASK) == 0 && ((val >> 8) & 1) == 0)
+                task->ctx.ia32eCtx.vtx.x2apic.lvtTsr = val;
+            else
+                valid = false;
+
+            break;
+
+        case IA32E_X2APIC_LVT_PMCR:
+            
+            if ((val & IA32E_EMULATOR_X2APIC_LVT_PMCR_WRITE_RESERVED_MASK) == 0)
+                task->ctx.ia32eCtx.vtx.x2apic.lvtPmcr = val;
+            else
+                valid = false;
+
+            break;
+        
+        case IA32E_X2APIC_LVT_LINT0:
+
+            dm = (val >> 8) & 0x7;
+            dmValid = dm == IA32E_DM_NORMAL || dm == IA32E_DM_NMI || dm == IA32E_DM_EXTERNAL;
+
+            if ((val & IA32E_EMULATOR_X2APIC_LVT_LINT_WRITE_RESERVED_MASK) == 0 && dmValid)
+                task->ctx.ia32eCtx.vtx.x2apic.lvtLint0 = val;
+            else 
+                valid = false;
+
+            break;
+        
+        case IA32E_X2APIC_LVT_LINT1:
+
+            dm = (val >> 8) & 0x7;
+            dmValid = dm == IA32E_DM_NORMAL || dm == IA32E_DM_NMI || dm == IA32E_DM_EXTERNAL;
+
+            if ((val & IA32E_EMULATOR_X2APIC_LVT_LINT_WRITE_RESERVED_MASK) == 0 && dmValid)
+                task->ctx.ia32eCtx.vtx.x2apic.lvtLint1 = val;
+            else 
+                valid = false;
+
+            break;
+
+        case IA32E_X2APIC_LVT_ERROR:
+
+            if ((val & IA32E_EMULATOR_X2APIC_LVT_ERROR_WRITE_RESERVED_MASK) == 0)
+                task->ctx.ia32eCtx.vtx.x2apic.lvtError = val;
+            else 
                 valid = false;
 
             break;
@@ -2177,11 +2284,11 @@ void ia32eEmulatorVmxPreempt(ATTR_UNUSED ia32eVmexitRegs_t *regs)
     initCount = task->ctx.ia32eCtx.vtx.x2apic.initCount;
     dcr = task->ctx.ia32eCtx.vtx.x2apic.dcr;
 
-    if ((lvtTImer & IA32E_XAPIC_LVT_TIMER_DISABLE_MASK) == 0) {
+    if ((lvtTImer & IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK) == 0) {
         vector = lvtTImer & IA32E_XAPIC_LVT_TIMER_VECTOR_MASK;
 
         if (vector <= 15)
-            atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
+            atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.receiverEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
         else 
             ia32eEmulatorQueueEventSynthetic(false, vector, IA32E_INTERRUPT_TYPE_EXTERNAL, false, 0);
     }
@@ -2524,12 +2631,18 @@ void ia32eEmulatorX2apicReset(void)
     
     memset(task->ctx.ia32eCtx.vtx.x2apic.isr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.isr));
 
-    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.shadowEsr, 0);
+    atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.receiverEsr, 0);
+    task->ctx.ia32eCtx.vtx.x2apic.pendingEsr = 0;
     task->ctx.ia32eCtx.vtx.x2apic.esr = 0;
 
     task->ctx.ia32eCtx.vtx.x2apic.icr = 0;
 
-    task->ctx.ia32eCtx.vtx.x2apic.lvtTImer = IA32E_XAPIC_LVT_TIMER_DISABLE_MASK;
+    task->ctx.ia32eCtx.vtx.x2apic.lvtTImer = IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK;
+    task->ctx.ia32eCtx.vtx.x2apic.lvtTsr = IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK;
+    task->ctx.ia32eCtx.vtx.x2apic.lvtPmcr = IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK;
+    task->ctx.ia32eCtx.vtx.x2apic.lvtLint0 = IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK;
+    task->ctx.ia32eCtx.vtx.x2apic.lvtLint1 = IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK;
+    task->ctx.ia32eCtx.vtx.x2apic.lvtError = IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK;
 
     task->ctx.ia32eCtx.vtx.x2apic.initCount = 0;
     task->ctx.ia32eCtx.vtx.x2apic.dcr = 0;
@@ -2801,11 +2914,15 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
         launch = true;
     }
 
-    /* 4: dequeue any pending events */
+    /* 4: check our esr */
+
+    ia32eEmulatorX2apicCheckReceiverEsr();
+
+    /* 5: dequeue any pending events */
 
     injected = !ia32eEmulatorDequeueEvents(regs);
 
-    /* 5: see if we have any pending events */
+    /* 6: see if we have any pending events */
 
     interruptibilityState = ia32eVmread(IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE);
 
@@ -2851,7 +2968,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     if (injectionDeferred)
         ia32eEmulatorInjectEvent(injectionVector, injectionType, false, 0, false, 0);
 
-    /* 6: trigger an exit if we have any events still pending */
+    /* 7: trigger an exit if we have any events still pending */
 
     proc = ia32eVmread(IA32E_VTX_VMCS_CTRL_PROCBASED_CTLS);
 

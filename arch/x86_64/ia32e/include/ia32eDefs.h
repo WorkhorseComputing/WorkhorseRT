@@ -87,12 +87,18 @@ typedef struct ia32eVtxX2apic
 
     uint32_t isr[8];
 
-    atomic_uint_fast8_t shadowEsr;
+    atomic_uint_fast8_t receiverEsr;
+    uint8_t pendingEsr;
     uint8_t esr;
 
     uint64_t icr;
 
     uint32_t lvtTImer;
+    uint32_t lvtTsr;
+    uint32_t lvtPmcr;
+    uint32_t lvtLint0;
+    uint32_t lvtLint1;
+    uint32_t lvtError;
 
     uint32_t initCount;
     uint8_t dcr;
