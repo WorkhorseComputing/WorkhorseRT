@@ -1240,21 +1240,18 @@ void ia32eEmulatorX2apicCheckReceiverEsr()
 
     receiver = atomic_exchange(&task->ctx.ia32eCtx.vtx.x2apic.receiverEsr, 0);
 
-    if (task->ctx.ia32eCtx.vtx.x2apic.pendingEsr == 0 && receiver != 0) {
-
-        if ((task->ctx.ia32eCtx.vtx.x2apic.lvtError & IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK) == 0) {
-            
-            vector = task->ctx.ia32eCtx.vtx.x2apic.lvtError & 0xff;
-
-            if (vector > 15) {
+    if (task->ctx.ia32eCtx.vtx.x2apic.pendingEsr == 0 && receiver != 0 && 
+        (task->ctx.ia32eCtx.vtx.x2apic.lvtError & IA32E_XAPIC_LVT_ENTRY_DISABLE_MASK) == 0) {
+        
+        vector = task->ctx.ia32eCtx.vtx.x2apic.lvtError & 0xff;
+        if (vector > 15) {
                 
-                ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
-                task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[vector / 32] |= (1 << (vector % 32));
-                ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+            ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+            task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[vector / 32] |= (1 << (vector % 32));
+            ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
 
-            } else {
-                receiver |= IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK;
-            }
+        } else {
+            receiver |= IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK;
         }
     }
 
