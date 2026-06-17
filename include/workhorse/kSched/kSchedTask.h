@@ -174,7 +174,7 @@ kSchedTask_t *kSchedTaskFromLsr(kSchedLsr_t *lsrPtr)
 }
 
 inline
-kSchedTask_t *kSchedTaskFromThreadArchInfo(ia32eVtxTaskInfo_t *infoPtr)
+kSchedTask_t *kSchedTaskFromThreadArchInfo(archSchedThreadInfo_t *infoPtr)
 {
     kSchedThread_t *threadPtr = NULL;
     kSchedTask_t *taskPtr = NULL;
@@ -186,7 +186,7 @@ kSchedTask_t *kSchedTaskFromThreadArchInfo(ia32eVtxTaskInfo_t *infoPtr)
 }
 
 inline
-kSchedTask_t *kSchedTaskFromLsrArchInfo(ia32eVtxTaskInfo_t *infoPtr)
+kSchedTask_t *kSchedTaskFromLsrArchInfo(archSchedLsrInfo_t *infoPtr)
 {
     kSchedLsr_t *lsrPtr = NULL;
     kSchedTask_t *taskPtr = NULL;

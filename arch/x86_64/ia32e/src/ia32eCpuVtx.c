@@ -165,6 +165,36 @@ void ia32eVtxVmcsUntrapMsr(char *bitmap, uint32_t msr)
 
 static
 inline
+kSchedTask_t *kSchedTaskFromThreadVtxInfo(ia32eVtxTaskInfo_t *vtxInfoPtr)
+{
+    ia32eSchedThreadInfo_t *ia32eInfoPtr = NULL;
+    archSchedThreadInfo_t *archInfoPtr = NULL;
+    kSchedTask_t *task = NULL;
+
+    ia32eInfoPtr = containerOf(vtxInfoPtr, ia32eSchedThreadInfo_t, vtxInfo);
+    archInfoPtr = containerOf(ia32eInfoPtr, archSchedThreadInfo_t, ia32eInfo);
+    task = kSchedTaskFromThreadArchInfo(archInfoPtr);
+
+    return task;
+}
+
+static
+inline
+kSchedTask_t *kSchedTaskFromLsrVtxInfo(ia32eVtxTaskInfo_t *vtxInfoPtr)
+{
+    ia32eSchedLsrInfo_t *ia32eInfoPtr = NULL;
+    archSchedLsrInfo_t *archInfoPtr = NULL;
+    kSchedTask_t *task = NULL;
+
+    ia32eInfoPtr = containerOf(vtxInfoPtr, ia32eSchedLsrInfo_t, vtxInfo);
+    archInfoPtr = containerOf(ia32eInfoPtr, archSchedLsrInfo_t, ia32eInfo);
+    task = kSchedTaskFromLsrArchInfo(archInfoPtr);
+
+    return task;
+}
+
+static
+inline
 bool ia32eCpuVtxIsVcpuCapable(uint32_t cpuId)
 {
     ia32eGlobal_t *global = NULL;
@@ -198,7 +228,7 @@ int ia32eCpuVtxTaskInfoInit(kSchedTaskType_t type, ia32eVtxTaskInfo_t *info, uin
         return -EINVAL;
 
     apicId = domain->archInfo.ia32eInfo.numVcpus;
-    task = type == K_TASK_THREAD ? kSchedTaskFromThreadArchInfo(info) : kSchedTaskFromLsrArchInfo(info);
+    task = type == K_TASK_THREAD ? kSchedTaskFromThreadVtxInfo(info) : kSchedTaskFromLsrVtxInfo(info);
 
     info->vtxParam = *param;
     info->vcpuId = apicId;
