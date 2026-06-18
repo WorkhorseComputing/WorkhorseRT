@@ -58,7 +58,7 @@ Callbacks: <br>
 ```ia32eEmulatorRegsResetCallbackFn``` - Called whenever a guests registers are being reset due to an init ipi or power on. <br>
 
 x2apic Callbacks: <br>
-```ia32eEmulatorX2apicIrrCallbackFn``` - Called whenever the emulator sets a vector into the IRR with the vector (not including interrupts queued by a plugin), every interrupt corresponding to calls to this will be edge triggered.
+```ia32eEmulatorX2apicIrrCallbackFn``` - Called whenever the emulator sets a vector into the IRR with the vector (not including interrupts queued by a plugin), every interrupt corresponding to calls to this will be edge triggered. <br>
 ```ia32eEmulatorX2apicIsrCallbackFn``` - Called whenever the emulator sets a vector into the ISR with the vector (including interrupts queued by a plugin) <br>
 ```ia32eEmulatorX2apicEoiCallbackFn``` - Called whenever an EOI is sent to the x2apic with the vector of the interrupt that was EOI'd <br>
 ```ia32eEmulatorX2apicReadTmrCallbackFn``` - Called with idx set to the tmr idx (0 - 8), expected to return true if the interrupt was level triggered otherwise false <br>
