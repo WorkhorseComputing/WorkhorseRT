@@ -78,6 +78,6 @@ bool ia32eEmulatorCallbackQueueEventSynthetic(bool advance, uint8_t vector, ia32
                                               bool deliverErrcode, uint64_t errcode);
 ```
 
-Queues an event to be carried out in the guest
+Queues an event to be carried out in the guest, can only be called once per vmexit. Returns true on success otherwise false.
 
 ---
