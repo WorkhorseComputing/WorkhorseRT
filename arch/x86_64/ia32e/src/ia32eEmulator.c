@@ -113,6 +113,9 @@ void __ia32eVmexitStub(void);
         (IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_STI_MASK |                         \
          IA32E_VTX_VMCS_GUEST_INTERRUPTIBILITY_STATE_MOV_SS_MASK)
 
+#define ia32eEmulatorQueueEventSynthetic(advance, vector, type, deliverErrcode, errcode) \
+    __ia32eEmulatorQueueEventSynthetic((advance), (vector), (type), (deliverErrcode), (errcode), false)
+
 #define ia32eEmulatorGuestIf() \
     ((ia32eVmread(IA32E_VTX_VMCS_GUEST_RFLAGS) & IA32E_FLAGS_IF_MASK) != 0)
 
@@ -217,6 +220,29 @@ void ia32eEmulatorHandleVcpuFailure(void)
     atomic_store(&domain->archInfo.ia32eInfo.tripleFault, 1);
 
     kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);
+}
+
+static
+void __ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
+                                      bool deliverErrcode, uint64_t errcode, bool plugin)
+{
+    kSchedTask_t *task = NULL;
+    ia32eVtxVectoredEvent_t *event = NULL;
+
+    task = kTickGetRunningTask();
+    event = plugin ? &task->ctx.ia32eCtx.vtx.pluginEvent : &task->ctx.ia32eCtx.vtx.syntheticEvent;
+
+    event->delivery.fields.valid = 1;
+
+    if (advance) {
+        event->delivery.fields.advance = 1;
+        return;
+    }
+
+    event->delivery.fields.vector = vector;
+    event->delivery.fields.type = type;
+    event->delivery.fields.deliverErrcode = deliverErrcode;
+    event->errcode = errcode;
 }
 
 static
@@ -654,27 +680,6 @@ ia32eVtxTaskInfo_t *ia32eEmulatorVtxInfo(void)
 }
 
 static
-void ia32eEmulatorQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
-                                      bool deliverErrcode, uint64_t errcode)
-{
-    kSchedTask_t *task = NULL;
-
-    task = kTickGetRunningTask();
-
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.valid = 1;
-
-    if (advance) {
-        task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.advance = 1;
-        return;
-    }
-
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.vector = vector;
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.type = type;
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.deliverErrcode = deliverErrcode;
-    task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = errcode;
-}
-
-static
 void ia32eEmulatorCatchLostEvent(void)
 {
     uint32_t info = 0;
@@ -801,17 +806,23 @@ static
 void ia32eEmulatorX2apicUnsetIsrv(void)
 {
     kSchedTask_t *task = NULL;
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
 
     int32_t i = 0;
     int idx = -1;
 
     task = kTickGetRunningTask();
+    callbacks = ia32eEmulatorGetCallbacks();
 
     for (i = (ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.isr) - 1); i >= 0; i--) {
         
         idx = fls32(task->ctx.ia32eCtx.vtx.x2apic.isr[i]);
         if (idx >= 0) {
             task->ctx.ia32eCtx.vtx.x2apic.isr[i] &= ~(1 << idx);
+
+            if (callbacks->x2apic.ia32eEmulatorX2apicEoiCallbackFn)
+                callbacks->x2apic.ia32eEmulatorX2apicEoiCallbackFn((i * 32) + idx);
+
             break;
         }
     } 
@@ -821,10 +832,15 @@ static
 void ia32eEmulatorX2apicSetIsrv(uint8_t vector)
 {
     kSchedTask_t *task = NULL;
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
 
     task = kTickGetRunningTask();
+    callbacks = ia32eEmulatorGetCallbacks();
 
     task->ctx.ia32eCtx.vtx.x2apic.isr[vector / 32] |= (1U << (vector % 32));
+
+    if (callbacks->x2apic.ia32eEmulatorX2apicIsrCallbackFn)
+        callbacks->x2apic.ia32eEmulatorX2apicIsrCallbackFn(vector);
 }
 
 static
@@ -834,7 +850,7 @@ uint8_t ia32eEmulatorX2apicGetPpr(void)
 }
 
 static
-int32_t ia32eEmulatorX2apicGetIrrPendingUnsafe(void)
+int32_t ia32eEmulatorX2apicGetIrrPending(void)
 {
     kSchedTask_t *task = NULL;
 
@@ -843,9 +859,9 @@ int32_t ia32eEmulatorX2apicGetIrrPendingUnsafe(void)
 
     task = kTickGetRunningTask();
 
-    for (i = (ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr) - 1); i >= 0; i--) {
+    for (i = (ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.irr) - 1); i >= 0; i--) {
         
-        idx = fls32(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[i]);
+        idx = fls32(task->ctx.ia32eCtx.vtx.x2apic.irr[i]);
         if (idx >= 0)
             return (i * 32) + idx;
     } 
@@ -854,7 +870,7 @@ int32_t ia32eEmulatorX2apicGetIrrPendingUnsafe(void)
 }
 
 static
-void ia32eEmulatorX2apicUnsetIrrPendingUnsafe(void)
+void ia32eEmulatorX2apicUnsetIrrPending(void)
 {
     kSchedTask_t *task = NULL;
 
@@ -863,11 +879,11 @@ void ia32eEmulatorX2apicUnsetIrrPendingUnsafe(void)
 
     task = kTickGetRunningTask();
 
-    for (i = (ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr) - 1); i >= 0; i--) {
+    for (i = (ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.irr) - 1); i >= 0; i--) {
         
-        idx = fls32(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[i]);
+        idx = fls32(task->ctx.ia32eCtx.vtx.x2apic.irr[i]);
         if (idx >= 0) {
-            task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[i] &= ~(1 << idx);
+            task->ctx.ia32eCtx.vtx.x2apic.irr[i] &= ~(1 << idx);
             break;
         }
     } 
@@ -1229,7 +1245,7 @@ bool ia32eEmulatorX2apicHandleIcrWrite(uint64_t val)
 }
 
 static
-void ia32eEmulatorX2apicCheckReceiverEsr()
+void ia32eEmulatorX2apicCheckReceiverEsr(void)
 {
     kSchedTask_t *task = NULL;
     uint8_t receiver = 0;
@@ -1256,6 +1272,45 @@ void ia32eEmulatorX2apicCheckReceiverEsr()
     }
 
     task->ctx.ia32eCtx.vtx.x2apic.pendingEsr |= receiver;
+}
+
+static
+void ia32eEmulatorX2apicCheckLatchedIrr(void)
+{
+    kSchedTask_t *task = NULL;
+    ia32eEmulatorCallbacks_t *callbacks = NULL;
+
+    mcsNode_t node = {0};
+    
+    uint32_t i = 0;
+    uint32_t newInterrupts[8] = {0};
+
+    task = kTickGetRunningTask();   
+    callbacks = ia32eEmulatorGetCallbacks();
+
+    STATIC_ASSERT(ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr) == ARRAY_LEN(newInterrupts));
+
+    ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+    for (i = 0; i < ARRAY_LEN(task->ctx.ia32eCtx.vtx.x2apic.latchedIrr); i++) {
+        newInterrupts[i] = task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[i];
+        task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[i] = 0;
+    }
+
+    ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+
+    for (i = 0; i < 256; i++) {
+        
+        if ((newInterrupts[i / 32] & (1 << (i % 32))) != 0) {
+
+            K_DYNAMIC_ASSERT(i > 15);
+
+            task->ctx.ia32eCtx.vtx.x2apic.irr[i / 32] |= (1 << (i % 32));
+
+            if (callbacks->x2apic.ia32eEmulatorX2apicIrrCallbackFn)
+                callbacks->x2apic.ia32eEmulatorX2apicIrrCallbackFn(i);            
+        }
+    }
 }
 
 static
@@ -1307,15 +1362,21 @@ bool ia32eEmulatorIpiRouter(uint64_t val)
 
 /* Callback helpers */
 
-void ia32eEmulatorCallbackQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
+bool ia32eEmulatorCallbackQueueEventSynthetic(bool advance, uint8_t vector, ia32eInterruptType_t type, 
                                               bool deliverErrcode, uint64_t errcode)
 {
-    if (!advance && type == IA32E_INTERRUPT_TYPE_EXTERNAL && vector <= 15) {
-        atomic_fetch_or(&kTickGetRunningTask()->ctx.ia32eCtx.vtx.x2apic.receiverEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
-        return;
-    }
+    kSchedTask_t *task = NULL;
+    task = kTickGetRunningTask();
 
-    ia32eEmulatorQueueEventSynthetic(advance, vector, type, deliverErrcode, errcode);
+    if (task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.valid != 0)
+        return false;
+
+    if (!advance && type == IA32E_INTERRUPT_TYPE_EXTERNAL && vector <= 15)
+        atomic_fetch_or(&kTickGetRunningTask()->ctx.ia32eCtx.vtx.x2apic.receiverEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
+    else
+        __ia32eEmulatorQueueEventSynthetic(advance, vector, type, deliverErrcode, errcode, true);
+
+    return true;
 }
 
 /* General purpose events */
@@ -1812,8 +1873,6 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
 
     uint32_t ecx = 0;
 
-    mcsNode_t node = {0};
-
     uint64_t vcpuId = 0;
 
     uint64_t val = 0;
@@ -1901,6 +1960,10 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_TMR5:
         case IA32E_X2APIC_TMR6:
         case IA32E_X2APIC_TMR7:
+
+            if (callbacks->x2apic.ia32eEmulatorX2apicReadTmrCallbackFn)
+                val = callbacks->x2apic.ia32eEmulatorX2apicReadTmrCallbackFn(ecx - IA32E_X2APIC_TMR0);
+
             break;
 
         case IA32E_X2APIC_IRR0:
@@ -1911,9 +1974,8 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_IRR5:
         case IA32E_X2APIC_IRR6:
         case IA32E_X2APIC_IRR7:
-            ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
-            val = task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[ecx - IA32E_X2APIC_IRR0];
-            ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+            ia32eEmulatorX2apicCheckLatchedIrr();
+            val = task->ctx.ia32eCtx.vtx.x2apic.irr[ecx - IA32E_X2APIC_IRR0];
             break;
 
         case IA32E_X2APIC_ESR:
@@ -2626,6 +2688,7 @@ void ia32eEmulatorX2apicReset(void)
     task->ctx.ia32eCtx.vtx.x2apic.apicBaseAddr = 0xfee00000;
     task->ctx.ia32eCtx.vtx.x2apic.sivr = 0xff;
     
+    memset(task->ctx.ia32eCtx.vtx.x2apic.irr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.irr));
     memset(task->ctx.ia32eCtx.vtx.x2apic.isr, 0, sizeof(task->ctx.ia32eCtx.vtx.x2apic.isr));
 
     atomic_store(&task->ctx.ia32eCtx.vtx.x2apic.receiverEsr, 0);
@@ -2714,6 +2777,14 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     bool syntheticAdvance = false;
     ia32eEmulatorMode_t syntheticMode = IA32E_EMULATOR_INVALID;
 
+    bool pluginValid = false;
+    uint8_t pluginVector = 0;
+    ia32eInterruptType_t pluginType = IA32E_INTERRUPT_TYPE_EXTERNAL;
+    bool pluginDeliverErrcode = false;
+    uint64_t pluginErrcode = 0;
+    bool pluginAdvance = false;
+    ia32eEmulatorMode_t pluginMode = IA32E_EMULATOR_INVALID;
+
     bool ret = true;
 
     task = kTickGetRunningTask();
@@ -2734,17 +2805,21 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     syntheticAdvance = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.advance != 0;
     syntheticMode = task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode;
 
-    /** Invariants
-     * 
-     * ¬lostAdvance 
-     * lostValid -> ¬IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) /\ ¬syntheticAdvance
-     * syntheticValid -> ¬IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) \/ ¬syntheticAdvance
-     *
-     */
+    pluginValid = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.valid != 0;
+    pluginVector = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.vector;
+    pluginType = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.type;
+    pluginDeliverErrcode = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.deliverErrcode != 0;
+    pluginErrcode = task->ctx.ia32eCtx.vtx.pluginEvent.errcode;
+    pluginAdvance = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.advance != 0;
+    pluginMode = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.mode;
 
     K_DYNAMIC_ASSERT(task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.advance == 0);
-    K_DYNAMIC_ASSERT(!lostValid || (!IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) && !syntheticAdvance));
+
+    K_DYNAMIC_ASSERT(!lostValid || ((!IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) && !syntheticAdvance) &&
+                                    (!IA32E_IS_SYNCHRONOUS_INTERRUPT(pluginType) && !pluginAdvance)));
+
     K_DYNAMIC_ASSERT(!syntheticValid || !IA32E_IS_SYNCHRONOUS_INTERRUPT(syntheticType) || !syntheticAdvance);
+    K_DYNAMIC_ASSERT(!pluginValid || !IA32E_IS_SYNCHRONOUS_INTERRUPT(pluginType) || !pluginAdvance);
 
     task->ctx.ia32eCtx.vtx.lostEvent.delivery.val = 0;
     task->ctx.ia32eCtx.vtx.lostEvent.errcode = 0;
@@ -2754,6 +2829,10 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = 0;
     task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode = syntheticMode;
 
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.val = 0;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = 0;
+    task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.mode = pluginMode;
+
     /* lost events take priority */
 
     if (lostValid) {
@@ -2761,7 +2840,7 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
         ret = false;
     }
 
-    /* queue this shit */
+    /* queue emulator synthetic events */
 
     if (syntheticValid) {
 
@@ -2771,7 +2850,7 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
 
                 case IA32E_INTERRUPT_TYPE_EXTERNAL:
                     K_DYNAMIC_ASSERT(syntheticVector > 15);
-
+                    
                     ia32eEmulatorX2apicSendPacket(vcpuId, syntheticVector, IA32E_DM_NORMAL);
                     break;
 
@@ -2795,6 +2874,52 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
                     ia32eEmulatorAdvance(regs, false);
                     ia32eEmulatorInjectEvent(syntheticVector, syntheticType, syntheticDeliverErrcode, 
                                              syntheticErrcode, false, 0);
+                    ret = false;
+                    break;
+
+                default:
+                    K_DYNAMIC_ASSERT(false);
+                    break;
+            }
+
+        } else {
+            K_DYNAMIC_ASSERT(ret);
+            ret = ia32eEmulatorAdvance(regs, true);
+        }
+    }
+
+    if (pluginValid) {
+
+        if (!pluginAdvance) {
+
+            switch (pluginType) {
+
+                case IA32E_INTERRUPT_TYPE_EXTERNAL:
+                    K_DYNAMIC_ASSERT(pluginVector > 15);
+                    
+                    task->ctx.ia32eCtx.vtx.x2apic.irr[pluginVector / 32] |= (1 << (pluginVector % 32));
+                    break;
+
+	            case IA32E_INTERRUPT_TYPE_NMI:
+                    ia32eEmulatorX2apicSendPacket(vcpuId, IA32E_NMI, IA32E_DM_NMI);
+                    break;
+
+	            case IA32E_INTERRUPT_TYPE_HARDWARE_EXCEPTION:
+                    K_DYNAMIC_ASSERT(ret);
+
+                    ia32eEmulatorInjectEvent(pluginVector, pluginType, pluginDeliverErrcode, 
+                                             pluginErrcode, false, 0);
+                    ret = false;
+                    break;
+
+	            case IA32E_INTERRUPT_TYPE_SOFTWARE_INT:
+	            case IA32E_INTERRUPT_TYPE_PRIV_SOFTWARE_EXCEPTION:
+	            case IA32E_INTERRUPT_TYPE_SOFTWARE_EXCEPTION:
+                    K_DYNAMIC_ASSERT(ret);
+
+                    ia32eEmulatorAdvance(regs, false);
+                    ia32eEmulatorInjectEvent(pluginVector, pluginType, pluginDeliverErrcode, 
+                                             pluginErrcode, false, 0);
                     ret = false;
                     break;
 
@@ -2838,6 +2963,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
     uint8_t injectionVector = 0;
     ia32eInterruptType_t injectionType = IA32E_INTERRUPT_TYPE_EXTERNAL;
     bool injectionDeferred = false;
+    bool setIsrvDeferred = false;
     
     uint32_t proc = 0;
 
@@ -2911,8 +3037,9 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
         launch = true;
     }
 
-    /* 4: check our esr */
+    /* 4: check any receivers or latches */
 
+    ia32eEmulatorX2apicCheckLatchedIrr();
     ia32eEmulatorX2apicCheckReceiverEsr();
 
     /* 5: dequeue any pending events */
@@ -2927,7 +3054,7 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
     nmiPending = task->ctx.ia32eCtx.vtx.x2apic.latch.fields.nmiPending != 0;
 
-    intVector = ia32eEmulatorX2apicGetIrrPendingUnsafe();
+    intVector = ia32eEmulatorX2apicGetIrrPending();
     intPending = intVector > 0 && ia32eEmulatorX2apicGetPpr() < (intVector / 16);
 
     if (!injected) {
@@ -2951,9 +3078,9 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
             injectionVector = intVector;
             injectionType = IA32E_INTERRUPT_TYPE_EXTERNAL;
             injectionDeferred = true;
+            setIsrvDeferred = true;
 
-            ia32eEmulatorX2apicUnsetIrrPendingUnsafe();
-            ia32eEmulatorX2apicSetIsrv(intVector);
+            ia32eEmulatorX2apicUnsetIrrPending();
 
             injected = true;
             intPending = false;
@@ -2964,6 +3091,9 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
     if (injectionDeferred)
         ia32eEmulatorInjectEvent(injectionVector, injectionType, false, 0, false, 0);
+
+    if (setIsrvDeferred)
+        ia32eEmulatorX2apicSetIsrv(intVector);
 
     /* 7: trigger an exit if we have any events still pending */
 
