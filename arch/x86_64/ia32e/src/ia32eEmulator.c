@@ -1960,7 +1960,6 @@ void ia32eEmulatorRdmsr(ia32eVmexitRegs_t *regs)
         case IA32E_X2APIC_TMR5:
         case IA32E_X2APIC_TMR6:
         case IA32E_X2APIC_TMR7:
-
             if (callbacks->x2apic.ia32eEmulatorX2apicReadTmrCallbackFn)
                 val = callbacks->x2apic.ia32eEmulatorX2apicReadTmrCallbackFn(ecx - IA32E_X2APIC_TMR0);
 

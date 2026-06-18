@@ -26,7 +26,7 @@ typedef bool (*ia32eEmulatorCallbackFn_t)(ia32eVmexitRegs_t *regs);
 typedef void (*ia32eEmulatorX2apicIrrCallbackFn_t)(uint8_t vector);
 typedef void (*ia32eEmulatorX2apicIsrCallbackFn_t)(uint8_t vector);
 typedef void (*ia32eEmulatorX2apicEoiCallbackFn_t)(uint8_t vector);
-typedef bool (*ia32eEmulatorX2apicReadTmrCallbackFn_t)(uint8_t idx);
+typedef uint32_t (*ia32eEmulatorX2apicReadTmrCallbackFn_t)(uint8_t idx);
 
 typedef struct ia32eEmulatorCallbacks
 {
@@ -61,7 +61,7 @@ x2apic Callbacks: <br>
 ```ia32eEmulatorX2apicIrrCallbackFn``` - Called whenever the emulator sets a vector into the IRR with the vector (not including interrupts queued by a plugin), every interrupt corresponding to calls to this will be edge triggered. <br>
 ```ia32eEmulatorX2apicIsrCallbackFn``` - Called whenever the emulator sets a vector into the ISR with the vector (including interrupts queued by a plugin) <br>
 ```ia32eEmulatorX2apicEoiCallbackFn``` - Called whenever an EOI is sent to the x2apic with the vector of the interrupt that was EOI'd <br>
-```ia32eEmulatorX2apicReadTmrCallbackFn``` - Called with idx set to the tmr idx (0 - 8), expected to return true if the interrupt was level triggered otherwise false <br>
+```ia32eEmulatorX2apicReadTmrCallbackFn``` - Called with idx set to the tmr idx (0 - 8), expected to return a bitmap of vectors for which the interrupt was level triggered (essentially, emulate the TMR on the emulators behalf) <br>
 
 Return values: <br>
 ```IA32E_EMULATOR_CALLBACK_FAILURE``` - The event was unhandled <br> 
