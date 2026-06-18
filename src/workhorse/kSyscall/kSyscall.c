@@ -416,14 +416,19 @@ intptr_t kSysGetTaskType(void)
 
 intptr_t kSysGetCpuId(void)
 {
-    uint64_t cpuId = 0;
     intptr_t ret = 0;
 
+#if KSYS_GET_CPU_ID
+    uint64_t cpuId = 0;
+    
     cpuId = kThisCpuId();
 
     K_DYNAMIC_ASSERT(cpuId <= INTPTR_MAX);
 
     ret = cpuId;
+#else 
+    ret = -EINVAL;
+#endif
 
     return ret;
 }

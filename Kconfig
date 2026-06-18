@@ -113,6 +113,12 @@ config KTICK_MS
     ---help---
         Sets the number of milliseconds taken between each tick
 
+config KSYS_GET_CPU_ID
+    bool "WORKHORSE_SYS_GET_CPU_ID"
+    default y
+    ---help---
+        Enables the WORKHORSE_SYS_GET_CPU_ID syscall
+
 config KPLUGIN_DEMO
     bool "Plugin demo"
     default n
