@@ -42,7 +42,7 @@ typedef bool (*ia32eEmulatorCallbackFn_t)(ia32eVmexitRegs_t *regs);
 typedef void (*ia32eEmulatorX2apicIrrCallbackFn_t)(uint8_t vector);
 typedef void (*ia32eEmulatorX2apicIsrCallbackFn_t)(uint8_t vector);
 typedef void (*ia32eEmulatorX2apicEoiCallbackFn_t)(uint8_t vector);
-typedef bool (*ia32eEmulatorX2apicReadTmrCallbackFn_t)(uint8_t idx);
+typedef uint32_t (*ia32eEmulatorX2apicReadTmrCallbackFn_t)(uint8_t idx);
 
 typedef struct ia32eEmulatorCallbacks
 {
