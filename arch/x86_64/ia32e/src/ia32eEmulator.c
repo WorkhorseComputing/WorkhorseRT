@@ -478,8 +478,6 @@ ia32eEmulatorMode_t ia32eEmulatorMode(void)
     return (guestAr & IA32E_ACCESS_RIGHTS_DB_MASK) != 0 ? IA32E_EMULATOR_32 : IA32E_EMULATOR_16;
 }
 
-#if CONFIG_X86_64_IA32E_VTX_SYSCALL
-
 static
 bool ia32eEmulatorCpl0(void)
 {
@@ -503,8 +501,6 @@ bool ia32eEmulatorCpl0(void)
     guestAr = ia32eVmread(IA32E_VTX_VMCS_GUEST_CS_ACCESS_RIGHTS);
     return (guestAr & IA32E_ACCESS_RIGHTS_DPL_MASK) == 0;
 }
-
-#endif
 
 static
 void ia32eEmulatorInjectEvent(uint8_t vector, ia32eInterruptType_t type, bool deliverErrcode, uint64_t errcode, 
@@ -1527,10 +1523,7 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
                 regs->regs.rdx |= IA32E_EMULATOR_CPUIDV_EMULATION_D_ACCESS_DENIED_GP0_MASK;
 #endif            
 
-#if CONFIG_X86_64_IA32E_VTX_SYSCALL
                 regs->regs.rdx |= IA32E_EMULATOR_CPUIDV_EMULATION_D_SYSCALL_MASK;
-#endif
-
                 break;
 
             default:
@@ -1721,8 +1714,6 @@ void ia32eEmulatorCpuid(ia32eVmexitRegs_t *regs)
     }
 }
 
-#if CONFIG_X86_64_IA32E_VTX_SYSCALL
-
 static 
 void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
 {
@@ -1761,16 +1752,6 @@ void ia32eEmulatorVmcall(ia32eVmexitRegs_t *regs)
 
     regs->regs.rax &= 0xffffffff;
 }
-
-#else
-
-static 
-void ia32eEmulatorVmcall(ATTR_UNUSED ia32eVmexitRegs_t *regs)
-{
-    ia32eEmulatorQueueGp0();
-}
-
-#endif 
 
 static 
 void ia32eEmulatorCrAccess(ia32eVmexitRegs_t *regs)
