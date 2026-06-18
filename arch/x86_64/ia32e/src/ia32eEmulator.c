@@ -2829,8 +2829,8 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = 0;
     task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode = syntheticMode;
 
-    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.val = 0;
-    task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = 0;
+    task->ctx.ia32eCtx.vtx.pluginEvent.delivery.val = 0;
+    task->ctx.ia32eCtx.vtx.pluginEvent.errcode = 0;
     task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.mode = pluginMode;
 
     /* lost events take priority */
