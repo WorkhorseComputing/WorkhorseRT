@@ -39,6 +39,11 @@
 
 typedef bool (*ia32eEmulatorCallbackFn_t)(ia32eVmexitRegs_t *regs);
 
+typedef void (*ia32eEmulatorX2apicIrrCallbackFn_t)(uint8_t vector);
+typedef void (*ia32eEmulatorX2apicIsrCallbackFn_t)(uint8_t vector);
+typedef void (*ia32eEmulatorX2apicEoiCallbackFn_t)(uint8_t vector);
+typedef bool (*ia32eEmulatorX2apicReadTmrCallbackFn_t)(uint8_t idx);
+
 typedef struct ia32eEmulatorCallbacks
 {
     ia32eEmulatorCallbackFn_t ia32eEmulatorInOutCallbackFn;
@@ -47,6 +52,15 @@ typedef struct ia32eEmulatorCallbacks
     ia32eEmulatorCallbackFn_t ia32eEmulatorEptFaultCallbackFn;
     ia32eEmulatorCallbackFn_t ia32eEmulatorEptMisconfigCallbackFn;
     ia32eEmulatorCallbackFn_t ia32eEmulatorRegsResetCallbackFn;
+
+    struct
+    {
+        ia32eEmulatorX2apicIrrCallbackFn_t ia32eEmulatorX2apicIrrCallbackFn; 
+        ia32eEmulatorX2apicIsrCallbackFn_t ia32eEmulatorX2apicIsrCallbackFn;  
+        ia32eEmulatorX2apicEoiCallbackFn_t ia32eEmulatorX2apicEoiCallbackFn;
+        ia32eEmulatorX2apicReadTmrCallbackFn_t ia32eEmulatorX2apicReadTmrCallbackFn;
+    } x2apic;
+
 } ia32eEmulatorCallbacks_t;
 
 typedef struct ia32eVtxX2apic 
@@ -84,7 +98,8 @@ typedef struct ia32eVtxX2apic
 
     uint64_t apicBaseAddr;
     uint8_t sivr;
-
+    
+    uint32_t irr[8];
     uint32_t isr[8];
 
     atomic_uint_fast8_t receiverEsr;
@@ -176,6 +191,7 @@ typedef struct ia32eSchedCtx
 
         ia32eVtxVectoredEvent_t lostEvent;
         ia32eVtxVectoredEvent_t syntheticEvent;
+        ia32eVtxVectoredEvent_t pluginEvent;
 
         ia32eVtxX2apic_t x2apic;
     } vtx;
