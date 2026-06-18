@@ -2783,6 +2783,7 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     bool pluginDeliverErrcode = false;
     uint64_t pluginErrcode = 0;
     bool pluginAdvance = false;
+    ia32eEmulatorMode_t pluginMode = IA32E_EMULATOR_INVALID;
 
     bool ret = true;
 
@@ -2810,6 +2811,7 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     pluginDeliverErrcode = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.deliverErrcode != 0;
     pluginErrcode = task->ctx.ia32eCtx.vtx.pluginEvent.errcode;
     pluginAdvance = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.advance != 0;
+    pluginMode = task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.mode;
 
     K_DYNAMIC_ASSERT(task->ctx.ia32eCtx.vtx.lostEvent.delivery.fields.advance == 0);
 
@@ -2826,6 +2828,10 @@ bool ia32eEmulatorDequeueEvents(ia32eVmexitRegs_t *regs)
     task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.val = 0;
     task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = 0;
     task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.fields.mode = syntheticMode;
+
+    task->ctx.ia32eCtx.vtx.syntheticEvent.delivery.val = 0;
+    task->ctx.ia32eCtx.vtx.syntheticEvent.errcode = 0;
+    task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.mode = pluginMode;
 
     /* lost events take priority */
 
