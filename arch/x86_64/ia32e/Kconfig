@@ -57,6 +57,7 @@ config X86_64_IA32E_MULTIBOOT2
 
 config X86_64_IA32E_MAX_VMA_PARTITIONS
     int "Maximum number of vma partitions"
+    default 1
     range 1 511
     ---help---
         Sets the maximum number of vma partitions supported by WorkhorseRT
@@ -64,6 +65,7 @@ config X86_64_IA32E_MAX_VMA_PARTITIONS
 
 config X86_64_IA32E_VMA_EARLY_PARTITION_TABLE_COUNT
     int "Number of vma partitions used by early vma"
+    default 1
     range 1 511
     ---help---
         Sets the number of vma partitions used by WorkhorseRT early vma

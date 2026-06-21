@@ -89,3 +89,21 @@ add_custom_target(runKvm
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     DEPENDS iso
 )
+
+add_custom_target(runOvmf
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/emulate/ia32eQemuOvmf.sh
+            ${OUTPUT_ISO}
+            512M
+            ${CONFIG_KMAX_CPUS}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    DEPENDS iso
+)
+
+add_custom_target(runKvmOvmf
+    COMMAND  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/emulate/ia32eQemuKvmOvmf.sh
+            ${OUTPUT_ISO}
+            512M
+            ${CONFIG_KMAX_CPUS}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    DEPENDS iso
+)
