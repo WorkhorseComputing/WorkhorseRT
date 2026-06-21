@@ -1272,6 +1272,7 @@ void ia32eCallbackResponse(kSchedTask_t *task)
 void ia32eCallbackCpuHandoff(void)
 {
     ia32eReloadTpr();   
+    ia32eThisCpuData()->handoffDone = true;
 }
 
 /* Event */
@@ -1502,6 +1503,7 @@ void ia32eExceptionHandlerKernel(void)
 void ia32eIsrExternalHandler(void)
 {
     ia32ePerCpu_t *cpu = NULL;
+
     ia32eFrame_t *frame = NULL;
     stackq_t *stackq = NULL;
     bool pushed = false;
@@ -1510,6 +1512,10 @@ void ia32eIsrExternalHandler(void)
     kSchedTask_t *task = NULL;
 
     cpu = ia32eThisCpuData();
+
+    if (!cpu->handoffDone)
+        return;
+
     frame = cpu->currentFrame;
     stackq = &cpu->lsrs[frame->vector];
 

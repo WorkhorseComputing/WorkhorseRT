@@ -255,6 +255,8 @@ typedef struct ia32ePerCpu
 
     stackq_t lsrs[IA32E_NUM_VECTORS];
 
+    bool handoffDone;
+
 } ia32ePerCpu_t;
 
 typedef struct ia32eGlobal
