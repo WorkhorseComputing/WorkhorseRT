@@ -88,6 +88,22 @@ kSchedTask_t *kTaskFromStackqDeferredTickNode(stackqNode_t *nodePtr)
 }
 
 static
+inline 
+void kTickTaskRunCallbacks(kSchedTask_t *task)
+{
+    kSchedTaskCallbackFn_t tickCallbackFn = NULL;
+
+    K_DYNAMIC_ASSERT(task);
+
+    tickCallbackFn = task->callbacks.tickCallbackFn;
+
+    kSchedTaskTickCallback(task);
+
+    if (tickCallbackFn)
+        tickCallbackFn(task);
+}
+
+static
 inline
 void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
 {
@@ -95,10 +111,10 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
     kTickMachine_t *machine = NULL;
 
     kSchedState_t oldState = K_TASK_STATE_INVALID;
-    kSchedTaskInCallbackFn_t inCallbackFn = NULL;
-    kSchedTaskOutCallbackFn_t outCallbackFn = NULL;
-    kSchedTaskActivationCallbackFn_t activationCallbackFn = NULL;
-    kSchedTaskResponseCallbackFn_t responseCallbackFn = NULL;
+    kSchedTaskCallbackFn_t inCallbackFn = NULL;
+    kSchedTaskCallbackFn_t outCallbackFn = NULL;
+    kSchedTaskCallbackFn_t activationCallbackFn = NULL;
+    kSchedTaskCallbackFn_t responseCallbackFn = NULL;
 
     bool wasActivated = false;
     bool isActivated = false;
@@ -307,7 +323,7 @@ void kTickHandleDeferredTicks(kTickMachine_t *machine)
             
             K_DYNAMIC_ASSERT(state == K_TASK_STATE_DEFTICK_PENDING);
 
-            kSchedTaskTickCallback(defTickTask);
+            kTickTaskRunCallbacks(defTickTask);
             kTickTaskLoadNextState(defTickTask, K_TASK_STATE_PENDING);
             continue;
         }
@@ -345,7 +361,7 @@ void kTickHandleDeferredTicks(kTickMachine_t *machine)
             }
         }
 
-        kSchedTaskTickCallback(defTickTask);
+        kTickTaskRunCallbacks(defTickTask);
         kTickTaskLoadNextState(defTickTask, nextState);
     }
 }
@@ -381,7 +397,7 @@ void kSchedTickRunningTask(kTickMachine_t *machine)
 
     }
 
-    kSchedTaskTickCallback(runningTask);
+    kTickTaskRunCallbacks(runningTask);    
 }
 
 static
