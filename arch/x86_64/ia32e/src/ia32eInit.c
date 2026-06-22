@@ -672,6 +672,7 @@ void ia32eBspConfig(void)
 
     ia32eCpuInit();
 
+    __ia32eWriteCr8(1);
     cpuEnableInterrupts();
 
     if (ia32eHpetIsInitialized())
