@@ -9,12 +9,15 @@ This improves determinism, as tick‑based schedulers provide a constant, predic
 Plugins can register callbacks to be notified when tasks are scheduled in and scheduled out via the following structure, passed in ```kPluginTaskThreadParam_t``` during thread creation and ``` kPluginTaskLsrParam_t``` during LSR creation:
 
 ```c
+typedef void (*kSchedTaskCallbackFn_t)(kSchedTask_t *task);
+
 typedef struct kSchedTaskCallbacks
 {
-    kSchedTaskInCallbackFn_t inCallbackFn;
-    kSchedTaskOutCallbackFn_t outCallbackFn;
-    kSchedTaskActivationCallbackFn_t activationCallbackFn;
-    kSchedTaskResponseCallbackFn_t responseCallbackFn;
+    kSchedTaskCallbackFn_t tickCallbackFn;
+    kSchedTaskCallbackFn_t inCallbackFn;
+    kSchedTaskCallbackFn_t outCallbackFn;
+    kSchedTaskCallbackFn_t activationCallbackFn;
+    kSchedTaskCallbackFn_t responseCallbackFn;
 } kSchedTaskCallbacks_t;
 ```
 

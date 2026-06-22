@@ -68,10 +68,7 @@ typedef enum kSchedState
 struct kSchedTask;
 typedef struct kSchedTask kSchedTask_t;
 
-typedef void (*kSchedTaskInCallbackFn_t)(kSchedTask_t *task);
-typedef void (*kSchedTaskOutCallbackFn_t)(kSchedTask_t *task);
-typedef void (*kSchedTaskActivationCallbackFn_t)(kSchedTask_t *task);
-typedef void (*kSchedTaskResponseCallbackFn_t)(kSchedTask_t *task);
+typedef void (*kSchedTaskCallbackFn_t)(kSchedTask_t *task);
 
 typedef struct kSchedTick
 {
@@ -116,10 +113,11 @@ typedef struct kSchedTaskTaggedInfo
 
 typedef struct kSchedTaskCallbacks
 {
-    kSchedTaskInCallbackFn_t inCallbackFn;
-    kSchedTaskOutCallbackFn_t outCallbackFn;
-    kSchedTaskActivationCallbackFn_t activationCallbackFn;
-    kSchedTaskResponseCallbackFn_t responseCallbackFn;
+    kSchedTaskCallbackFn_t tickCallbackFn;
+    kSchedTaskCallbackFn_t inCallbackFn;
+    kSchedTaskCallbackFn_t outCallbackFn;
+    kSchedTaskCallbackFn_t activationCallbackFn;
+    kSchedTaskCallbackFn_t responseCallbackFn;
 } kSchedTaskCallbacks_t;
 
 typedef struct kSchedTask
