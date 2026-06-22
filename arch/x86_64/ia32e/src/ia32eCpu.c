@@ -703,7 +703,9 @@ void ia32eCpuApStart(void)
 
     ia32eCpuInit();
 
+    __ia32eWriteCr8(1);
     cpuEnableInterrupts();
+    
     atomic_fetch_add(&global->numCpusOnline, 1);
 
     __ia32eHltForever();
