@@ -42,6 +42,15 @@ void kPerCpuHandoff(void)
 
     kTickReschedule();
 
+#if CONFIG_KTICK_DESYNCHRONIZED
+
+    timerFreqHz = kTimerFrequencyHz(); 
+    ticks = msToTicks(CONFIG_KTICK_MS, timerFreqHz);
+
+    kTimerArmPeriodic(ticks);
+
+#else
+
     if (kThisCpuId() == kCpuEventSender()) {
         
         timerFreqHz = kTimerFrequencyHz(); 
@@ -49,6 +58,8 @@ void kPerCpuHandoff(void)
 
         kTimerArmPeriodic(ticks);
     }
+
+#endif
 
     kCallbackCpuHandoff();
 }

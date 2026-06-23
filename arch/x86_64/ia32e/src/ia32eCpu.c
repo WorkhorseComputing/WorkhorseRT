@@ -1161,13 +1161,7 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
 
 uint32_t ia32eTimerFrequencyHz(void)
 {
-    ia32eGlobal_t *global = NULL;
-    uint32_t sender = 0;
-
-    global = ia32eThisCpuData()->global;
-    sender = global->ipiData.ipiSender;
-
-    return global->cpuTable[sender].apicFrequencyHz;
+    return ia32eThisCpuData()->apicFrequencyHz;
 }
 
 void ia32eTimerArmPeriodic(uint32_t ticks)
@@ -1572,12 +1566,20 @@ void ia32eIsrEventHandler(void)
 {
     ia32ePerCpu_t *cpu = NULL;
     ia32eGlobal_t *global = NULL;
+
+    bool rendezvous = false;
     kCpuInvokeRoutineFn_t fn = NULL;
 
     cpu = ia32eThisCpuData();
     global = cpu->global;
 
-    if (cpu->cpuId != global->ipiData.ipiSender) {
+    rendezvous = cpu->cpuId != global->ipiData.ipiSender;
+
+#if CONFIG_KTICK_DESYNCHRONIZED
+    rendezvous = rendezvous && !cpu->handoffDone;
+#endif
+
+    if (rendezvous) {
 
         fn = global->ipiData.fn;
 

@@ -1,5 +1,10 @@
 menu "ia32e Configuration"
 
+# Board specific configs
+
+config KARCH_HAS_PER_CPU_TIMERS
+    default y    
+
 # Kernel configs
 
 config X86_64_IA32E_VTX
