@@ -29,5 +29,9 @@
 
 void kTickHandler(void)
 {
+#if CONFIG_KTICK_DESYNCHRONIZED
+    kTickTransition();
+#else
     kCpuInvokeAllRendezvous(kTickTransition);
+#endif
 }

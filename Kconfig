@@ -1,5 +1,12 @@
 mainmenu "WorkhorseRT Configuration"
 
+# Board specific configs
+
+config KARCH_HAS_PER_CPU_TIMERS
+    bool
+
+# Kernel configs
+
 choice 
 
     prompt "Architecture"
@@ -124,3 +131,12 @@ config KPLUGIN_DEMO
     default n
     ---help---
         Enables the demo for plugins
+
+# Kernel configs based on board specific configs
+
+config KTICK_DESYNCHRONIZED
+    bool "Desynchronized scheduling"
+    depends on KARCH_HAS_PER_CPU_TIMERS
+    default n
+    ---help---
+        Have every core use their own tick timer
