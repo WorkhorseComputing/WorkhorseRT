@@ -356,7 +356,8 @@ intptr_t kSysSchedCtrl(uintptr_t ctrl, uintptr_t val)
         case WORKHORSE_SCHED_CTRL_SLEEP_MS:
 
             if (type != K_TASK_THREAD || 
-                (sizeof(uintptr_t) >= sizeof(uint32_t) && val > (UINT32_MAX - (CONFIG_KTICK_MS - 1)))) {
+                (sizeof(uintptr_t) >= sizeof(uint32_t) && val > (UINT32_MAX - (CONFIG_KTICK_MS - 1))) || 
+                (sizeof(uintptr_t) < sizeof(uint32_t) && val > (UINTPTR_MAX - (CONFIG_KTICK_MS - 1)))) {
 
                 ret = -EINVAL;
                 break;
