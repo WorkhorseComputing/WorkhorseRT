@@ -95,6 +95,7 @@ Ctrls:
 - Thread only
 - Sleeps for the ms specified by val rounded up to CONFIG_KTICK_MS
 - A val leading to the sleep being for larger than UINT32_MAX ticks is invalid
+- A val of 0 is treated as a nop
 - The calling task is still charged for the current tick
 - The current tick counts towards the sleep
 - When BCS is enabled, if the tasks budget hits 0 whilst it is sleeping, the time spent sleeping counts towards its replenishment
