@@ -28,6 +28,7 @@
 #include <workhorse/kTick/kTick.h>
 #include <export/kDbgInterface.h>
 #include <export/kCpuInterface.h>
+#include <export/kTimerInterface.h>
 #include <errno.h>
 
 static 
@@ -247,6 +248,12 @@ void kSchedCtrlFailure(void)
     kTickSwitchRunningTask(K_TASK_STATE_FAILURE);
 }
 
+static
+void kSchedCtrlSleepMs(void)
+{
+    kTickSwitchRunningTask(K_TASK_STATE_THREAD_DEFTICK_SLEEP);
+}
+
 intptr_t kSysInvocationCtrl(uintptr_t ctrl, uintptr_t val)
 {
     intptr_t ret = 0;
@@ -297,11 +304,13 @@ intptr_t kSysInvocationCtrl(uintptr_t ctrl, uintptr_t val)
     return ret;
 }
 
-intptr_t kSysSchedCtrl(uintptr_t ctrl)
+intptr_t kSysSchedCtrl(uintptr_t ctrl, uintptr_t val)
 {
     intptr_t ret = 0;
     kSchedTask_t *task = NULL;
     kSchedTaskType_t type = K_TASK_INVALID;
+    
+    kSchedThread_t *thread = NULL;
 
     task = kTickGetRunningTask();
     type = task->taggedInfo.type;
@@ -342,6 +351,22 @@ intptr_t kSysSchedCtrl(uintptr_t ctrl)
             else
                 ret = -EINVAL;
 
+            break;
+
+        case WORKHORSE_SCHED_CTRL_SLEEP_MS:
+
+            if (type != K_TASK_THREAD || (sizeof(uintptr_t) > sizeof(uint32_t) && val > UINT32_MAX) ) {
+                ret = -EINVAL;
+                break;
+            } 
+
+            if (val == 0)
+                break;
+
+            thread = &task->taggedInfo.info.thread;
+            
+            thread->tick.sleepTicks = (val + CONFIG_KTICK_MS - 1)  / CONFIG_KTICK_MS;
+            kCpuSelfIpi(kSchedCtrlSleepMs);
             break;
 
         default:

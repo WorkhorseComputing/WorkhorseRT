@@ -33,6 +33,7 @@ typedef struct kTickMachine
 {
     kSchedTask_t *runningTask;
     deltaChain_t replenishmentChain;
+    deltaChain_t sleepChain;
     stackq_t deferredTicks;
 
     stackq_t pendingLsrChain;

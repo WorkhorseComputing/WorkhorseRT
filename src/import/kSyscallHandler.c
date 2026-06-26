@@ -38,7 +38,7 @@ intptr_t kSyscallHandler(uintptr_t id, uintptr_t param1, uintptr_t param2)
             break;
 
         case WORKHORSE_SYS_SCHED_CTRL:
-            ret = kSysSchedCtrl(param1);
+            ret = kSysSchedCtrl(param1, param2);
             break;
 
         case WORKHORSE_SYS_GET_DOM_ID:

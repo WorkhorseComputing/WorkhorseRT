@@ -57,13 +57,14 @@
 #define WORKHORSE_SCHED_CTRL_THROTTLE           1
 #define WORKHORSE_SCHED_CTRL_LSR_DONE           2
 #define WORKHORSE_SCHED_CTRL_FAILURE            3
+#define WORKHORSE_SCHED_CTRL_SLEEP_MS           4
 
 #define WORKHORSE_TASK_TYPE_THREAD              0
 #define WORKHORSE_TASK_TYPE_LSR                 1
 #define WORKHORSE_TASK_TYPE_IDLE                2
 
 intptr_t kSysInvocationCtrl(uintptr_t ctrl, uintptr_t val);
-intptr_t kSysSchedCtrl(uintptr_t ctrl);
+intptr_t kSysSchedCtrl(uintptr_t ctrl, uintptr_t val);
 intptr_t kSysGetDomId(void);
 intptr_t kSysGetTaskId(void);
 intptr_t kSysGetTaskType(void);

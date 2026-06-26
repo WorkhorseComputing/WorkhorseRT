@@ -53,16 +53,19 @@ typedef enum kSchedState
     K_TASK_STATE_LSR_DORMANT =                  4,
     K_TASK_STATE_THREAD_DEFTICK_YIELD =         5,
     K_TASK_STATE_THREAD_DEFTICK_THROTTLE =      6,
-    K_TASK_STATE_DEFTICK_PENDING =              7,
-    K_TASK_STATE_PENDING =                      8,
-    K_TASK_STATE_LSR_PENDING =                  9,
-    K_TASK_STATE_FAILURE =                      10
+    K_TASK_STATE_THREAD_DEFTICK_SLEEP =         7,
+    K_TASK_STATE_DEFTICK_PENDING =              8,
+    K_TASK_STATE_THREAD_SLEEP =                 9,
+    K_TASK_STATE_PENDING =                      10,
+    K_TASK_STATE_LSR_PENDING =                  11,
+    K_TASK_STATE_FAILURE =                      12
 } kSchedState_t;
 
 #define K_SCHED_TASK_ACTIVATED(state)               \
     (!((state) == K_TASK_STATE_INVALID ||           \
     (state) == K_TASK_STATE_THREAD_THROTTLED ||     \
     (state) == K_TASK_STATE_LSR_DORMANT ||          \
+    (state) == K_TASK_STATE_THREAD_SLEEP ||         \
     (state) == K_TASK_STATE_FAILURE))
 
 struct kSchedTask;
@@ -76,6 +79,13 @@ typedef struct kSchedTick
     uint32_t budget;
     uint32_t period;
     deltaNode_t replenishNode;
+    deltaNode_t sleepNode;
+    uint32_t sleepTicks;
+
+#if CONFIG_KSCHED_ALGORITHM_BCS
+    bool lag;
+#endif
+
 } kSchedTick_t;
 
 typedef struct kSchedThread

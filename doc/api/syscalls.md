@@ -60,6 +60,7 @@ Ctrls:
 ```WORKHORSE_SYS_SCHED_CTRL 1```
 
 param1 - ctrl
+param2 - val
 
 Ctrls:
 
@@ -88,6 +89,15 @@ Ctrls:
 
 - Thread and LSR only
 - Hands control to the scheduler and transitions the task to a failure state.
+
+```WORKHORSE_SCHED_CTRL_SLEEP_MS 4```
+
+- Thread only
+- Sleeps for the ms specified by val rounded up to CONFIG_KTICK_MS
+- A val > UINT32_MAX is invalid
+- The calling task is still charged for the current tick
+- The current tick counts towards the sleep
+- When BCS is enabled, if the tasks budget hits 0 whilst it is sleeping, the time spent sleeping counts towards its replenishment
 
 ---
 

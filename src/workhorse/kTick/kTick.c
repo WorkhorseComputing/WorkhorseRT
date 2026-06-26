@@ -77,6 +77,21 @@ kSchedTask_t *kTaskFromReplenishNode(deltaNode_t *deltaNode)
     return taskPtr;
 }
 
+static
+inline 
+kSchedTask_t *kTaskFromSleepNode(deltaNode_t *deltaNode)
+{
+    kSchedTick_t *tickPtr = NULL;
+    kSchedThread_t *threadPtr = NULL;
+    kSchedTask_t *taskPtr = NULL;
+
+    tickPtr = containerOf(deltaNode, kSchedTick_t, sleepNode);
+    threadPtr = containerOf(tickPtr, kSchedThread_t, tick);
+    taskPtr = kSchedTaskFromThread(threadPtr);
+
+    return taskPtr;
+}
+
 static 
 inline 
 kSchedTask_t *kTaskFromStackqDeferredTickNode(stackqNode_t *nodePtr)
@@ -122,10 +137,11 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
 
 #if CONFIG_KSCHED_ALGORITHM_BCS
     kSchedThread_t *thread = NULL;
+    uint32_t period = 0;
 #endif 
 
     kSchedLsr_t *lsr = NULL;
-    
+
     cpuId = kThisCpuId();
     machine = &gTickMachines[cpuId];
 
@@ -172,7 +188,17 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
 
 #if CONFIG_KSCHED_ALGORITHM_BCS
             thread = &task->taggedInfo.info.thread;
-            deltaChainInsert(&machine->replenishmentChain, &thread->tick.replenishNode, thread->tick.period);
+            period = thread->tick.period;
+
+            if (thread->tick.lag) {
+                K_DYNAMIC_ASSERT(thread->tick.sleepTicks > 0);
+                K_DYNAMIC_ASSERT(thread->tick.period > thread->tick.sleepTicks);
+
+                period -= thread->tick.sleepTicks - 1;
+                thread->tick.lag = false;
+            }
+
+            deltaChainInsert(&machine->replenishmentChain, &thread->tick.replenishNode, period);
 #endif
             break;
 
@@ -184,6 +210,7 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
 
         case K_TASK_STATE_THREAD_DEFTICK_YIELD:
         case K_TASK_STATE_THREAD_DEFTICK_THROTTLE:
+        case K_TASK_STATE_THREAD_DEFTICK_SLEEP:
             K_DYNAMIC_ASSERT(task->taggedInfo.type == K_TASK_THREAD);
 
             stackqPush(&machine->deferredTicks, &task->deferredTickNode);
@@ -194,6 +221,16 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
 
             machine->pendingTaskLsr = task;
             stackqPush(&machine->deferredTicks, &task->deferredTickNode);
+            break;
+
+        case K_TASK_STATE_THREAD_SLEEP:
+            K_DYNAMIC_ASSERT(task->taggedInfo.type == K_TASK_THREAD);
+
+            thread = &task->taggedInfo.info.thread;
+
+            K_DYNAMIC_ASSERT(thread->tick.sleepTicks > 0);
+
+            deltaChainInsert(&machine->sleepChain, &thread->tick.sleepNode, thread->tick.sleepTicks);
             break;
 
         case K_TASK_STATE_PENDING:
@@ -208,6 +245,7 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
             lsr = &task->taggedInfo.info.lsr;
             stackqPush(&machine->pendingLsrChain, &lsr->node);
             break;
+
 
         case K_TASK_STATE_FAILURE:                
             break;
@@ -330,10 +368,10 @@ void kTickHandleDeferredTicks(kTickMachine_t *machine)
 
         K_DYNAMIC_ASSERT(state == K_TASK_STATE_THREAD_DEFTICK_YIELD || 
                          state == K_TASK_STATE_THREAD_DEFTICK_THROTTLE || 
-                         state == K_TASK_STATE_DEFTICK_PENDING);
+                         state == K_TASK_STATE_DEFTICK_PENDING ||
+                         state == K_TASK_STATE_THREAD_DEFTICK_SLEEP);
 
         defTickThread = &defTickTask->taggedInfo.info.thread;
-        nextState = state == K_TASK_STATE_DEFTICK_PENDING ? K_TASK_STATE_PENDING : K_TASK_STATE_READY;
 
         K_DYNAMIC_ASSERT(defTickThread->tick.currentBudget > 0);
 
@@ -341,6 +379,14 @@ void kTickHandleDeferredTicks(kTickMachine_t *machine)
             defTickThread->tick.currentBudget = 0;
         else
             defTickThread->tick.currentBudget--;
+
+        if (state == K_TASK_STATE_THREAD_DEFTICK_SLEEP) {
+            kTickTaskRunCallbacks(defTickTask);
+            kTickTaskLoadNextState(defTickTask, K_TASK_STATE_THREAD_SLEEP);
+            continue;
+        }
+
+        nextState = state == K_TASK_STATE_DEFTICK_PENDING ? K_TASK_STATE_PENDING : K_TASK_STATE_READY;
 
         if (defTickThread->tick.currentBudget == 0) {
 
@@ -398,6 +444,42 @@ void kSchedTickRunningTask(kTickMachine_t *machine)
     }
 
     kTickTaskRunCallbacks(runningTask);    
+}
+
+static
+inline
+void kTickSleepPeriod(kTickMachine_t *machine)
+{
+    deltaNode_t *deltaNode = NULL;
+    kSchedTask_t *wokenTask = NULL;
+    kSchedThread_t *wokenThread = NULL;
+    kSchedState_t nextState = K_TASK_STATE_INVALID;
+
+    deltaChainTick(&machine->sleepChain);
+    while ((deltaNode = deltaChainPopExpired(&machine->sleepChain)) != NULL) {
+    
+        wokenTask = kTaskFromSleepNode(deltaNode);
+
+        K_DYNAMIC_ASSERT(wokenTask->taggedInfo.type == K_TASK_THREAD);
+
+        wokenThread = &wokenTask->taggedInfo.info.thread;
+
+        K_DYNAMIC_ASSERT(wokenThread->tick.sleepTicks > 0);
+
+#if CONFIG_KSCHED_ALGORITHM_BCS
+        if (wokenThread->tick.currentBudget == 0) {
+
+            if (wokenThread->tick.period >= wokenThread->tick.sleepTicks)
+                wokenThread->tick.lag = true;
+            else
+                wokenThread->tick.currentBudget = wokenThread->tick.budget;
+        }
+#endif
+
+        nextState = wokenThread->tick.currentBudget == 0 ? K_TASK_STATE_THREAD_THROTTLED : K_TASK_STATE_READY;
+
+        kTickTaskLoadNextState(wokenTask, nextState);
+    }
 }
 
 static
@@ -470,6 +552,8 @@ void kTickTransition(void)
 #if CONFIG_KSCHED_ALGORITHM_DS
     kTickReplenishmentPeriod(machine);
 #endif
+
+    kTickSleepPeriod(machine);
 
     kTickReschedulingPoint();
 }
