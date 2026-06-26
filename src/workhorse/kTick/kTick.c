@@ -135,8 +135,9 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
     bool isActivated = false;
     bool callbackRan = false;
 
-#if CONFIG_KSCHED_ALGORITHM_BCS
     kSchedThread_t *thread = NULL;
+
+#if CONFIG_KSCHED_ALGORITHM_BCS
     uint32_t period = 0;
 #endif 
 
