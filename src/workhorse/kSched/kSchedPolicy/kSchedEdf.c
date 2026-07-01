@@ -172,6 +172,7 @@ kSchedTask_t *kSchedTaskPopEdf(void)
 void kSchedTaskTickCallbackEdf(kSchedTask_t *task)
 {
     kSchedTaskType_t type = K_TASK_INVALID;
+    kSchedState_t state = K_TASK_STATE_INVALID;
 
     kSchedThread_t *thread = NULL;
     kSchedLsr_t *lsr = NULL;
@@ -184,14 +185,31 @@ void kSchedTaskTickCallbackEdf(kSchedTask_t *task)
     uint32_t epoch = 0;
 
     type = task->taggedInfo.type;
+    state = task->state;
 
     switch (type) {
 
         case K_TASK_THREAD:
 
             thread = &task->taggedInfo.info.thread;
-            
+
             curBudget = thread->tick.currentBudget;
+
+            if (state == K_TASK_STATE_THREAD_DEFTICK_SLEEP) {
+
+                K_DYNAMIC_ASSERT(thread->tick.sleepTicks > 0);
+
+                if (thread->link.linkEdf.node.delta < thread->tick.sleepTicks) {
+                    thread->link.linkEdf.node.delta = 0;
+                    return;
+                } 
+                    
+                thread->link.linkEdf.node.delta -= thread->tick.sleepTicks - 1;
+            }
+
+            K_DYNAMIC_ASSERT(thread->link.linkEdf.node.delta > 0);
+
+            thread->link.linkEdf.node.delta--;
 
             if (curBudget == 0) {
 
@@ -201,17 +219,13 @@ void kSchedTaskTickCallbackEdf(kSchedTask_t *task)
                 period = period == 0 ? period : kTickThrottleTimeLeft(&thread->tick.replenishNode);
 #endif
             
-                if (period >= thread->link.linkEdf.node.delta)
+                if (thread->link.linkEdf.node.delta < period)
                     thread->link.linkEdf.node.delta = 0;
                 else 
                     thread->link.linkEdf.node.delta -= period;
 
-            } else {
-
-                thread->link.linkEdf.node.delta--;
-
-                if (thread->link.linkEdf.node.delta == 0)
-                    thread->link.linkEdf.node.delta = thread->param.paramEdf.virtualDeadline;
+            } else if (thread->link.linkEdf.node.delta == 0) {
+                thread->link.linkEdf.node.delta = thread->param.paramEdf.virtualDeadline;
             }
 
             break;
