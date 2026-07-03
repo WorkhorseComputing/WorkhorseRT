@@ -415,7 +415,7 @@ void kTickHandleDeferredTicks(kTickMachine_t *machine)
 
 static
 inline
-void kSchedTickRunningTask(kTickMachine_t *machine)
+void kTickRunningTask(kTickMachine_t *machine)
 {
     kSchedTask_t *runningTask = NULL;
     kSchedThread_t *runningThread = NULL;
@@ -548,7 +548,7 @@ void kTickTransition(void)
 
     kTickHandleDeferredTicks(machine);
     
-    kSchedTickRunningTask(machine);
+    kTickRunningTask(machine);
 
 #if CONFIG_KSCHED_ALGORITHM_DS
     kTickReplenishmentPeriod(machine);
