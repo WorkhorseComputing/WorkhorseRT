@@ -2539,8 +2539,10 @@ void ia32eEmulatorVmcsSetupBase(void)
 
     ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_IA32E_EFER, __ia32eRdmsr(IA32E_EFER));
 
-    if (cpu->cpuFlags.fields.pat != 0)
+    if (cpu->cpuFlags.fields.pat != 0) {
         ia32eVmwriteSafe(IA32E_VTX_VMCS_HOST_IA32E_PAT, __ia32eRdmsr(IA32E_PAT));
+        ia32eVmwriteSafe(IA32E_VTX_VMCS_GUEST_IA32E_PAT, 0x0007040600070406ULL);
+    }
 
     /* shadows */
 
