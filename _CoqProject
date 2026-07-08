@@ -1,28 +1,21 @@
 # config
 
--Q verif verif
+-Q theories theories
 
-# utils
+# Lib
 
-verif/utils/utils.v
+theories/Lib/Dsa/Bitmap.v
+theories/Lib/Dsa/DeltaChain.v
+theories/Lib/Dsa/PriorityQ.v
 
-# shared
+# Spec
 
-verif/shared/task.v
+theories/Spec/Spec.v
 
-# abstract
+# Model
 
-verif/abstract/abstract.v
+theories/Model/Model.v
 
-verif/abstract/model/cpuA.v
-verif/abstract/model/domainA.v
-verif/abstract/model/ipcA.v
-verif/abstract/model/taskA.v
+# Proofs
 
-# concrete
-
-verif/concrete/concrete.v
-
-# refinement
-
-verif/refinement/refinement.v
+theories/Proofs/Proofs.v

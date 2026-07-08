@@ -23,6 +23,7 @@ case "$CMD" in
         rm  .config > /dev/null 2>&1 || true
         rm -r generated > /dev/null 2>&1 || true
         rm -r include/generated > /dev/null 2>&1 || true
+        make -f CoqMakefile clean > /dev/null 2>&1 || true
         ;;
 
     menuconfig)
@@ -46,8 +47,13 @@ case "$CMD" in
         $PY $GENLD_PY > "$AUTOCONF_DIR/$AUTOCONF_LD"
         ;;
 
+    rocqmake)
+        coq_makefile -f _CoqProject -o CoqMakefile
+        make -f CoqMakefile
+        ;;
+
     help | "")
-        echo "Usage: ./configure.sh [cleanconfig | menuconfig | alldefconfig | oldconfig | genconfig]"
+        echo "Usage: ./configure.sh [cleanconfig | menuconfig | alldefconfig | oldconfig | genconfig | rocqmake]"
         exit 0
         ;;
 

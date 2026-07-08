@@ -168,19 +168,4 @@ uint32_t deltaChainTimeUntil(deltaChain_t *chain, deltaNode_t *node)
     return node->expectedEpoch - chain->currentEpoch;
 }
 
-inline
-void deltaChainDequeue(deltaChain_t *chain, deltaNode_t *node)
-{
-    dqListNode_t *next = NULL;
-    deltaNode_t *nextDeltaNode = NULL;
-
-    next = node->node.next;
-    if (next) {
-        nextDeltaNode = deltaNodeFromDqNode(next);
-        nextDeltaNode->delta += node->delta;
-    }
-
-    dqDequeue(&chain->dq, &node->node);
-}
-
 #endif
