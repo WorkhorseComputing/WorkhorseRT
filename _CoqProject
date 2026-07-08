@@ -4,7 +4,6 @@
 
 # Lib
 
-theories/Lib/Dsa/Bitmap.v
 theories/Lib/Dsa/DeltaChain.v
 theories/Lib/Dsa/PriorityQ.v
 

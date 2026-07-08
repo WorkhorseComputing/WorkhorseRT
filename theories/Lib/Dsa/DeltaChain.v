@@ -24,8 +24,8 @@
     SOFTWARE.
 *)
 
-From Coq Require Import Lists.List.
-From Coq Require Import Arith.Arith.
+From Stdlib Require Import Lists.List.
+From Stdlib Require Import Arith.Arith.
 From RecordUpdate Require Import RecordUpdate.
 From ExtLib.Data Require Import Option.
 Require Import Lia.
@@ -284,23 +284,37 @@ Proof.
     ----- apply H2.
 Qed. 
 
-Conjecture delta_chain_list_tick_first_nonzero_delta : forall (V : Type) (c : DeltaChainList V), True.
-
 Conjecture delta_chain_tick_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (deltaChainTick dc).
 
-Conjecture delta_chain_pop_expired_zero_delta : forall (V : Type) (dc : DeltaChain V), True.
+Conjecture delta_chain_pop_expired_empty_valid : forall (V : Type) (dc : DeltaChain V), 
+    snd (deltaChainPopExpired dc) = None <-> 
+    (forall d t, dc.(chain) <> d :: t \/ d.(delta) <> 0).
+
+Conjecture delta_chain_pop_expired_some_valid : forall (V : Type) (dc : DeltaChain V) (d : DeltaNode V),
+    (exists t, dc.(chain) = d :: t /\ d.(delta) = 0) <-> 
+
+    (snd (deltaChainPopExpired dc) = Some d /\
+     length (fst (deltaChainPopExpired dc)).(chain) = (length dc.(chain) - 1)).
 
 Conjecture delta_chain_pop_expired_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (fst (deltaChainPopExpired dc)).
 
-Conjecture delta_chain_pop_front : forall (V : Type) (dc : DeltaChain V), True.
+Conjecture delta_chain_pop_empty_valid : forall (V : Type) (dc : DeltaChain V),
+    snd (deltaChainPop dc) = None <-> dc.(chain) = [].
+
+Conjecture delta_chain_pop_some_valid : forall (V : Type) (dc : DeltaChain V) (d : DeltaNode V), 
+    snd (deltaChainPop dc) = Some d <-> (exists t, dc.(chain) = d :: t).
 
 Conjecture delta_chain_pop_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (fst (deltaChainPop dc)).
 
-Conjecture delta_chain_is_empty_valid : forall (V : Type) (dc : DeltaChain V), True.
+Conjecture delta_chain_is_empty_valid : forall (V : Type) (dc : DeltaChain V), 
+    (dc.(chain) = [] <-> deltaChainIsEmpty dc = true) /\ 
+    (dc.(chain) <> [] <-> deltaChainIsEmpty dc = false).
 
-Conjecture delta_chain_peek_valid : forall (V : Type) (dc : DeltaChain V), True.
+Conjecture delta_chain_peek_empty_valid : forall (V : Type) (dc : DeltaChain V),
+    deltaChainPeek dc = None <-> dc.(chain) = [].
 
-Conjecture delta_chain_time_until_valid : forall (V : Type) (dc : DeltaChain V), True.
+Conjecture delta_chain_peek_some_valid : forall (V : Type) (dc : DeltaChain V) (d : DeltaNode V), 
+    deltaChainPeek dc = Some d <-> (exists t, dc.(chain) = d :: t).
