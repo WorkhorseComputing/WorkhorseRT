@@ -300,11 +300,9 @@ Conjecture delta_chain_pop_expired_some_valid : forall (V : Type) (dc : DeltaCha
 Conjecture delta_chain_pop_expired_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (fst (deltaChainPopExpired dc)).
 
-Conjecture delta_chain_pop_empty_valid : forall (V : Type) (dc : DeltaChain V),
-    snd (deltaChainPop dc) = None <-> dc.(chain) = [].
-
-Conjecture delta_chain_pop_some_valid : forall (V : Type) (dc : DeltaChain V) (d : DeltaNode V), 
-    snd (deltaChainPop dc) = Some d <-> (exists t, dc.(chain) = d :: t).
+Conjecture delta_chain_pop_valid : forall (V : Type) (dc : DeltaChain V),
+    (dc.(chain) = [] <-> snd (deltaChainPop dc) = None) /\
+    (dc.(chain) <> [] <-> (exists d t, snd (deltaChainPop dc) = Some d /\ dc.(chain) = d :: t)).
 
 Conjecture delta_chain_pop_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (fst (deltaChainPop dc)).
@@ -313,8 +311,6 @@ Conjecture delta_chain_is_empty_valid : forall (V : Type) (dc : DeltaChain V),
     (dc.(chain) = [] <-> deltaChainIsEmpty dc = true) /\ 
     (dc.(chain) <> [] <-> deltaChainIsEmpty dc = false).
 
-Conjecture delta_chain_peek_empty_valid : forall (V : Type) (dc : DeltaChain V),
-    deltaChainPeek dc = None <-> dc.(chain) = [].
-
-Conjecture delta_chain_peek_some_valid : forall (V : Type) (dc : DeltaChain V) (d : DeltaNode V), 
-    deltaChainPeek dc = Some d <-> (exists t, dc.(chain) = d :: t).
+Conjecture delta_chain_peek_valid : forall (V : Type) (dc : DeltaChain V),
+    (dc.(chain) = [] <-> deltaChainPeek dc = None) /\
+    (dc.(chain) <> [] <-> (exists d t, deltaChainPeek dc = Some d /\ dc.(chain) = d :: t)).
