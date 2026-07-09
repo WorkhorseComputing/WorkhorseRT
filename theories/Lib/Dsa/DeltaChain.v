@@ -284,33 +284,129 @@ Proof.
     ----- apply H2.
 Qed. 
 
-Conjecture delta_chain_tick_preserves_inv : forall (V : Type) (dc : DeltaChain V),
+Theorem delta_chain_tick_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (deltaChainTick dc).
+Proof.
+    intros v dc Hinv.
+    destruct Hinv eqn: Hinv' ; unfold deltaChainTick; simpl in *.
+    - apply DELTACHAIN_E. simpl. rewrite e. reflexivity.
+    - destruct dc as [c ce]; simpl in *.
+    -- destruct c eqn: Hc. 
+    --- exfalso. apply n. reflexivity.
+    --- subst. unfold deltaChainListTick. 
 
-Conjecture delta_chain_pop_expired_empty_valid : forall (V : Type) (dc : DeltaChain V), 
+Theorem delta_chain_pop_expired_empty_valid : forall (V : Type) (dc : DeltaChain V), 
     snd (deltaChainPopExpired dc) = None <-> 
     (forall d t, dc.(chain) <> d :: t \/ d.(delta) <> 0).
+Proof.
+    intros.
+    repeat split; intros; unfold deltaChainPopExpired in H; simpl in *.
+    - destruct (chain dc) eqn: Hchain; simpl. 
+    -- left. discriminate.
+    -- destruct (Nat.eqb (delta d0) (delta d)) eqn:Heq; simpl.
+    --- right. apply Nat.eqb_eq in Heq. rewrite <- Heq. destruct (delta d0 =? 0) eqn:Hd0; simpl.
+    ---- apply Nat.eqb_eq in Hd0. rewrite Hd0. discriminate.
+    ---- apply Nat.eqb_neq in Hd0. apply Hd0.
+    --- apply Nat.eqb_neq in Heq. left. intros Hlisteq. inversion Hlisteq. subst. apply Heq. reflexivity.
+    - unfold deltaChainPopExpired. destruct (chain dc) eqn:Hchain; simpl.
+    -- reflexivity.
+    -- specialize (H d d0). destruct H; simpl.
+    --- contradict H. reflexivity.
+    --- destruct (delta d =? 0) eqn: Hd0; simpl. 
+    ---- apply Nat.eqb_eq in Hd0. contradict H. apply Hd0.
+    ---- reflexivity.
+Qed.
 
-Conjecture delta_chain_pop_expired_some_valid : forall (V : Type) (dc : DeltaChain V) (d : DeltaNode V),
+Theorem delta_chain_pop_expired_some_valid : forall (V : Type) (dc : DeltaChain V) (d : DeltaNode V),
     (exists t, dc.(chain) = d :: t /\ d.(delta) = 0) <-> 
 
     (snd (deltaChainPopExpired dc) = Some d /\
      length (fst (deltaChainPopExpired dc)).(chain) = (length dc.(chain) - 1)).
+Proof.
+    intros.
+    repeat split; intros; unfold deltaChainPopExpired; simpl in *; destruct (chain dc) eqn: Hchain; simpl.
+
+    - destruct H as [Hlist [Hnil]]. discriminate Hnil.
+    - destruct (delta d0) eqn: Hd0; simpl; destruct (chain dc) in Hchain; try discriminate. 
+    -- destruct H as [Hlist [Heq]]. inversion Heq. reflexivity.
+    -- destruct H as [Hlist [Heq]]. inversion Heq. subst. contradict H. lia.
+
+    - rewrite Hchain. reflexivity.
+    - destruct H as [Hlist [Heq]]. destruct (delta d0) eqn: Hd0; simpl. 
+    -- lia.
+    -- inversion Heq. subst. rewrite H in Hd0. discriminate Hd0.
+    - destruct H as [Hexp]. unfold deltaChainPopExpired in *. 
+      destruct (chain dc) eqn :Hchain2 in Hexp; destruct (chain dc) eqn : Hchain3 in *; simpl in *; inversion Hexp; 
+      destruct (delta d0 =? 0) eqn: Hd0 in *; simpl in *.
+    -- inversion Hexp. subst. apply Nat.eqb_eq in Hd0. exists []. split.
+    --- discriminate Hchain2.
+    --- apply Hd0.
+    -- discriminate H1.
+    -- inversion Hchain.
+    -- discriminate H1.
+    - rewrite <- Hchain. unfold deltaChainPopExpired in H. destruct (chain dc) eqn: Hchain2 in H; simpl in *.
+    -- inversion H. inversion H0.
+    -- destruct (delta d2 =? 0) eqn: Hd20 in H; rewrite Hchain2 in Hchain; inversion Hchain.
+    --- apply Nat.eqb_eq in Hd20. subst. destruct H. inversion H. subst. exists d1. auto. 
+    --- destruct H. inversion H.
+Qed.
 
 Conjecture delta_chain_pop_expired_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (fst (deltaChainPopExpired dc)).
 
-Conjecture delta_chain_pop_valid : forall (V : Type) (dc : DeltaChain V),
+Theorem delta_chain_pop_valid : forall (V : Type) (dc : DeltaChain V),
     (dc.(chain) = [] <-> snd (deltaChainPop dc) = None) /\
     (dc.(chain) <> [] <-> (exists d t, snd (deltaChainPop dc) = Some d /\ dc.(chain) = d :: t)).
+Proof.
+    intros.
+    repeat split; intros; simpl in *.
+    - unfold deltaChainPop. destruct (chain dc) eqn: Hchain; simpl. 
+    -- reflexivity.
+    -- discriminate H.
+    - unfold deltaChainPop in H. destruct (chain dc) eqn: Hchain in H; simpl.
+    -- auto.
+    -- destruct d0 in H; simpl in *; discriminate H.
+    - unfold deltaChainPop. destruct (chain dc) eqn: Hchain; simpl.
+    -- contradict H. reflexivity.
+    -- exists d. exists d0. split; simpl in *.
+    --- destruct d0 eqn: Hd0; simpl; reflexivity.
+    --- reflexivity.
+    - unfold deltaChainPop in H. destruct (chain dc) eqn: Hchain in H; simpl. 
+    -- intros HchainF. destruct H as [Hlist [Hsome [Hcontra]]]. discriminate H.
+    -- destruct d0 eqn: Hd0 in H; simpl in *.
+    --- destruct H as [Hn [Hsome [Hl]]]. subst. rewrite H in Hchain. rewrite Hchain. discriminate.
+    --- rewrite Hd0 in Hchain. rewrite <- Hchain in H. destruct H as [Hn [Hsome [Hl]]].
+    ---- rewrite Hchain. discriminate. 
+Qed.
 
 Conjecture delta_chain_pop_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (fst (deltaChainPop dc)).
 
-Conjecture delta_chain_is_empty_valid : forall (V : Type) (dc : DeltaChain V), 
+Theorem delta_chain_is_empty_valid : forall (V : Type) (dc : DeltaChain V), 
     (dc.(chain) = [] <-> deltaChainIsEmpty dc = true) /\ 
     (dc.(chain) <> [] <-> deltaChainIsEmpty dc = false).
+Proof.
+    intros.
+    repeat split; intros; simpl in *.
+    - unfold deltaChainIsEmpty. rewrite H. reflexivity.
+    - unfold deltaChainIsEmpty in H. destruct (chain dc). reflexivity. discriminate.
+    - unfold deltaChainIsEmpty. destruct (chain dc). contradict H. reflexivity. reflexivity.
+    - unfold deltaChainIsEmpty in H. destruct (chain dc); discriminate.
+Qed.
 
-Conjecture delta_chain_peek_valid : forall (V : Type) (dc : DeltaChain V),
+Theorem delta_chain_peek_valid : forall (V : Type) (dc : DeltaChain V),
     (dc.(chain) = [] <-> deltaChainPeek dc = None) /\
     (dc.(chain) <> [] <-> (exists d t, deltaChainPeek dc = Some d /\ dc.(chain) = d :: t)).
+Proof.
+    intros.
+    repeat split; intros; simpl in *.
+    - unfold deltaChainPeek. rewrite H. reflexivity.
+    - unfold deltaChainPeek in H. destruct (chain dc) eqn: Hchain; simpl.
+    -- reflexivity.
+    -- discriminate.
+    - unfold deltaChainPeek.  destruct (chain dc) eqn: Hchain; simpl.
+    -- contradict H. reflexivity.
+    -- exists d. exists d0. auto.
+    - destruct H as [x [chain_x [dc_peek dc_chain ] ] ].
+    -- rewrite dc_chain. discriminate.
+Qed.   
