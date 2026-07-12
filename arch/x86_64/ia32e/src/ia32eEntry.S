@@ -37,7 +37,7 @@
 
 .extern ia32eIsrPreHandler
 .extern ia32eIsrHandler
-.extern ia32eSyscallHandler
+.extern ia32eSyscallHandlerStrict
 
 #if CONFIG_X86_64_IA32E_VTX
 
@@ -134,7 +134,7 @@ __ia32eSyscallEntry:
     IA32E_ASM_RELOAD_FP_STATE
 
     movq %rsp, %rdi
-    call ia32eSyscallHandler
+    call ia32eSyscallHandlerStrict
 
     IA32E_ASM_POP_REGS
 

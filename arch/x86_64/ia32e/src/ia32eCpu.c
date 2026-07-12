@@ -32,6 +32,7 @@
 #include <import/kLsrHandler.h>
 #include <import/kExceptionHandler.h>
 #include <workhorse/kTick/kTick.h>
+#include <plugin/kPlugin.h>
 #include <lib/mcsLock.h>
 #include <errno.h>
 
@@ -946,8 +947,7 @@ void ia32eCpuSyscallSetReturnAddress(uintptr_t returnAddress)
     syscallRegs->rcx = returnAddress;
 }
 
-
-void ia32eCpuExceptionSetReturnAddress(uintptr_t returnAddress)
+void ia32eCpuExceptionSetReturnAddress(uintptr_t returnAddr)
 {
     ia32ePerCpu_t *cpu = NULL;
     ia32eFrame_t *frame = NULL;
@@ -955,7 +955,9 @@ void ia32eCpuExceptionSetReturnAddress(uintptr_t returnAddress)
     cpu = ia32eThisCpuData();
     frame = cpu->currentFrame;
 
-    frame->rip = returnAddress;
+    frame->rip = returnAddr;
+
+    K_DYNAMIC_ASSERT(IA32E_CANONICAL(returnAddr));
 }
 
 void ia32eCpuEnterDomain(kDomain_t *domain)
@@ -1101,6 +1103,8 @@ int ia32eCpuLsrInfoInit(archSchedLsrInfo_t *info, archSchedLsrParam_t *param)
 
 int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
 {
+    kPluginDomainParam_t *domParam = NULL;
+
     uintptr_t pml4Phys = 0;
     ia32ePml4_t *pml4Virt = NULL;
     ia32ePml4e_t pml4e = 0;
@@ -1117,6 +1121,34 @@ int ia32eCpuDomainInfoInit(archDomainInfo_t *info, archDomainParam_t *param)
         return ia32eCpuVtxDomainInfoInit(info, param);
 
 #endif
+
+    domParam = containerOf(param, kPluginDomainParam_t, archParam);
+
+    if (!IA32E_CANONICAL(domParam->param.invocationInfo._start) ||
+        
+        (domParam->param.invocationInfo.invocationIpc.valid && 
+         !IA32E_CANONICAL(domParam->param.invocationInfo.invocationIpc._entry)) ||
+        
+        (domParam->param.invocationInfo.invocationExceptionVmemFault.valid && 
+         !IA32E_CANONICAL(domParam->param.invocationInfo.invocationExceptionVmemFault._entry)) ||
+        
+        (domParam->param.invocationInfo.invocationExceptionIllegalOpcode.valid && 
+         !IA32E_CANONICAL(domParam->param.invocationInfo.invocationExceptionIllegalOpcode._entry)) ||
+        
+        (domParam->param.invocationInfo.invocationExceptionAlignment.valid && 
+         !IA32E_CANONICAL(domParam->param.invocationInfo.invocationExceptionAlignment._entry)) ||
+        
+        (domParam->param.invocationInfo.invocationExceptionDebug.valid && 
+         !IA32E_CANONICAL(domParam->param.invocationInfo.invocationExceptionDebug._entry)) ||
+        
+        (domParam->param.invocationInfo.invocationExceptionArithmetic.valid && 
+         !IA32E_CANONICAL(domParam->param.invocationInfo.invocationExceptionArithmetic._entry)) ||
+        
+        (domParam->param.invocationInfo.invocationExceptionOther.valid && 
+         !IA32E_CANONICAL(domParam->param.invocationInfo.invocationExceptionOther._entry))) {
+
+        return -EINVAL;
+    }
 
     pml4Phys = param->ia32eParam.pml4BasePhys;
     pml4Virt = param->ia32eParam.pml4BaseVirt;
@@ -1695,6 +1727,35 @@ bool ia32eIsrHandler(ia32eFrame_t *frame)
     barrier();
 
     return IA32E_SELECTOR_TO_RPL(frame->cs) != 0;
+}
+
+void ia32eSyscallHandlerStrict(ia32eRegs_t *regs)
+{
+    kSchedTask_t *runningTask = NULL;
+    kDomain_t *domain = NULL;
+    uintptr_t newPc = 0;
+
+    ia32eSyscallHandler(regs);
+
+    if (IA32E_CANONICAL(regs->rcx))
+        return;
+
+    runningTask = kTickGetRunningTask();
+
+    K_DYNAMIC_ASSERT(runningTask);
+
+    domain = runningTask->domain.curDomain;
+
+    K_DYNAMIC_ASSERT(domain);
+
+    if (kDomainPushInvocationEntry(&newPc, domain, WORKHORSE_INVOCATION_TYPE_OTHER, regs->rcx, 0, 0) < 0) {
+        kSyscallHandler(WORKHORSE_SYS_SCHED_CTRL, WORKHORSE_SCHED_CTRL_FAILURE, 0);
+        return;
+    }
+
+    K_DYNAMIC_ASSERT(IA32E_CANONICAL(newPc));
+
+    regs->rcx = newPc;
 }
 
 void ia32eSyscallHandler(ia32eRegs_t *regs)

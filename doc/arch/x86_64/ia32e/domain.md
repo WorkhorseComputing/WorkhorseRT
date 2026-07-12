@@ -1,5 +1,7 @@
 # Domain
 
+All entry points for domains which are not vm's must be canonical.
+
 ia32e domains are created with the following parameters:
 
 - ```ia32ePml4_t *pml4BaseVirt;``` <br>
