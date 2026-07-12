@@ -9,11 +9,16 @@ Makefile
 Makefile.conf
 .Makefile.d
 
-verif/**/.*.aux
-verif/**/*.glob
-verif/**/*.vo
-verif/**/*.vok
-verif/**/*.vos
+theories/**/.*.aux
+theories/**/*.glob
+theories/**/*.vo
+theories/**/*.vok
+theories/**/*.vos
+
+CoqMakefile
+CoqMakefile.conf
+.CoqMakefile.d
+.lia.cache
 
 .vscode
 .clangd

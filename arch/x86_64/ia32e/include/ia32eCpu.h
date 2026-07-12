@@ -450,6 +450,7 @@ void ia32eIsrEventHandler(void);
 void ia32eIsrMain(void);
 bool ia32eIsrHandler(ia32eFrame_t *frame);
 
+void ia32eSyscallHandlerStrict(ia32eRegs_t *regs);
 void ia32eSyscallHandler(ia32eRegs_t *regs);
 
 #endif

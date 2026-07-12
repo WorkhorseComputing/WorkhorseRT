@@ -68,6 +68,8 @@
 #define IA32E_INVPCID_ALL_INC_GLOBAL    2
 #define IA32E_INVPCID_ALL_NO_GLOBAL     3
 
+#define IA32E_CANONICAL(ptr) (((ptr) >> 47) == 0 || ((ptr) >> 47) == 0x1ffff)
+
 #ifdef ASM_FILE
 
 .macro IA32E_ASM_GEN_ISR_ENTRY, ISR_NO, prefix, entry_func
