@@ -2154,10 +2154,14 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
             task->ctx.ia32eCtx.vtx.x2apic.sivr = val;
             ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
-            
+
+            if ((val & IA32E_XAPIC_SIVR_ENABLE_MASK) != 0)
+                break;
+
             pin = ia32eVmread(IA32E_VTX_VMCS_CTRL_PINBASED_CONTROLS);
+            exit = ia32eVmread(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS);
+
             if (testBitLe(pin, IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT)) {
-                exit = ia32eVmread(IA32E_VTX_VMCS_CTRL_PRIMARY_VMEXIT_CONTROLS);
 
                 pin &= ~(1 << IA32E_VTX_VMCS_PINBASED_CTLS_VMX_PREEMPTION_TIMER_BIT);
                 exit &= ~(1 << IA32E_VTX_VMCS_EXIT_CTLS_SAVE_VMX_PREEMPTION_TIMER_BIT);
