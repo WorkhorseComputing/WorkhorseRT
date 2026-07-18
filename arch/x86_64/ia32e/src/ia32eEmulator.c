@@ -1097,8 +1097,13 @@ void ia32eEmulatorX2apicSendPacket(uint8_t x2apicId, uint8_t vector, uint8_t del
 
         case IA32E_DM_NORMAL:
 
-            if ((x2apic->sivr & IA32E_XAPIC_SIVR_ENABLE_MASK) == 0)
+            if ((x2apic->sivr & IA32E_XAPIC_SIVR_ENABLE_MASK) == 0) {
+
+                if (vector <= 15 && (task->ctx.ia32eCtx.vtx.x2apic.sivr & IA32E_XAPIC_SIVR_ENABLE_MASK) != 0)
+                    atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.receiverEsr, IA32E_XAPIC_ESR_SEND_ILLEGAL_MASK);                    
+
                 break;
+            }
 
             if (vector <= 15) {
 
