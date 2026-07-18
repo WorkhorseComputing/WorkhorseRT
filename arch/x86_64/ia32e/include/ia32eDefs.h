@@ -97,7 +97,7 @@ typedef struct ia32eVtxX2apic
     } local;
 
     uint64_t apicBaseAddr;
-    uint8_t sivr;
+    uint32_t sivr;
     
     uint32_t irr[8];
     uint32_t isr[8];
