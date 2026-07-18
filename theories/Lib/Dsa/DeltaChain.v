@@ -293,7 +293,9 @@ Proof.
     - destruct dc as [c ce]; simpl in *.
     -- destruct c eqn: Hc. 
     --- exfalso. apply n. reflexivity.
-    --- subst. unfold deltaChainListTick. 
+    --- subst. unfold deltaChainListTick. destruct (delta d2 =? 0); simpl.
+    ---- apply DELTACHAIN_C; simpl.  
+
 
 Theorem delta_chain_pop_expired_empty_valid : forall (V : Type) (dc : DeltaChain V), 
     snd (deltaChainPopExpired dc) = None <-> 

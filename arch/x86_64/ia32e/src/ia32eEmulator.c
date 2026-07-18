@@ -1385,10 +1385,14 @@ bool ia32eEmulatorCallbackQueueEventSynthetic(bool advance, uint8_t vector, ia32
     if (task->ctx.ia32eCtx.vtx.pluginEvent.delivery.fields.valid != 0)
         return false;
 
-    if (!advance && type == IA32E_INTERRUPT_TYPE_EXTERNAL && vector <= 15)
-        atomic_fetch_or(&kTickGetRunningTask()->ctx.ia32eCtx.vtx.x2apic.receiverEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
-    else
+    if (!advance && type == IA32E_INTERRUPT_TYPE_EXTERNAL && vector <= 15) {
+
+        if ((task->ctx.ia32eCtx.vtx.x2apic.sivr & IA32E_XAPIC_SIVR_ENABLE_MASK) != 0)
+            atomic_fetch_or(&task->ctx.ia32eCtx.vtx.x2apic.receiverEsr, IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK);
+            
+    } else {
         __ia32eEmulatorQueueEventSynthetic(advance, vector, type, deliverErrcode, errcode, true);
+    }
 
     return true;
 }
