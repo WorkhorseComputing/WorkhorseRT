@@ -1263,10 +1263,13 @@ void ia32eEmulatorX2apicCheckReceiverEsr(void)
         
         vector = task->ctx.ia32eCtx.vtx.x2apic.lvtError & 0xff;
         if (vector > 15) {
-                
-            ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
-            task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[vector / 32] |= (1 << (vector % 32));
-            ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+            
+            if ((task->ctx.ia32eCtx.vtx.x2apic.sivr & IA32E_XAPIC_SIVR_ENABLE_MASK) != 0) {
+
+                ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+                task->ctx.ia32eCtx.vtx.x2apic.latchedIrr[vector / 32] |= (1 << (vector % 32));
+                ia32eEmulatorLatchUnlockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
+            }
 
         } else {
             receiver |= IA32E_XAPIC_ESR_RECV_ILLEGAL_MASK;
@@ -1352,10 +1355,14 @@ bool ia32eEmulatorIpiRouter(uint64_t val)
 
     ia32eEmulatorLatchLockSafe(x2apic, &node);
 
-    if (nmi)
+    if (!nmi) {
+
+        if ((x2apic->sivr & IA32E_XAPIC_SIVR_ENABLE_MASK) != 0)
+            x2apic->latchedIrr[vector / 32] |= (1 << (vector % 32));
+
+    } else {
         x2apic->latch.fields.nmiPending = 1;
-    else
-        x2apic->latchedIrr[vector / 32] |= (1 << (vector % 32));
+    }
 
     ia32eEmulatorLatchUnlockSafe(x2apic, &node);
 
@@ -2143,8 +2150,6 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
             }
 
             K_DYNAMIC_ASSERT((cpuReadStatus() & IA32E_FLAGS_IF_MASK) != 0);
-            
-            __mcsNodeInit(&node);
 
             ia32eEmulatorLatchLockSafe(&task->ctx.ia32eCtx.vtx.x2apic, &node);
             task->ctx.ia32eCtx.vtx.x2apic.sivr = val;
@@ -2170,8 +2175,11 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
                 break;
             }
 
-            task->ctx.ia32eCtx.vtx.x2apic.esr = task->ctx.ia32eCtx.vtx.x2apic.pendingEsr;
-            task->ctx.ia32eCtx.vtx.x2apic.pendingEsr = 0;
+            if ((task->ctx.ia32eCtx.vtx.x2apic.sivr & IA32E_XAPIC_SIVR_ENABLE_MASK) != 0) {
+                task->ctx.ia32eCtx.vtx.x2apic.esr = task->ctx.ia32eCtx.vtx.x2apic.pendingEsr;
+                task->ctx.ia32eCtx.vtx.x2apic.pendingEsr = 0;
+            }
+            
             break;
 
         case IA32E_X2APIC_ICR:
@@ -3059,8 +3067,8 @@ bool ia32eEmulatorEventManager(ia32eVmexitRegs_t *regs)
 
     /* 4: check any receivers or latches */
 
-    ia32eEmulatorX2apicCheckLatchedIrr();
     ia32eEmulatorX2apicCheckReceiverEsr();
+    ia32eEmulatorX2apicCheckLatchedIrr();
 
     /* 5: dequeue any pending events */
 
