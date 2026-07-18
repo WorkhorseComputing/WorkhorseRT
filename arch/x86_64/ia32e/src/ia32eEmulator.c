@@ -2137,7 +2137,7 @@ void ia32eEmulatorWrmsr(ia32eVmexitRegs_t *regs)
 
         case IA32E_X2APIC_SIVR:
 
-            if ((val & ~0x1ffULL) == 0) {
+            if ((val & ~0x1ffULL) != 0) {
                 valid = false;
                 break;
             }
