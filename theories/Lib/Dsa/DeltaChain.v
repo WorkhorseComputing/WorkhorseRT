@@ -80,7 +80,10 @@ Fixpoint deltaChainListDeltasValid {V : Type} (c : DeltaChainList V) (off : nat)
 Definition deltaChainCurrentEpochValid {V : Type} (dc : DeltaChain V) : Prop :=
     match dc.(chain) with
     | [] => True
-    | h :: _ =>  dc.(currentEpoch) + h.(delta) = h.(expectedEpoch)
+    | h :: _ => match h.(delta) with 
+                | 0 => dc.(currentEpoch) + h.(delta) >= h.(expectedEpoch)
+                | _ => dc.(currentEpoch) + h.(delta) = h.(expectedEpoch)
+                end
     end.
 
 Definition deltaChainOrdered {V : Type} (dc : DeltaChain V) : Prop :=
@@ -120,7 +123,7 @@ Fixpoint deltaChainListInsert {V : Type} (c :  DeltaChainList V) (d : DeltaNode 
 Fixpoint deltaChainListTick {V : Type} (c :  DeltaChainList V) : DeltaChainList V := 
     match c with 
     | [] =>     []
-    | h :: t => if h.(delta) =? 0 then deltaChainListTick t else h <| delta := h.(delta) - 1 |> :: t
+    | h :: t => if h.(delta) =? 0 then h :: deltaChainListTick t else h <| delta := h.(delta) - 1 |> :: t
     end.
 
 Definition deltaChainInsert {V : Type} (dc : DeltaChain V) (d : DeltaNode V) : DeltaChain V := dc <| 
@@ -238,7 +241,7 @@ Proof.
     intros v dc d Hinv. destruct Hinv; unfold deltaChainInsert; simpl in *.
     - rewrite H. simpl. apply DELTACHAIN_C; simpl.
     -- discriminate.
-    -- unfold deltaChainCurrentEpochValid. simpl. lia.
+    -- unfold deltaChainCurrentEpochValid. simpl. destruct (delta d); lia.
     -- unfold deltaChainOrdered. simpl. reflexivity.
     -- unfold deltaChainDeltasValid. simpl. lia.
     
@@ -248,9 +251,9 @@ Proof.
     --- destruct (delta d <=? delta d0); simpl; discriminate.
 
     -- unfold deltaChainCurrentEpochValid. destruct (chain dc) eqn : Hchain; simpl.
-    --- lia.
+    --- destruct (delta d); lia.
     --- destruct (delta d <=? delta d0); simpl. 
-    ---- lia. 
+    ---- destruct (delta d); lia. 
     ---- unfold deltaChainCurrentEpochValid in H0. rewrite Hchain in H0. apply H0.
     
     -- unfold deltaChainOrdered. simpl. destruct (chain dc) eqn: Hchain; simpl.
@@ -288,14 +291,28 @@ Theorem delta_chain_tick_preserves_inv : forall (V : Type) (dc : DeltaChain V),
     DeltaChainInv dc -> DeltaChainInv (deltaChainTick dc).
 Proof.
     intros v dc Hinv.
-    destruct Hinv eqn: Hinv' ; unfold deltaChainTick; simpl in *.
-    - apply DELTACHAIN_E. simpl. rewrite e. reflexivity.
-    - destruct dc as [c ce]; simpl in *.
-    -- destruct c eqn: Hc. 
-    --- exfalso. apply n. reflexivity.
-    --- subst. unfold deltaChainListTick. destruct (delta d2 =? 0); simpl.
-    ---- apply DELTACHAIN_C; simpl.  
+    unfold deltaChainTick.
+    unfold deltaChainListTick.
+    remember (chain dc) as c.
+    destruct Hinv eqn: Hinv'.
+    - apply DELTACHAIN_E. simpl. subst. rewrite e. reflexivity.
+    - apply DELTACHAIN_C; simpl in *.
 
+    -- intro H. destruct (chain dc) eqn: Hchain in H. 
+    --- contradict Hchain. apply n.
+    --- rewrite Heqc in *. contradict H. destruct (delta d2 =? 0) eqn: Hdeltad2; simpl in *; rewrite Hchain; 
+        rewrite Hdeltad2; discriminate.
+
+    -- unfold deltaChainCurrentEpochValid in *. simpl in *. destruct c eqn: Hc. reflexivity. 
+    --- destruct (delta d2 =? 0) eqn: Hdeltad2; simpl in *; set (d' := d); rewrite <- Heqc in d'.
+    ---- apply Nat.eqb_eq in Hdeltad2. rewrite Hdeltad2. rewrite Hdeltad2 in d'. 
+         lia.
+    ---- apply Nat.eqb_neq in Hdeltad2. destruct (delta d2) eqn: Hdeltad2'.
+    ----- contradict Hdeltad2. reflexivity.
+    ----- simpl. replace (n0 - 0) with n0 by lia. destruct n0 eqn: Hn0; lia.
+
+    -- unfold deltaChainOrdered in *. unfold deltaChainListOrdered in *. simpl in *.  destruct c eqn: Hc. reflexivity.
+    --- 
 
 Theorem delta_chain_pop_expired_empty_valid : forall (V : Type) (dc : DeltaChain V), 
     snd (deltaChainPopExpired dc) = None <-> 
