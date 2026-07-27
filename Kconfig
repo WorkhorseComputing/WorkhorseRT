@@ -38,13 +38,13 @@ config KBUF_SIZE
 choice
 
     prompt "Scheduling algorithm"
-    default KSCHED_ALGORITHM_BCS
-
-    config KSCHED_ALGORITHM_BCS
-        bool "Burst-cooldown server"
+    default KSCHED_ALGORITHM_DS
 
     config KSCHED_ALGORITHM_DS
         bool "Deferrable server"
+
+    config KSCHED_ALGORITHM_BCS
+        bool "Burst-cooldown server"
 
 endchoice # Scheduling algorithm
 
