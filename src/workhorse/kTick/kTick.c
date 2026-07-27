@@ -193,7 +193,7 @@ void kTickTaskLoadNextState(kSchedTask_t *task, kSchedState_t nextState)
 
             if (thread->tick.lag) {
                 K_DYNAMIC_ASSERT(thread->tick.sleepTicks > 0);
-                K_DYNAMIC_ASSERT(thread->tick.period > thread->tick.sleepTicks);
+                K_DYNAMIC_ASSERT(thread->tick.period >= thread->tick.sleepTicks);
 
                 period -= thread->tick.sleepTicks - 1;
                 thread->tick.lag = false;
@@ -467,15 +467,18 @@ void kTickSleepPeriod(kTickMachine_t *machine)
 
         K_DYNAMIC_ASSERT(wokenThread->tick.sleepTicks > 0);
 
-#if CONFIG_KSCHED_ALGORITHM_BCS
         if (wokenThread->tick.currentBudget == 0) {
 
+#if CONFIG_KSCHED_ALGORITHM_BCS
             if (wokenThread->tick.period >= wokenThread->tick.sleepTicks)
                 wokenThread->tick.lag = true;
             else
+                wokenThread->tick.currentBudget = wokenThread->tick.budget;  
+#else 
+            if (wokenThread->tick.period == 0)
                 wokenThread->tick.currentBudget = wokenThread->tick.budget;
+#endif 
         }
-#endif
 
         nextState = wokenThread->tick.currentBudget == 0 ? K_TASK_STATE_THREAD_THROTTLED : K_TASK_STATE_READY;
 
