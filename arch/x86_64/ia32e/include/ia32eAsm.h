@@ -241,6 +241,9 @@
 .macro IA32E_ASM_VTX_POP_REGS
     popq %rax 
     movq %rax, %cr2
+    
+    movl $(1 << 10), %eax
+    movq %rax, %dr7
 
     popq %rax 
     movq %rax, %dr0
