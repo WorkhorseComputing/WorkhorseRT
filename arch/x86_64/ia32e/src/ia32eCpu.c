@@ -446,8 +446,9 @@ void ia32eTssInit(void)
 
     cpu->cpuDataStructures.tssFull.tss.rsp0 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->intStack.stack)]);
     cpu->cpuDataStructures.tssFull.tss.ist1 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->intStack.stack)]);
-    cpu->cpuDataStructures.tssFull.tss.ist2 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->nmiStack.stack)]);
-    cpu->cpuDataStructures.tssFull.tss.ist3 = (uintptr_t)(&cpu->intStack.stack[sizeof(cpu->doubleFaultStack.stack)]);
+    cpu->cpuDataStructures.tssFull.tss.ist2 = (uintptr_t)(&cpu->nmiStack.stack[sizeof(cpu->nmiStack.stack)]);
+    cpu->cpuDataStructures.tssFull.tss.ist3 = 
+	    (uintptr_t)(&cpu->doubleFaultStack.stack[sizeof(cpu->doubleFaultStack.stack)]);
 
     cpu->cpuDataStructures.tssFull.tss.iopbBase = offsetof(ia32eTssFull64_t, iopb);
     cpu->cpuDataStructures.tssFull.iopb[ARRAY_LEN(cpu->cpuDataStructures.tssFull.iopb) - 1] = 0xff;
